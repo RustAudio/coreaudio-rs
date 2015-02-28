@@ -1,0 +1,10 @@
+[package]
+
+name = "coreaudio-rs"
+version = "0.0.1"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+description = "A friendly rust interface for Apple's CoreAudio API."
+license = "MIT"
+
+[dependencies.coreaudio-sys]
+path = "bindings"

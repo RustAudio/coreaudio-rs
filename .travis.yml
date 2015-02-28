@@ -4,6 +4,9 @@ notifications:
         - mitchell.nordine@gmail.com
 os:
     - osx
+matrix:
+  allow_failures:
+    - os: linux
 env:
     global:
         - LD_LIBRARY_PATH: /usr/local/lib

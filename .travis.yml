@@ -1,0 +1,16 @@
+language: rust
+notifications:
+    email:
+        - mitchell.nordine@gmail.com
+os:
+    - osx
+env:
+    global:
+        - LD_LIBRARY_PATH: /usr/local/lib
+before_script:
+    - rustc --version
+    - cargo --version
+script:
+    - cargo build -v
+    - cargo test -v
+    - cargo doc -v

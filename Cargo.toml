@@ -8,3 +8,6 @@ license = "MIT"
 
 [dependencies.coreaudio-sys]
 path = "bindings"
+
+[dependencies]
+libc = "*"

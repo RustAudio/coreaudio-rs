@@ -17,11 +17,14 @@ fn main() {
 
     // Construct an Output audio unit.
     let audio_unit = AudioUnit::new(Type::Output, SubType::HalOutput)
-        .render_callback(box move |buffer, num_frames| for i in (0..num_frames) {
-            let sample = samples.next().unwrap();
-            for channel in buffer.iter_mut() {
-                channel[i] = sample;
+        .render_callback(box move |buffer, num_frames| {
+            for i in (0..num_frames) {
+                let sample = samples.next().unwrap();
+                for channel in buffer.iter_mut() {
+                    channel[i] = sample;
+                }
             }
+            Ok(())
         })
         .start()
         .unwrap();

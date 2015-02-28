@@ -9,7 +9,7 @@
 //!
 
 use bindings::audio_unit as au;
-use error::Error;
+use error::{Error, AudioUnitError};
 use libc;
 use std::mem;
 
@@ -160,7 +160,7 @@ impl AudioUnitBuilder {
     /// This will be called every time the AudioUnit requests audio.
     /// f is a boxed FnMut whose arg is [frames[channels]].
     #[inline]
-    pub fn render_callback(self, f: Box<FnMut(&mut[&mut[f32]], NumFrames)>) -> AudioUnitBuilder {
+    pub fn render_callback(self, f: Box<FnMut(&mut[&mut[f32]], NumFrames) -> Result<(), String>>) -> AudioUnitBuilder {
         let audio_unit_result = match self.audio_unit_result {
             Err(err) => Err(err),
             Ok(audio_unit) => {
@@ -207,7 +207,7 @@ pub type NumFrames = usize;
 
 /// A struct in which we will pass the callback to the AudioUnit's render callback.
 pub struct RenderCallback {
-    f: Box<FnMut(&mut[&mut[f32]], NumFrames)>,
+    f: Box<FnMut(&mut[&mut[f32]], NumFrames) -> Result<(), String>>,
 }
 
 /// Callback procedure that will be called each time our audio_unit requests audio.
@@ -227,10 +227,10 @@ extern "C" fn input_proc(in_ref_con: *mut libc::c_void,
                     ::std::slice::from_raw_parts_mut(slice_ptr, in_number_frames as usize)
                 })
                 .collect();
-        (*(*callback).f)(&mut channels[..], in_number_frames as usize)
+        match (*(*callback).f)(&mut channels[..], in_number_frames as usize) {
+            Ok(()) => 0,
+            Err(_) => AudioUnitError::NoConnection as au::OSStatus,
+        }
     }
-    0
 }
-
-
 

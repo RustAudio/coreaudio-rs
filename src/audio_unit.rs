@@ -217,11 +217,11 @@ extern "C" fn input_proc(in_ref_con: *mut libc::c_void,
                          _in_bus_number: au::UInt32,
                          in_number_frames: au::UInt32,
                          io_data: *mut au::AudioBufferList) -> au::OSStatus {
-    const NUM_CHANNELS: usize = 2;
     let callback: *mut RenderCallback = in_ref_con as *mut _;
     unsafe {
+        let num_channels = (*io_data).mNumberBuffers as usize;
         let mut channels: Vec<&mut [f32]> =
-            (0..NUM_CHANNELS)
+            (0..num_channels)
                 .map(|i| {
                     let slice_ptr = (*io_data).mBuffers[i].mData as *mut libc::c_float;
                     ::std::slice::from_raw_parts_mut(slice_ptr, in_number_frames as usize)
@@ -229,7 +229,10 @@ extern "C" fn input_proc(in_ref_con: *mut libc::c_void,
                 .collect();
         match (*(*callback).f)(&mut channels[..], in_number_frames as usize) {
             Ok(()) => 0,
-            Err(_) => AudioUnitError::NoConnection as au::OSStatus,
+            Err(description) => {
+                println!("{:?}", description);
+                AudioUnitError::NoConnection as au::OSStatus
+            },
         }
     }
 }

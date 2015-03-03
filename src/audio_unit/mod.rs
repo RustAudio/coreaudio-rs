@@ -9,9 +9,13 @@
 //!
 
 use bindings::audio_unit as au;
-use error::Error;
+use error::{Error, AudioUnitError};
 use libc;
+use self::stream_format::StreamFormat;
 use std::mem;
+
+pub mod audio_format;
+pub mod stream_format;
 
 /// Represents the input and output scope.
 #[derive(Copy, Clone, Debug)]
@@ -135,6 +139,24 @@ impl AudioUnit {
         }
     }
 
+    /// Return the current Stream Format for the AudioUnit.
+    pub fn stream_format(&self) -> StreamFormat {
+        unsafe {
+            let mut asbd: au::AudioStreamBasicDescription = mem::uninitialized();
+            let mut size = ::std::mem::size_of::<au::AudioStreamBasicDescription>() as u32;
+            if let Err(err) = Error::from_os_status(au::AudioUnitGetProperty(
+                                                        self.audio_unit,
+                                                        au::kAudioUnitProperty_StreamFormat,
+                                                        Scope::Output as libc::c_uint,
+                                                        Element::Output as libc::c_uint,
+                                                        &mut asbd as *mut _ as *mut libc::c_void,
+                                                        &mut size as *mut au::UInt32)) {
+                panic!("{:?}", err);
+            }
+            StreamFormat::from_asbd(asbd)
+        }
+    }
+
     /// Close the audio unit.
     pub fn close(self) {}
 
@@ -143,8 +165,14 @@ impl AudioUnit {
 impl Drop for AudioUnit {
     fn drop(&mut self) {
         unsafe {
-            Error::from_os_status(au::AudioOutputUnitStop(self.audio_unit)).unwrap();
-            Error::from_os_status(au::AudioUnitUninitialize(self.audio_unit)).unwrap();
+            use error;
+            use std::error::Error;
+            if let Err(err) = error::Error::from_os_status(au::AudioOutputUnitStop(self.audio_unit)) {
+                panic!("{:?}", err.description());
+            }
+            if let Err(err) = error::Error::from_os_status(au::AudioUnitUninitialize(self.audio_unit)) {
+                panic!("{:?}", err.description());
+            }
         }
     }
 }
@@ -160,7 +188,7 @@ impl AudioUnitBuilder {
     /// This will be called every time the AudioUnit requests audio.
     /// f is a boxed FnMut whose arg is [frames[channels]].
     #[inline]
-    pub fn render_callback(self, f: Box<FnMut(&mut[&mut[f32]], NumFrames)>) -> AudioUnitBuilder {
+    pub fn render_callback(self, f: Box<FnMut(&mut[&mut[f32]], NumFrames) -> Result<(), String>>) -> AudioUnitBuilder {
         let audio_unit_result = match self.audio_unit_result {
             Err(err) => Err(err),
             Ok(audio_unit) => {
@@ -207,7 +235,7 @@ pub type NumFrames = usize;
 
 /// A struct in which we will pass the callback to the AudioUnit's render callback.
 pub struct RenderCallback {
-    f: Box<FnMut(&mut[&mut[f32]], NumFrames)>,
+    f: Box<FnMut(&mut[&mut[f32]], NumFrames) -> Result<(), String>>,
 }
 
 /// Callback procedure that will be called each time our audio_unit requests audio.
@@ -217,20 +245,23 @@ extern "C" fn input_proc(in_ref_con: *mut libc::c_void,
                          _in_bus_number: au::UInt32,
                          in_number_frames: au::UInt32,
                          io_data: *mut au::AudioBufferList) -> au::OSStatus {
-    const NUM_CHANNELS: usize = 2;
     let callback: *mut RenderCallback = in_ref_con as *mut _;
     unsafe {
+        let num_channels = (*io_data).mNumberBuffers as usize;
         let mut channels: Vec<&mut [f32]> =
-            (0..NUM_CHANNELS)
+            (0..num_channels)
                 .map(|i| {
                     let slice_ptr = (*io_data).mBuffers[i].mData as *mut libc::c_float;
                     ::std::slice::from_raw_parts_mut(slice_ptr, in_number_frames as usize)
                 })
                 .collect();
-        (*(*callback).f)(&mut channels[..], in_number_frames as usize)
+        match (*(*callback).f)(&mut channels[..], in_number_frames as usize) {
+            Ok(()) => 0,
+            Err(description) => {
+                println!("{:?}", description);
+                AudioUnitError::NoConnection as au::OSStatus
+            },
+        }
     }
-    0
 }
-
-
 

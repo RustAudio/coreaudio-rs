@@ -11,7 +11,11 @@
 use bindings::audio_unit as au;
 use error::{Error, AudioUnitError};
 use libc;
+use self::stream_format::StreamFormat;
 use std::mem;
+
+pub mod audio_format;
+pub mod stream_format;
 
 /// Represents the input and output scope.
 #[derive(Copy, Clone, Debug)]
@@ -135,6 +139,24 @@ impl AudioUnit {
         }
     }
 
+    /// Return the current Stream Format for the AudioUnit.
+    pub fn stream_format(&self) -> StreamFormat {
+        unsafe {
+            let mut asbd: au::AudioStreamBasicDescription = mem::uninitialized();
+            let mut size = ::std::mem::size_of::<au::AudioStreamBasicDescription>() as u32;
+            if let Err(err) = Error::from_os_status(au::AudioUnitGetProperty(
+                                                        self.audio_unit,
+                                                        au::kAudioUnitProperty_StreamFormat,
+                                                        Scope::Output as libc::c_uint,
+                                                        Element::Output as libc::c_uint,
+                                                        &mut asbd as *mut _ as *mut libc::c_void,
+                                                        &mut size as *mut au::UInt32)) {
+                panic!("{:?}", err);
+            }
+            StreamFormat::from_asbd(asbd)
+        }
+    }
+
     /// Close the audio unit.
     pub fn close(self) {}
 
@@ -143,8 +165,14 @@ impl AudioUnit {
 impl Drop for AudioUnit {
     fn drop(&mut self) {
         unsafe {
-            Error::from_os_status(au::AudioOutputUnitStop(self.audio_unit)).unwrap();
-            Error::from_os_status(au::AudioUnitUninitialize(self.audio_unit)).unwrap();
+            use error;
+            use std::error::Error;
+            if let Err(err) = error::Error::from_os_status(au::AudioOutputUnitStop(self.audio_unit)) {
+                panic!("{:?}", err.description());
+            }
+            if let Err(err) = error::Error::from_os_status(au::AudioUnitUninitialize(self.audio_unit)) {
+                panic!("{:?}", err.description());
+            }
         }
     }
 }

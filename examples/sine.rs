@@ -1,8 +1,8 @@
 //! A basic output stream example, using an Output AudioUnit to generate a sine wave.
 
-#![feature(box_syntax, core, old_io, std_misc)]
+#![feature(box_syntax, core, std_misc, thread_sleep)]
 
-extern crate "coreaudio-rs" as coreaudio;
+extern crate coreaudio_rs as coreaudio;
 
 use coreaudio::audio_unit::{AudioUnit, Type, SubType};
 use std::iter::iterate;
@@ -29,7 +29,7 @@ fn main() {
         .start()
         .unwrap();
 
-    ::std::old_io::timer::sleep(::std::time::duration::Duration::seconds(3));
+    ::std::thread::sleep(::std::time::duration::Duration::seconds(3));
 
     audio_unit.close();
 

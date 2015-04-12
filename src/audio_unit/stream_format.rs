@@ -60,7 +60,7 @@ impl StreamFormat {
             bits_per_channel,
         } = self;
         let (format, maybe_flag) = audio_format.to_format_and_flag();
-        let flag = maybe_flag.unwrap_or(-2147483648);
+        let flag = maybe_flag.unwrap_or(::std::u32::MAX -2147483647);
         au::AudioStreamBasicDescription {
             mSampleRate: sample_rate,
             mFormatID: format,

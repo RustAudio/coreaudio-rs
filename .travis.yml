@@ -1,4 +1,7 @@
 language: rust
+rust:
+    - nightly
+    - 1.0.0-beta
 notifications:
     email:
         - mitchell.nordine@gmail.com
@@ -8,12 +11,11 @@ matrix:
   allow_failures:
     - os: linux
 env:
-    global:
-        - LD_LIBRARY_PATH: /usr/local/lib
+    - LD_LIBRARY_PATH: /usr/local/lib
 before_script:
     - rustc --version
     - cargo --version
 script:
-    - cargo build -v
-    - cargo test -v
-    - cargo doc -v
+    - cargo build --verbose
+    - cargo test --verbose
+    - cargo doc --verbose

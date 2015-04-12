@@ -121,8 +121,8 @@ impl AudioUnit {
             use std::ptr::null_mut;
             // Find the default audio unit for the description.
             let component_result = match au::AudioComponentFindNext(null_mut(), &desc as *const _) {
-                component if component == null_mut() => Err(Error::NoMatchingDefaultAudioUnitFound),
-                component                            => Ok(component),
+                component if component.is_null() => Err(Error::NoMatchingDefaultAudioUnitFound),
+                component                        => Ok(component),
             };
 
             // Get an instance of the default audio unit using the component.
@@ -194,7 +194,7 @@ impl AudioUnitBuilder {
             Ok(audio_unit) => {
                 let size_of_render_callback_struct = mem::size_of::<au::AURenderCallbackStruct>() as u32;
 
-                let callback = box RenderCallback { f: f };
+                let callback = Box::new(RenderCallback { f: f });
                 unsafe {
                     // Setup render callback.
                     let render_callback = au::AURenderCallbackStruct {

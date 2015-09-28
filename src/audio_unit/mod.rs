@@ -175,6 +175,8 @@ impl Drop for AudioUnit {
                 panic!("{:?}", err.description());
             }
             if let Some(callback) = self.callback {
+                // Here, we transfer ownership of the callback back to the current scope so that it
+                // is dropped and cleaned up. Without this line, we would leak the Boxed callback.
                 let _: Box<RenderCallback> = mem::transmute(callback);
             }
         }
@@ -192,21 +194,32 @@ impl AudioUnitBuilder {
     /// This will be called every time the AudioUnit requests audio.
     /// f is a boxed FnMut whose arg is [frames[channels]].
     #[inline]
-    pub fn render_callback(self, f: Box<FnMut(&mut[&mut[f32]], NumFrames) -> Result<(), String>>) -> AudioUnitBuilder {
+    pub fn render_callback(self, f: Box<FnMut(&mut[&mut[f32]], NumFrames) -> Result<(), String>>)
+        -> AudioUnitBuilder
+    {
         let audio_unit_result = match self.audio_unit_result {
             Err(err) => Err(err),
             Ok((audio_unit, previous_callback)) => {
                 unsafe {
                     if let Some(previous_callback_ptr) = previous_callback {
+                        // Here, we transfer ownership of the previous callback back to the current
+                        // scope so that it is dropped and cleaned up. Without this line, we would
+                        // leak the Boxed callback.
                         let _: Box<RenderCallback> = mem::transmute(previous_callback_ptr);
                     }
 
-                    let size_of_render_callback_struct = mem::size_of::<au::AURenderCallbackStruct>() as u32;
+                    let size_of_render_callback_struct =
+                        mem::size_of::<au::AURenderCallbackStruct>() as u32;
 
-                    // Setup render callback.
-                    let callback: *mut libc::c_void = mem::transmute(Box::new(RenderCallback { f: f }));
+                    // Setup render callback. Notice that we relinquish ownership of the Callback
+                    // here so that it can be used as the C render callback via a void pointer.
+                    // We do however store the *mut so that we can transmute back to a
+                    // Box<RenderCallback> within our AudioUnit's Drop implementation (otherwise it
+                    // would leak).
+                    let boxed_render_callback = Box::new(RenderCallback { f: f });
+                    let callback: *mut libc::c_void = mem::transmute(boxed_render_callback);
                     let render_callback = au::AURenderCallbackStruct {
-                        inputProc: Some(input_proc), // TODO
+                        inputProc: Some(input_proc),
                         inputProcRefCon: callback,
                     };
 
@@ -252,10 +265,14 @@ extern "C" fn input_proc(in_ref_con: *mut libc::c_void,
                          _in_time_stamp: *const au::AudioTimeStamp,
                          _in_bus_number: au::UInt32,
                          in_number_frames: au::UInt32,
-                         io_data: *mut au::AudioBufferList) -> au::OSStatus {
+                         io_data: *mut au::AudioBufferList) -> au::OSStatus
+{
     let callback: *mut RenderCallback = in_ref_con as *mut _;
     unsafe {
         let num_channels = (*io_data).mNumberBuffers as usize;
+
+        // FIXME: We shouldn't need a Vec for this, it should probably be something like
+        // `&[&mut [f32]]` instead.
         let mut channels: Vec<&mut [f32]> =
             (0..num_channels)
                 .map(|i| {
@@ -263,10 +280,12 @@ extern "C" fn input_proc(in_ref_con: *mut libc::c_void,
                     ::std::slice::from_raw_parts_mut(slice_ptr, in_number_frames as usize)
                 })
                 .collect();
+
         match (*(*callback).f)(&mut channels[..], in_number_frames as usize) {
-            Ok(()) => 0,
+            Ok(()) => 0 as au::OSStatus,
             Err(description) => {
-                println!("{:?}", description);
+                use std::io::Write;
+                writeln!(::std::io::stderr(), "{:?}", description).unwrap();
                 AudioUnitError::NoConnection as au::OSStatus
             },
         }

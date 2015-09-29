@@ -157,16 +157,17 @@ impl AudioUnit {
     }
 
     /// Pass a render callback (aka "Input Procedure") to the audio unit.
-    pub fn render_callback(&mut self, callback: Option<Box<RenderCallback>>) -> Result<(), Error>
+    pub fn render_callback(&mut self, f: Option<Box<RenderCallback>>) -> Result<(), Error>
     {
-        // TODO: Double-check naming etc in here; could probably be better.
         unsafe {
             // Setup render callback. Notice that we relinquish ownership of the Callback
             // here so that it can be used as the C render callback via a void pointer.
             // We do however store the *mut so that we can transmute back to a
-            // Box<RenderCallback> within our AudioUnit's Drop implementation (otherwise it
-            // would leak).
-            let callback_ptr: *mut libc::c_void = match callback {
+            // Box<Box<RenderCallback>> within our AudioUnit's Drop implementation
+            // (otherwise it would leak). The double-boxing is due to incompleteness with
+            // Rust's FnMut implemetation and is necessary to be able to transmute to the
+            // correct pointer size.
+            let callback_ptr: *mut libc::c_void = match f {
                 Some(x) => mem::transmute(Box::new(x)),
                 _ => ptr::null_mut()
             };
@@ -190,14 +191,12 @@ impl AudioUnit {
     }
 
     /// Start the audio unit.
-    // TOOD: Test and see what happens when this is called and the audio unit is already started.
     pub fn start(&self) -> Result<(), Error> {
         unsafe { try_os_status!(au::AudioOutputUnitStart(self.instance)); }
         Ok(())
     }
 
     /// Stop the audio unit.
-    // TOOD: Test and see what happens when this is called and the audio unit is already stopped.
     pub fn stop(&self) -> Result<(), Error> {
         unsafe { try_os_status!(au::AudioOutputUnitStop(self.instance)); }
         Ok(())

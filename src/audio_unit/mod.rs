@@ -232,6 +232,21 @@ impl AudioUnit {
         }
     }
 
+    /// Sets the current Stream Format for the AudioUnit.
+    pub fn set_stream_format(&self, stream_format: StreamFormat) -> Result<(), Error> {
+        unsafe {
+            let mut asbd = stream_format.to_asbd();
+            try_os_status!(au::AudioUnitSetProperty(
+                self.instance,
+                au::kAudioUnitProperty_StreamFormat,
+                au::kAudioUnitScope_Input,
+                0,
+                &mut asbd as *mut _ as *mut libc::c_void,
+                mem::size_of::<au::AudioStreamBasicDescription>() as u32));
+            Ok(())
+        }
+    }
+
     /// Return the current Stream Format for the AudioUnit.
     pub fn stream_format(&self) -> Result<StreamFormat, Error> {
         unsafe {

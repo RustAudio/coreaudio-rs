@@ -110,6 +110,10 @@ pub struct AudioUnit {
     callback: Option<*mut libc::c_void>
 }
 
+macro_rules! try_os_status {
+    ($expr:expr) => (try!(Error::from_os_status($expr)))
+}
+
 impl AudioUnit {
 
     /// Construct a new AudioUnit.
@@ -134,9 +138,9 @@ impl AudioUnit {
             // Get an instance of the default audio unit using the component.
             let mut instance: au::AudioUnit = mem::uninitialized();
 
-            try!(Error::from_os_status(au::AudioComponentInstanceNew(component, &mut instance as *mut au::AudioUnit)));
+            try_os_status!(au::AudioComponentInstanceNew(component, &mut instance as *mut au::AudioUnit));
             // Initialise the audio unit!
-            try!(Error::from_os_status(au::AudioUnitInitialize(instance)));
+            try_os_status!(au::AudioUnitInitialize(instance));
             Ok(AudioUnit {
                 instance: instance,
                 callback: None
@@ -171,13 +175,13 @@ impl AudioUnit {
                 inputProcRefCon: callback_ptr
             };
 
-            try!(Error::from_os_status(au::AudioUnitSetProperty(
+            try_os_status!(au::AudioUnitSetProperty(
                 self.instance,
                 au::kAudioUnitProperty_SetRenderCallback,
                 Scope::Input as libc::c_uint,
                 Element::Output as libc::c_uint,
                 &render_callback as *const _ as *const libc::c_void,
-                mem::size_of::<au::AURenderCallbackStruct>() as u32)));
+                mem::size_of::<au::AURenderCallbackStruct>() as u32));
 
             self.free_render_callback();
             self.callback = if !callback_ptr.is_null() { Some(callback_ptr) } else { None };
@@ -188,14 +192,14 @@ impl AudioUnit {
     /// Start the audio unit.
     // TOOD: Test and see what happens when this is called and the audio unit is already started.
     pub fn start(&self) -> Result<(), Error> {
-        unsafe { try!(Error::from_os_status(au::AudioOutputUnitStart(self.instance))); }
+        unsafe { try_os_status!(au::AudioOutputUnitStart(self.instance)); }
         Ok(())
     }
 
     /// Stop the audio unit.
     // TOOD: Test and see what happens when this is called and the audio unit is already stopped.
     pub fn stop(&self) -> Result<(), Error> {
-        unsafe { try!(Error::from_os_status(au::AudioOutputUnitStop(self.instance))); }
+        unsafe { try_os_status!(au::AudioOutputUnitStop(self.instance)); }
         Ok(())
     }
 

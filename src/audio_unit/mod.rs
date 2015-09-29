@@ -204,20 +204,18 @@ impl AudioUnit {
     }
 
     /// Return the current Stream Format for the AudioUnit.
-    pub fn stream_format(&self) -> StreamFormat {
+    pub fn stream_format(&self) -> Result<StreamFormat, Error> {
         unsafe {
             let mut asbd: au::AudioStreamBasicDescription = mem::uninitialized();
             let mut size = ::std::mem::size_of::<au::AudioStreamBasicDescription>() as u32;
-            if let Err(err) = Error::from_os_status(au::AudioUnitGetProperty(
-                                                        self.instance,
-                                                        au::kAudioUnitProperty_StreamFormat,
-                                                        Scope::Output as libc::c_uint,
-                                                        Element::Output as libc::c_uint,
-                                                        &mut asbd as *mut _ as *mut libc::c_void,
-                                                        &mut size as *mut au::UInt32)) {
-                panic!("{:?}", err);
-            }
-            StreamFormat::from_asbd(asbd)
+            try_os_status!(au::AudioUnitGetProperty(
+                self.instance,
+                au::kAudioUnitProperty_StreamFormat,
+                Scope::Output as libc::c_uint,
+                Element::Output as libc::c_uint,
+                &mut asbd as *mut _ as *mut libc::c_void,
+                &mut size as *mut au::UInt32));
+            Ok(StreamFormat::from_asbd(asbd))
         }
     }
 

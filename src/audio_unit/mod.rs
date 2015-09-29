@@ -298,6 +298,19 @@ extern "C" fn input_proc(in_ref_con: *mut libc::c_void,
             (0..num_channels)
                 .map(|i| {
                     let slice_ptr = (*io_data).mBuffers[i].mData as *mut libc::c_float;
+                    // TODO: the size of this buffer needs to be calculated properly based on the stream format.
+                    // Currently this won't be correct in at least this case:
+                    /*
+                    stream_format::StreamFormat {
+                        sample_rate: 44100.0,
+                        audio_format: audio_format::AudioFormat::LinearPCM(Some(audio_format::LinearPCMFlag::IsFloat)),
+                        bytes_per_packet: 2 * 4,
+                        frames_per_packet: 1,
+                        bytes_per_frame: 2 * 4,
+                        channels_per_frame: 2,
+                        bits_per_channel: 32
+                    }
+                     */
                     ::std::slice::from_raw_parts_mut(slice_ptr, in_number_frames as usize)
                 })
                 .collect();

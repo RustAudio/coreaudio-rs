@@ -126,26 +126,21 @@ impl AudioUnit {
 
         unsafe {
             // Find the default audio unit for the description.
-            let component_result = match au::AudioComponentFindNext(ptr::null_mut(), &desc as *const _) {
-                component if component.is_null() => Err(Error::NoMatchingDefaultAudioUnitFound),
-                component                        => Ok(component),
+            let component = match au::AudioComponentFindNext(ptr::null_mut(), &desc as *const _) {
+                component if component.is_null() => return Err(Error::NoMatchingDefaultAudioUnitFound),
+                component                        => component,
             };
 
             // Get an instance of the default audio unit using the component.
             let mut instance: au::AudioUnit = mem::uninitialized();
 
-            match component_result {
-                Ok(component) => {
-                    au::AudioComponentInstanceNew(component, &mut instance as *mut au::AudioUnit); // TODO: Check error code
-                    // Initialise the audio unit!
-                    au::AudioUnitInitialize(instance); // TODO: Check error code
-                    Ok(AudioUnit {
-                        instance: instance,
-                        callback: None
-                    })
-                },
-                Err(err) => Err(err),
-            }
+            try!(Error::from_os_status(au::AudioComponentInstanceNew(component, &mut instance as *mut au::AudioUnit)));
+            // Initialise the audio unit!
+            try!(Error::from_os_status(au::AudioUnitInitialize(instance)));
+            Ok(AudioUnit {
+                instance: instance,
+                callback: None
+            })
         }
     }
 
@@ -176,20 +171,17 @@ impl AudioUnit {
                 inputProcRefCon: callback_ptr
             };
 
-            match Error::from_os_status(au::AudioUnitSetProperty(
+            try!(Error::from_os_status(au::AudioUnitSetProperty(
                 self.instance,
                 au::kAudioUnitProperty_SetRenderCallback,
                 Scope::Input as libc::c_uint,
                 Element::Output as libc::c_uint,
                 &render_callback as *const _ as *const libc::c_void,
-                mem::size_of::<au::AURenderCallbackStruct>() as u32)) {
-                Ok(()) => {
-                    self.free_render_callback();
-                    self.callback = if !callback_ptr.is_null() { Some(callback_ptr) } else { None };
-                    Ok(())
-                },
-                Err(err) => Err(err),
-            }
+                mem::size_of::<au::AURenderCallbackStruct>() as u32)));
+
+            self.free_render_callback();
+            self.callback = if !callback_ptr.is_null() { Some(callback_ptr) } else { None };
+            Ok(())
         }
     }
 

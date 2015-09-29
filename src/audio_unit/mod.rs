@@ -202,6 +202,36 @@ impl AudioUnit {
         Ok(())
     }
 
+    /// Set the audio unit's sample rate.
+    pub fn set_sample_rate(&self, sample_rate: f64) -> Result<(), Error> {
+        unsafe {
+            try_os_status!(au::AudioUnitSetProperty(
+                self.instance,
+                au::kAudioUnitProperty_SampleRate,
+                au::kAudioUnitScope_Input,
+                0,
+                &sample_rate as *const _ as *const libc::c_void,
+                mem::size_of::<f64>() as u32));
+            Ok(())
+        }
+    }
+
+    /// Get the audio unit's sample rate.
+    pub fn sample_rate(&self) -> Result<f64, Error> {
+        unsafe {
+            let mut sample_rate: f64 = 0.0;
+            let mut size: u32 = mem::size_of::<f64>() as u32;
+            try_os_status!(au::AudioUnitGetProperty(
+                self.instance,
+                au::kAudioUnitProperty_SampleRate,
+                au::kAudioUnitScope_Input,
+                0,
+                &mut sample_rate as *mut _ as *mut libc::c_void,
+                &mut size as *mut _));
+            Ok(sample_rate)
+        }
+    }
+
     /// Return the current Stream Format for the AudioUnit.
     pub fn stream_format(&self) -> Result<StreamFormat, Error> {
         unsafe {

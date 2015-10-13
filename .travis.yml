@@ -1,21 +1,32 @@
 language: rust
 rust:
-    - stable
-    - nightly
+- stable
+- nightly
 notifications:
-    email:
-        - mitchell.nordine@gmail.com
+  email:
+  - mitchell.nordine@gmail.com
 os:
-    - osx
+- osx
 matrix:
   allow_failures:
-    - os: linux
+  - os: linux
 env:
-    - LD_LIBRARY_PATH: /usr/local/lib
+  matrix:
+  - LD_LIBRARY_PATH: /usr/local/lib
+  global:
+    secure: Ua2xv6+p4Dh86acOk0DH09g7MSq+iHitkrdSAHJm4lL8N6sE4kjGgVGZzFvlpbpl0PUKKTm8cCIOo7wu1XR5WkGm3pX7nlsoOViUfNlJx4sltq+AC6K33QjNBi8UOGdabmCmizDQboQkotd2M00vQ/S0LF8/eUaGDeovzC/EKWQ=
 before_script:
-    - rustc --version
-    - cargo --version
+- rustc --version
+- cargo --version
 script:
-    - cargo build --verbose
-    - cargo test --verbose
-    - cargo doc --verbose
+- cargo build --verbose
+- cargo test --verbose
+- cargo doc --verbose
+after_success: |
+  [ $TRAVIS_BRANCH = master ] &&
+  [ $TRAVIS_PULL_REQUEST = false ] &&
+  cargo doc &&
+  echo "<meta http-equiv=refresh content=0;url=`echo $TRAVIS_REPO_SLUG | cut -d '/' -f 2`/index.html>" > target/doc/index.html &&
+  sudo pip install ghp-import &&
+  ghp-import -n target/doc &&
+  git push -fq https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages

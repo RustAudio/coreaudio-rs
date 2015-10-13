@@ -1,3 +1,8 @@
+//! Typification of the various AudioFormat codes and flags offered by the Core Audio API.
+//! 
+//! See the Core Audio Data Types Reference
+//! [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/Audio_Data_Format_Identifiers) for more info.
+
 
 use libc;
 

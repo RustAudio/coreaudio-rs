@@ -6,7 +6,7 @@ authors = ["mitchmindtree <mitchell.nordine@gmail.com>", "yupferris <jake@fuseto
 description = "A friendly rust interface for Apple's CoreAudio API."
 keywords = ["core", "audio", "unit", "osx", "ios"]
 readme = "README.md"
-license = "MIT"
+license = "MIT/Apache-2.0"
 repository = "https://github.com/RustAudio/coreaudio-rs.git"
 homepage = "https://github.com/RustAudio/coreaudio-rs"
 

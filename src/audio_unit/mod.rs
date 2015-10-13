@@ -1,10 +1,7 @@
+//! This module is an attempt to provide a friendly, rust-esque interface to Apple's Audio Unit API.
 //!
-//! This module is an attempt to provide a friendly, rust-esque interface to
-//! Apple's Audio Unit API.
-//!
-//! Learn more about the Audio Unit API here:
-//! https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40003278-CH1-SW2
-//!
+//! Learn more about the Audio Unit API [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40003278-CH1-SW2)
+//! and [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html).
 
 use bindings::audio_unit as au;
 use error::{Error, AudioUnitError};
@@ -16,21 +13,26 @@ use std::ptr;
 pub mod audio_format;
 pub mod stream_format;
 
-/// Represents the input and output scope.
+/// The input and output **Scope**s.
+///
+/// More info [here](https://developer.apple.com/library/ios/documentation/AudioUnit/Reference/AudioUnitPropertiesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Scopes)
+/// and [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html).
 #[derive(Copy, Clone, Debug)]
 pub enum Scope {
     Output = 0,
     Input  = 1,
 }
 
-/// Represents the input and output elements .
+/// Represents the **Input** and **Output** **Element**s.
+///
+/// These are used when specifying which **Element** we're setting the properties of.
 #[derive(Copy, Clone, Debug)]
 pub enum Element {
     Output = 0,
     Input  = 1,
 }
 
-/// Represents the different types of Audio Units.
+/// Represents the different kinds of Audio Units that are available.
 #[derive(Copy, Clone, Debug)]
 pub enum Type {
     Output          = 1635086197,
@@ -97,6 +99,7 @@ pub enum SubType {
     AudioFilePlayer      = 1634103404,
 }
 
+/// The number of frames available in some buffer.
 pub type NumFrames = usize;
 
 /// A type representing a render callback (aka "Input Procedure")
@@ -105,6 +108,8 @@ pub type NumFrames = usize;
 pub type RenderCallback = FnMut(&mut[&mut[f32]], NumFrames) -> Result<(), String>;
 
 /// A rust representation of the au::AudioUnit, including a pointer to the current rendering callback.
+///
+/// Find the original Audio Unit Programming Guide [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html).
 pub struct AudioUnit {
     instance: au::AudioUnit,
     callback: Option<*mut libc::c_void>

@@ -1,3 +1,6 @@
+//! A rustification of the `AudioStreamBasicDescription` type.
+//!
+//! Find the original `AudioStreamBasicDescription` reference [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/c/tdef/AudioStreamBasicDescription).
 
 use bindings::audio_unit as au;
 use super::audio_format::AudioFormat;

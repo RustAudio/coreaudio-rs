@@ -2,3 +2,4 @@
 
 A friendly rust interface for Apple's CoreAudio API.
 
+[Documentation](http://rustaudio.github.io/coreaudio-rs/coreaudio-rs)

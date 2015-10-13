@@ -28,22 +28,17 @@ fn main() {
         .map(|phase| (phase * PI * 2.0).sin() as f32 * 0.15);
 
     // Construct an Output audio unit.
-    let audio_unit = AudioUnit::new(Type::Output, SubType::HalOutput)
-        .render_callback(Box::new(move |buffer, num_frames| {
-            for frame in (0..num_frames) {
-                let sample = samples.next().unwrap();
-                for channel in buffer.iter_mut() {
-                    channel[frame] = sample;
-                }
+    let mut audio_unit = AudioUnit::new(Type::Output, SubType::HalOutput).unwrap();
+    audio_unit.render_callback(Some(Box::new(move |buffer, num_frames| {
+        for frame in (0..num_frames) {
+            let sample = samples.next().unwrap();
+            for channel in buffer.iter_mut() {
+                channel[frame] = sample;
             }
-            Ok(())
-        }))
-        .start()
-        .unwrap();
+        }
+        Ok(())
+    }))).ok();
+    audio_unit.start().ok();
 
     ::std::thread::sleep_ms(3000);
-
-    audio_unit.close();
-
 }
-

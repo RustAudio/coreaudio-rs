@@ -30,7 +30,7 @@ fn main() {
     // Construct an Output audio unit.
     let mut audio_unit = AudioUnit::new(Type::Output, SubType::HalOutput).unwrap();
     audio_unit.render_callback(Some(Box::new(move |buffer, num_frames| {
-        for frame in (0..num_frames) {
+        for frame in 0..num_frames {
             let sample = samples.next().unwrap();
             for channel in buffer.iter_mut() {
                 channel[frame] = sample;

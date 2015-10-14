@@ -157,7 +157,7 @@ impl AudioUnit {
         if let Some(callback) = self.callback {
             // Here, we transfer ownership of the callback back to the current scope so that it
             // is dropped and cleaned up. Without this line, we would leak the Boxed callback.
-            let _: Box<Box<RenderCallback>> = unsafe { mem::transmute(callback) };
+            let _: Box<Box<RenderCallback>> = unsafe { Box::from_raw(callback as *mut Box<RenderCallback>) };
         }
     }
 
@@ -167,13 +167,13 @@ impl AudioUnit {
         unsafe {
             // Setup render callback. Notice that we relinquish ownership of the Callback
             // here so that it can be used as the C render callback via a void pointer.
-            // We do however store the *mut so that we can transmute back to a
+            // We do however store the *mut so that we can convert back to a
             // Box<Box<RenderCallback>> within our AudioUnit's Drop implementation
             // (otherwise it would leak). The double-boxing is due to incompleteness with
-            // Rust's FnMut implemetation and is necessary to be able to transmute to the
+            // Rust's FnMut implemetation and is necessary to be able to convert to the
             // correct pointer size.
-            let callback_ptr: *mut libc::c_void = match f {
-                Some(x) => mem::transmute(Box::new(x)),
+            let callback_ptr = match f {
+                Some(x) => Box::into_raw(Box::new(x)) as *mut libc::c_void,
                 _ => ptr::null_mut()
             };
             let render_callback = au::AURenderCallbackStruct {

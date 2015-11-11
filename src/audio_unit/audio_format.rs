@@ -14,10 +14,10 @@ pub enum AudioFormat {
     AC3,                                  // = 1633889587,
     F60958AC3(Option<StandardFlag>),      // = 1667326771,
     AppleIMA4,                            // = 1768775988,
-    MPEG4AAC(Option<Mpeg4Object>),        // = 1633772320,
-    MPEG4CELP(Option<Mpeg4Object>),       // = 1667591280,
-    MPEG4HVXC(Option<Mpeg4Object>),       // = 1752594531,
-    MPEG4TwinVQ(Option<Mpeg4Object>),     // = 1953986161,
+    MPEG4AAC(Option<Mpeg4ObjectId>),      // = 1633772320,
+    MPEG4CELP(Option<Mpeg4ObjectId>),     // = 1667591280,
+    MPEG4HVXC(Option<Mpeg4ObjectId>),     // = 1752594531,
+    MPEG4TwinVQ(Option<Mpeg4ObjectId>),   // = 1953986161,
     MACE3,                                // = 1296122675,
     MACE6,                                // = 1296122678,
     ULaw,                                 // = 1970037111,
@@ -57,10 +57,10 @@ impl AudioFormat {
             (1633889587, _)       => Some(AudioFormat::AC3),
             (1667326771, Some(i)) => Some(AudioFormat::F60958AC3(StandardFlag::from_u32(i))),
             (1768775988, _)       => Some(AudioFormat::AppleIMA4),
-            (1633772320, Some(i)) => Some(AudioFormat::MPEG4AAC(Mpeg4Object::from_u32(i))),
-            (1667591280, Some(i)) => Some(AudioFormat::MPEG4CELP(Mpeg4Object::from_u32(i))),
-            (1752594531, Some(i)) => Some(AudioFormat::MPEG4HVXC(Mpeg4Object::from_u32(i))),
-            (1953986161, Some(i)) => Some(AudioFormat::MPEG4TwinVQ(Mpeg4Object::from_u32(i))),
+            (1633772320, Some(i)) => Some(AudioFormat::MPEG4AAC(Mpeg4ObjectId::from_bits(i as isize))),
+            (1667591280, Some(i)) => Some(AudioFormat::MPEG4CELP(Mpeg4ObjectId::from_bits(i as isize))),
+            (1752594531, Some(i)) => Some(AudioFormat::MPEG4HVXC(Mpeg4ObjectId::from_bits(i as isize))),
+            (1953986161, Some(i)) => Some(AudioFormat::MPEG4TwinVQ(Mpeg4ObjectId::from_bits(i as isize))),
             (1296122675, _)       => Some(AudioFormat::MACE3),
             (1296122678, _)       => Some(AudioFormat::MACE6),
             (1970037111, _)       => Some(AudioFormat::ULaw),
@@ -71,7 +71,7 @@ impl AudioFormat {
             (778924081, _)        => Some(AudioFormat::MPEGLayer1),
             (778924082, _)        => Some(AudioFormat::MPEGLayer2),
             (778924083, _)        => Some(AudioFormat::MPEGLayer3),
-            (1953066341, Some(i)) => Some(AudioFormat::TimeCode(AudioTimeStampFlag::from_u32(i))),
+            (1953066341, Some(i)) => Some(AudioFormat::TimeCode(AudioTimeStampFlag::from_bits(i))),
             (1835623529, _)       => Some(AudioFormat::MIDIStream),
             (1634760307, _)       => Some(AudioFormat::ParameterValueStream),
             (1634492771, _)       => Some(AudioFormat::AppleLossless),
@@ -100,10 +100,10 @@ impl AudioFormat {
             AudioFormat::AC3                  => (1633889587, None),
             AudioFormat::F60958AC3(flag)      => (1667326771, flag.map(|flag| flag as u32)),
             AudioFormat::AppleIMA4            => (1768775988, None),
-            AudioFormat::MPEG4AAC(flag)       => (1633772320, flag.map(|flag| flag as u32)),
-            AudioFormat::MPEG4CELP(flag)      => (1667591280, flag.map(|flag| flag as u32)),
-            AudioFormat::MPEG4HVXC(flag)      => (1752594531, flag.map(|flag| flag as u32)),
-            AudioFormat::MPEG4TwinVQ(flag)    => (1953986161, flag.map(|flag| flag as u32)),
+            AudioFormat::MPEG4AAC(flag)       => (1633772320, flag.map(|flag| flag.bits() as u32)),
+            AudioFormat::MPEG4CELP(flag)      => (1667591280, flag.map(|flag| flag.bits() as u32)),
+            AudioFormat::MPEG4HVXC(flag)      => (1752594531, flag.map(|flag| flag.bits() as u32)),
+            AudioFormat::MPEG4TwinVQ(flag)    => (1953986161, flag.map(|flag| flag.bits() as u32)),
             AudioFormat::MACE3                => (1296122675, None),
             AudioFormat::MACE6                => (1296122678, None),
             AudioFormat::ULaw                 => (1970037111, None),
@@ -114,7 +114,7 @@ impl AudioFormat {
             AudioFormat::MPEGLayer1           => (778924081, None),
             AudioFormat::MPEGLayer2           => (778924082, None),
             AudioFormat::MPEGLayer3           => (778924083, None),
-            AudioFormat::TimeCode(flag)       => (1953066341, flag.map(|flag| flag as u32)),
+            AudioFormat::TimeCode(flag)       => (1953066341, flag.map(|flag| flag.bits())),
             AudioFormat::MIDIStream           => (1835623529, None),
             AudioFormat::ParameterValueStream => (1634760307, None),
             AudioFormat::AppleLossless        => (1634492771, None),
@@ -213,57 +213,56 @@ impl AppleLosslessFlag {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-#[allow(non_camel_case_types)]
-pub enum Mpeg4Object {
-    AAC_Main = 1,
-    AAC_LC = 2,
-    AAC_SSR = 3,
-    AAC_LTP = 4,
-    AAC_SBR = 5,
-    AAC_Scalable = 6,
-    TwinVQ = 7,
-    CELP = 8,
-    HVXC = 9,
-}
 
-impl Mpeg4Object {
-    pub fn from_u32(i: u32) -> Option<Mpeg4Object> {
-        match i {
-            1 => Some(Mpeg4Object::AAC_Main),
-            2 => Some(Mpeg4Object::AAC_LC),
-            3 => Some(Mpeg4Object::AAC_SSR),
-            4 => Some(Mpeg4Object::AAC_LTP),
-            5 => Some(Mpeg4Object::AAC_SBR),
-            6 => Some(Mpeg4Object::AAC_Scalable),
-            7 => Some(Mpeg4Object::TwinVQ),
-            8 => Some(Mpeg4Object::CELP),
-            9 => Some(Mpeg4Object::HVXC),
-            _ => None,
-        }
+bitflags! {
+    /// "Used in the `mFormatFlags` field of an `AudioStreamBasicDescription` structure that
+    /// describes an MPEG-4 audio stream to specify the type of MPEG-4 audio data.
+    ///
+    /// **Available** in OSX v10.3 and later.
+    ///
+    /// **Deprecated** in OSX v10.5.
+    flags Mpeg4ObjectId: isize {
+        /// Advanced audio coding; the baisc MPEG-4 technology.
+        const AAC_MAIN = 1,
+        /// Lossless coding; provides compression with no loss of quality.
+        const AAC_LC = 2,
+        /// Scalable sampling rate; provides different sampling frequencies for different targets.
+        const AAC_SSR = 3,
+        /// Long term prediction; reduces redundancy in a coded signal.
+        const AAC_LTP = 4,
+        /// Spectral band replication; reconstructs high-frequency content from lower frequencies
+        /// and side information.
+        const AAC_SBR = 5,
+        /// Scalable lossless coding.
+        const AAC_SCALABLE = 6,
+        /// Transform-domain weighted interleaved vector quantization; an audio codec optimised for
+        /// audio coding at ultra low bit rates around 8kbit/s.
+        const TWIN_VQ = 7,
+        /// Code Excited Linear Prdiction; a narrow-band/wide-band speech codec.
+        const CELP = 8,
+        /// Harmonic Vector Excitation Coding; a very-low bit-rate parametric speech codec.
+        const HVXC = 9,
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-#[allow(non_camel_case_types)]
-pub enum AudioTimeStampFlag {
-    SampleTimeValid = 1,
-    HostTimeValid = 2,
-    RateScalarValid = 4,
-    WordClockTimeValid = 8,
-    SMPTETimeValid = 16,
-}
 
-impl AudioTimeStampFlag {
-    pub fn from_u32(i: u32) -> Option<AudioTimeStampFlag> {
-        match i {
-            1  => Some(AudioTimeStampFlag::SampleTimeValid),
-            2  => Some(AudioTimeStampFlag::HostTimeValid),
-            4  => Some(AudioTimeStampFlag::RateScalarValid),
-            8  => Some(AudioTimeStampFlag::WordClockTimeValid),
-            16 => Some(AudioTimeStampFlag::SMPTETimeValid),
-            _  => None
-        }
+bitflags! {
+    /// "These flags indicate the valuid fields in an AudioTimeStamp structure."
+    ///
+    /// Original Documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/Audio_Time_Stamp_Flags).
+    ///
+    /// Available in OSX v10.0 and later.
+    flags AudioTimeStampFlag: u32 {
+        /// The sample frame time is valid.
+        const SAMPLE_TIME_VALID = 1,
+        /// The host time is valid.
+        const HOST_TIME_VALID = 2,
+        /// The rate scalar is valid.
+        const RATE_SCALAR_VALID = 4,
+        /// The world clock time is valid.
+        const WORLD_CLOCK_TIME_VALID = 8,
+        /// The SMPTE time is valid.
+        const SMPTE_TIME_VALID = 16,
     }
 }
 

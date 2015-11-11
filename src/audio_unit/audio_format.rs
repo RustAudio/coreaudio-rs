@@ -93,7 +93,7 @@ pub enum AudioFormat {
     ///
     /// **Available** in OS X v10.2 and later.
     TimeCode(Option<AudioTimeStampFlags>), // = 1953066341,
-    /// A stream of MIDIPAcketList structures where the time stamps in the MIDIPacket structures
+    /// A stream of MIDIPacketList structures where the time stamps in the MIDIPacket structures
     /// are sample offsets in the stream. The `sample_rate` field in the **StreamFormat** structure
     /// is used to describe how time is passed in this kind of stream.
     ///
@@ -274,9 +274,9 @@ pub mod standard_flags {
         /// Standard flags for use in the **F60958AC3** **AudioFormat** variant.
         ///
         /// Note: In the original Core Audio API these are consolidated with what we have named the
-        /// **StandardFlags** and **AppleLosslessFlag** types under the `AudioFormatFlag` type. We have
-        /// chosen to separate these for greater type safety and clearer compatibility with the
-        /// **AudioFormat** type.
+        /// **StandardFlags** and **AppleLosslessFlags** types under the `AudioFormatFlag` type. We
+        /// have chosen to separate these for greater type safety and clearer compatibility with
+        /// the **AudioFormat** type.
         /// 
         /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
         flags StandardFlags: u32 {
@@ -336,9 +336,9 @@ pub mod linear_pcm_flags {
         /// Flags for use within the **LinearPCM** **AudioFormat**.
         ///
         /// Note: In the original Core Audio API these are consolidated with what we have named the
-        /// **StandardFlags** and **AppleLosslessFlag** types under the `AudioFormatFlag` type. We have
-        /// chosen to separate these for greater type safety and clearer compatibility with the
-        /// **AudioFormat** type.
+        /// **StandardFlags** and **AppleLosslessFlags** types under the `AudioFormatFlag` type. We
+        /// have chosen to separate these for greater type safety and clearer compatibility with
+        /// the **AudioFormat** type.
         ///
         /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
         flags LinearPCMFlags: u32 {
@@ -403,9 +403,9 @@ pub mod apple_lossless_flags {
         /// **Available** in OS X v10.3 and later.
         ///
         /// Note: In the original Core Audio API these are consolidated with what we have named the
-        /// **StandardFlags** and **AppleLosslessFlag** types under the `AudioFormatFlag` type. We have
-        /// chosen to separate these for greater type safety and clearer compatibility with the
-        /// **AudioFormat** type.
+        /// **StandardFlags** and **AppleLosslessFlags** types under the `AudioFormatFlag` type. We
+        /// have chosen to separate these for greater type safety and clearer compatibility with
+        /// the **AudioFormat** type.
         ///
         /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
         flags AppleLosslessFlags: u32 {

@@ -1,6 +1,7 @@
 language: rust
 rust:
 - stable
+- beta
 - nightly
 notifications:
   email:
@@ -9,7 +10,8 @@ os:
 - osx
 matrix:
   allow_failures:
-  - os: linux
+  - rust: beta
+  - rust: nightly
 env:
   matrix:
   - LD_LIBRARY_PATH: /usr/local/lib

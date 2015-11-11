@@ -8,6 +8,7 @@
 //! Currently, work has only been started on the [audio_unit](./audio_unit/index.html) module, but
 //! eventually we'd like to cover at least the majority of the C API.
 
+#[macro_use] extern crate bitflags;
 extern crate coreaudio_sys;
 pub use coreaudio_sys as bindings;
 

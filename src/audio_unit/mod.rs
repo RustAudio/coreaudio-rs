@@ -91,6 +91,7 @@ impl AudioUnit {
     /// [**Type**](./enum.Type).
     ///
     /// Here is a list of compatible types:
+    ///
     /// - [**Type**](./enum.Type)
     /// - [**IOType**](./enum.IOType)
     /// - [**MusicDeviceType**](./enum.MusicDeviceType)
@@ -167,6 +168,7 @@ impl AudioUnit {
     ///
     /// Parameters
     /// ----------
+    ///
     /// - **id**: The identifier of the property.
     /// - **scope**: The audio unit scope for the property.
     /// - **elem**: The audio unit element for the property.
@@ -193,6 +195,7 @@ impl AudioUnit {
     ///
     /// Parameters
     /// ----------
+    ///
     /// - **id**: The identifier of the property.
     /// - **scope**: The audio unit scope for the property.
     /// - **elem**: The audio unit element for the property.

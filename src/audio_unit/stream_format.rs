@@ -3,10 +3,11 @@
 //! Find the original `AudioStreamBasicDescription` reference [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/c/tdef/AudioStreamBasicDescription).
 
 use bindings::audio_unit as au;
+use error::{self, Error};
 use super::audio_format::AudioFormat;
 
 /// Representation of the AudioStreamBasicDescription.
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct StreamFormat {
     pub sample_rate: f64,
     pub audio_format: AudioFormat,
@@ -19,13 +20,9 @@ pub struct StreamFormat {
 
 impl StreamFormat {
 
-    // /// Construct a new StreamFormat.
-    // pub fn new(channels: u32, sample_rate: f64) -> StreamFormat {
-    // }
-
     /// Convert an AudioStreamBasicDescription into a StreamFormat.
     #[allow(non_snake_case)]
-    pub fn from_asbd(asbd: au::AudioStreamBasicDescription) -> StreamFormat {
+    pub fn from_asbd(asbd: au::AudioStreamBasicDescription) -> Result<StreamFormat, Error> {
         let au::Struct_AudioStreamBasicDescription {
             mSampleRate,
             mFormatID,
@@ -37,18 +34,18 @@ impl StreamFormat {
             mBitsPerChannel,
             ..
         } = asbd;
-        StreamFormat {
+        Ok(StreamFormat {
             sample_rate: mSampleRate,
             audio_format: match AudioFormat::from_format_and_flag(mFormatID, Some(mFormatFlags)) {
                 Some(audio_format) => audio_format,
-                None => panic!("Failed to convert the ASBD's format and flag to AudioFormat"),
+                None => return Err(Error::AudioUnit(error::audio_unit::Error::FormatNotSupported)),
             },
             bytes_per_packet: mBytesPerPacket,
             frames_per_packet: mFramesPerPacket,
             bytes_per_frame: mBytesPerFrame,
             channels_per_frame: mChannelsPerFrame,
             bits_per_channel: mBitsPerChannel,
-        }
+        })
     }
 
     /// Convert a StreamFormat into an AudioStreamBasicDescription.

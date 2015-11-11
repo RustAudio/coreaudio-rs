@@ -3,7 +3,7 @@
 extern crate coreaudio_rs as coreaudio;
 extern crate num;
 
-use coreaudio::audio_unit::{AudioUnit, Type, SubType};
+use coreaudio::audio_unit::{AudioUnit, IOType};
 use num::Float;
 use std::f64::consts::PI;
 
@@ -28,7 +28,7 @@ fn main() {
         .map(|phase| (phase * PI * 2.0).sin() as f32 * 0.15);
 
     // Construct an Output audio unit.
-    let mut audio_unit = AudioUnit::new(Type::Output, SubType::HalOutput).unwrap();
+    let mut audio_unit = AudioUnit::new(IOType::HalOutput).unwrap();
 
     // Pass the audio unit a callback for filling the buffer.
     audio_unit.set_render_callback(Some(Box::new(move |buffer, num_frames| {

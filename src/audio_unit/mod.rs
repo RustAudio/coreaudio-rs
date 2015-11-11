@@ -92,13 +92,13 @@ impl AudioUnit {
     ///
     /// Here is a list of compatible types:
     ///
-    /// - [**Type**](./enum.Type)
-    /// - [**IOType**](./enum.IOType)
-    /// - [**MusicDeviceType**](./enum.MusicDeviceType)
-    /// - [**GeneratorType**](./enum.GeneratorType)
-    /// - [**FormatConverterType**](./enum.FormatConverterType)
-    /// - [**EffectType**](./enum.EffectType)
-    /// - [**MixerType**](./enum.MixerType)
+    /// - [**Type**](./types/enum.Type)
+    /// - [**IOType**](./types/enum.IOType)
+    /// - [**MusicDeviceType**](./types/enum.MusicDeviceType)
+    /// - [**GeneratorType**](./types/enum.GeneratorType)
+    /// - [**FormatConverterType**](./types/enum.FormatConverterType)
+    /// - [**EffectType**](./types/enum.EffectType)
+    /// - [**MixerType**](./types/enum.MixerType)
     ///
     /// To construct the **AudioUnit** with some component flags, see
     /// [**AudioUnit::new_with_flags**](./struct.AudioUnit#method.new_with_flags).

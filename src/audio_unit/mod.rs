@@ -33,17 +33,94 @@ pub enum Element {
 }
 
 /// Represents the different kinds of Audio Units that are available.
+///
+/// Original documentation [here](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Types).
 #[derive(Copy, Clone, Debug)]
 pub enum Type {
+    /// Provides input, output, or both input and output simultaneously.
+    ///
+    /// It can be used as the head of an audio unit processing graph.
+    ///
+    /// **Available** in OS X v10.2 and later.
     Output          = 1635086197,
+    /// An instrument unit can be used as a software musical instrument, such as a sampler or
+    /// synthesizer.
+    ///
+    /// It responds to MIDI (Musical Instrument Digital Interface) control signals and can create
+    /// notes.
+    ///
+    /// **Available** in OS X v10.2 and later.
     MusicDevice     = 1635085685,
+    /// An effect unit that can respond to MIDI control messages, typically through a mapping of
+    /// MIDI messages to parameters of the audio unit's DSP algorithm.
+    ///
+    /// **Available** in OS X v10.2 and later.
     MusicEffect     = 1635085670,
+    /// A format converter unit can transform audio formats, such as performing sample rate
+    /// conversion.
+    ///
+    /// A format converter is also appropriate for dferred rendering and for effects such as
+    /// varispeed.
+    ///
+    /// A format converter unit can ask for as much or as little audio input as it needs to produce
+    /// a given output, while still completing its rendering within the time represented by the
+    /// output buffer.
+    ///
+    /// For effect-like format converters, such as pitch shifters, it is common to provide both a
+    /// real-time and an offline version. OS X, for example, includes Time-Pitch and Varispeed
+    /// audio units in both real-time and offline versions.
+    ///
+    /// **Available** in OS X v10.2 and later.
     FormatConverter = 1635083875,
+    /// An effect unit repeatedly processes a number of audio input samples to produce the same
+    /// number of audio output samples.
+    ///
+    /// Most commonly, an effect unit has a single input and a single output.
+    ///
+    /// Some effects take side-chain inputs as well.
+    ///
+    /// Effect units can be run offline, such as to process a file without playing it, but are
+    /// expected to run in real-time.
+    ///
+    /// **Available** in OS X v10.2 and later.
     Effect          = 1635083896,
+    /// A mixer unit takes a number of input channels and mixes them to provide one or more output
+    /// channels.
+    ///
+    /// For example, the **StereoMixer** **SubType** in OS X takes multiple mono or stereo inputs
+    /// and produces a single stereo output.
+    ///
+    /// **Available** in OS X v10.2 and later.
     Mixer           = 1635085688,
+    /// A panner unit is a specialised effect unit that distributes one or more channels in a
+    /// single input to one or more channels in a single output.
+    ///
+    /// Panner units must support a set of standard audio unit parameters that specify panning
+    /// coordinates.
+    ///
+    /// **Available** in OS X v10.3 and later.
     Panner          = 1635086446,
+    /// A generator unit provides audio output that has no audio input.
+    ///
+    /// This audio unit type is appropriate for a tone generator.
+    ///
+    /// Unlike an instrument unit, a generator unit does not have a control input.
+    ///
+    /// **Available** in OS X v10.3 and later.
     Generator       = 1635084142,
+    /// An offline effect unit provides digital signal processing of a sort that cannot proceed in
+    /// real-time.
+    ///
+    /// For example, level normalisation requires examination of an entire sound, beginning to end,
+    /// before the normalisation factor can be calculated.
+    ///
+    /// As such, offline effect units also have a notion of a priming stage that can be performed
+    /// before the actual rendering/processing phase is executed.
+    ///
+    /// **Available** in OS X v10.3 and later.
     OfflineEffect   = 1635086188,
+    /// FIXME: Could not find documenation for this type - it seems it was added very recently
+    /// (around 2013) and Apple's documentation doesn't seem to have updated to include it.
     MidiProcessor   = 1635085673,
 }
 

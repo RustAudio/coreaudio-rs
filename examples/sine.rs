@@ -29,7 +29,9 @@ fn main() {
 
     // Construct an Output audio unit.
     let mut audio_unit = AudioUnit::new(Type::Output, SubType::HalOutput).unwrap();
-    audio_unit.render_callback(Some(Box::new(move |buffer, num_frames| {
+
+    // Pass the audio unit a callback for filling the buffer.
+    audio_unit.set_render_callback(Some(Box::new(move |buffer, num_frames| {
         for frame in 0..num_frames {
             let sample = samples.next().unwrap();
             for channel in buffer.iter_mut() {
@@ -38,7 +40,8 @@ fn main() {
         }
         Ok(())
     }))).ok();
-    audio_unit.start().ok();
+
+    audio_unit.start().unwrap();
 
     ::std::thread::sleep_ms(3000);
 }

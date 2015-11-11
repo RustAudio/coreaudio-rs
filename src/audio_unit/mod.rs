@@ -112,7 +112,7 @@ pub type RenderCallback = FnMut(&mut[&mut[f32]], NumFrames) -> Result<(), String
 /// Find the original Audio Unit Programming Guide [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html).
 pub struct AudioUnit {
     instance: au::AudioUnit,
-    callback: Option<*mut libc::c_void>
+    maybe_callback: Option<*mut libc::c_void>
 }
 
 macro_rules! try_os_status {
@@ -148,22 +148,24 @@ impl AudioUnit {
             try_os_status!(au::AudioUnitInitialize(instance));
             Ok(AudioUnit {
                 instance: instance,
-                callback: None
+                maybe_callback: None
             })
         }
     }
 
-    fn free_render_callback(&self) {
-        if let Some(callback) = self.callback {
+    /// Retrieves ownership over the render callback and drops it.
+    fn free_render_callback(&mut self) {
+        if let Some(callback) = self.maybe_callback.take() {
             // Here, we transfer ownership of the callback back to the current scope so that it
             // is dropped and cleaned up. Without this line, we would leak the Boxed callback.
-            let _: Box<Box<RenderCallback>> = unsafe { Box::from_raw(callback as *mut Box<RenderCallback>) };
+            let _: Box<Box<RenderCallback>> = unsafe {
+                Box::from_raw(callback as *mut Box<RenderCallback>)
+            };
         }
     }
 
-    /// Pass a render callback (aka "Input Procedure") to the audio unit.
-    pub fn render_callback(&mut self, f: Option<Box<RenderCallback>>) -> Result<(), Error>
-    {
+    /// Pass a render callback (aka "Input Procedure") to the **AudioUnit**.
+    pub fn set_render_callback(&mut self, f: Option<Box<RenderCallback>>) -> Result<(), Error> {
         // Setup render callback. Notice that we relinquish ownership of the Callback
         // here so that it can be used as the C render callback via a void pointer.
         // We do however store the *mut so that we can convert back to a
@@ -191,24 +193,32 @@ impl AudioUnit {
         }
 
         self.free_render_callback();
-        self.callback = if !callback_ptr.is_null() { Some(callback_ptr) } else { None };
+        self.maybe_callback = if !callback_ptr.is_null() { Some(callback_ptr) } else { None };
         Ok(())
     }
 
-    /// Start the audio unit.
-    pub fn start(&self) -> Result<(), Error> {
+    /// Starts an I/O **AudioUnit**, which in turn starts the audio unit processing graph that it is
+    /// connected to.
+    ///
+    /// **Available** in OS X v10.0 and later.
+    pub fn start(&mut self) -> Result<(), Error> {
         unsafe { try_os_status!(au::AudioOutputUnitStart(self.instance)); }
         Ok(())
     }
 
-    /// Stop the audio unit.
-    pub fn stop(&self) -> Result<(), Error> {
+    /// Stops an I/O **AudioUnit**, which in turn stops the audio unit processing graph that it is
+    /// connected to.
+    ///
+    /// **Available** in OS X v10.0 and later.
+    pub fn stop(&mut self) -> Result<(), Error> {
         unsafe { try_os_status!(au::AudioOutputUnitStop(self.instance)); }
         Ok(())
     }
 
-    /// Set the audio unit's sample rate.
-    pub fn set_sample_rate(&self, sample_rate: f64) -> Result<(), Error> {
+    /// Set the **AudioUnit**'s sample rate.
+    ///
+    /// **Available** in iOS 2.0 and later.
+    pub fn set_sample_rate(&mut self, sample_rate: f64) -> Result<(), Error> {
         unsafe {
             try_os_status!(au::AudioUnitSetProperty(
                 self.instance,
@@ -221,7 +231,7 @@ impl AudioUnit {
         }
     }
 
-    /// Get the audio unit's sample rate.
+    /// Get the **AudioUnit**'s sample rate.
     pub fn sample_rate(&self) -> Result<f64, Error> {
         unsafe {
             let mut sample_rate: f64 = 0.0;
@@ -237,8 +247,8 @@ impl AudioUnit {
         }
     }
 
-    /// Sets the current Stream Format for the AudioUnit.
-    pub fn set_stream_format(&self, stream_format: StreamFormat) -> Result<(), Error> {
+    /// Sets the current **StreamFormat** for the AudioUnit.
+    pub fn set_stream_format(&mut self, stream_format: StreamFormat) -> Result<(), Error> {
         unsafe {
             let mut asbd = stream_format.to_asbd();
             try_os_status!(au::AudioUnitSetProperty(
@@ -264,7 +274,7 @@ impl AudioUnit {
                 Element::Output as libc::c_uint,
                 &mut asbd as *mut _ as *mut libc::c_void,
                 &mut size as *mut au::UInt32));
-            Ok(StreamFormat::from_asbd(asbd))
+            StreamFormat::from_asbd(asbd)
         }
     }
 

@@ -10,9 +10,8 @@ license = "MIT/Apache-2.0"
 repository = "https://github.com/RustAudio/coreaudio-rs.git"
 homepage = "https://github.com/RustAudio/coreaudio-rs"
 
-
-[dev-dependencies]
-num = "0.1.27"
+[lib]
+name = "coreaudio"
 
 [dependencies]
 bitflags = "0.3.2"

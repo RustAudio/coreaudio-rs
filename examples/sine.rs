@@ -1,10 +1,9 @@
 //! A basic output stream example, using an Output AudioUnit to generate a sine wave.
 
-extern crate coreaudio_rs as coreaudio;
-extern crate num;
+extern crate coreaudio;
 
 use coreaudio::audio_unit::{AudioUnit, IOType};
-use num::Float;
+use coreaudio::audio_unit::render_callback::{Args as RenderCallbackArgs, LinearPcmArgs};
 use std::f64::consts::PI;
 
 
@@ -22,16 +21,20 @@ impl Iterator for Iter {
 
 
 fn main() {
+    run().unwrap()
+}
+
+fn run() -> Result<(), Error> {
 
     // 440hz sine wave generator.
     let mut samples = Iter { value: 0.0 }
         .map(|phase| (phase * PI * 2.0).sin() as f32 * 0.15);
 
     // Construct an Output audio unit.
-    let mut audio_unit = AudioUnit::new(IOType::HalOutput).unwrap();
+    let mut audio_unit = try!(AudioUnit::new(IOType::HalOutput));
 
-    // Pass the audio unit a callback for filling the buffer.
-    audio_unit.set_render_callback(Some(Box::new(move |buffer, num_frames| {
+    // A function to use as the "render callback".
+    let callback = move |RenderCallbackArgs { format: LinearPcmArgs { buffer }, num_frames, .. }| {
         for frame in 0..num_frames {
             let sample = samples.next().unwrap();
             for channel in buffer.iter_mut() {
@@ -39,9 +42,10 @@ fn main() {
             }
         }
         Ok(())
-    }))).ok();
+    };
 
-    audio_unit.start().unwrap();
+    try!(audio_unit.set_render_callback(callback));
+    try!(audio_unit.start());
 
-    ::std::thread::sleep_ms(3000);
+    std::thread::sleep_ms(3000);
 }

@@ -223,6 +223,7 @@ pub enum Error {
     Unspecified,
     SystemSoundClientMessageTimedOut,
     NoMatchingDefaultAudioUnitFound,
+    RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat,
     NoKnownSubtype,
     Audio(AudioError),
     AudioCodec(AudioCodecError),
@@ -262,13 +263,14 @@ impl Error {
     /// Convert an Error to an OSStatus.
     pub fn to_os_status(&self) -> OSStatus {
         match *self {
-            Error::Unspecified                      => -1500,
-            Error::NoMatchingDefaultAudioUnitFound  => -1500,
-            Error::SystemSoundClientMessageTimedOut => -1501,
-            Error::Audio(err)                       => err as OSStatus,
-            Error::AudioCodec(err)                  => err as OSStatus,
-            Error::AudioUnit(err)                   => err as OSStatus,
-            _                                       => -1500,
+            Error::Unspecified                                                 => -1500,
+            Error::NoMatchingDefaultAudioUnitFound                             => -1500,
+            Error::RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat => -1500,
+            Error::SystemSoundClientMessageTimedOut                            => -1501,
+            Error::Audio(err)                                                  => err as OSStatus,
+            Error::AudioCodec(err)                                             => err as OSStatus,
+            Error::AudioUnit(err)                                              => err as OSStatus,
+            _                                                                  => -1500,
         }
     }
 
@@ -285,6 +287,8 @@ impl ::std::error::Error for Error {
         match *self {
             Error::Unspecified                      => "An unspecified error has occurred",
             Error::NoMatchingDefaultAudioUnitFound  => "No matching default audio unit found",
+            Error::RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat =>
+                "The given render callback buffer format does not match the `AudioUnit` `StreamFormat`",
             Error::SystemSoundClientMessageTimedOut => "The system sound client message timed out",
             Error::NoKnownSubtype                   => "The type has no known subtypes",
             Error::Audio(ref err)                   => err.description(),

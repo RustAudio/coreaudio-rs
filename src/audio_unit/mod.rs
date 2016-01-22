@@ -70,6 +70,10 @@ pub type NumFrames = usize;
 /// The first arg is [frames[channels]]; the second is the number of frames to render.
 pub type RenderCallback = FnMut(&mut[&mut[f32]], NumFrames) -> Result<(), String>;
 
+/// This type allows us to safely wrap a boxed `RenderCallback` to use within the input proc.
+pub struct RenderCallbackWrapper {
+    callback: Box<RenderCallback>,
+}
 
 /// A rust representation of the au::AudioUnit, including a pointer to the current rendering callback.
 ///
@@ -135,13 +139,19 @@ impl AudioUnit {
 
         unsafe {
             // Find the default audio unit for the description.
-            let component = match au::AudioComponentFindNext(ptr::null_mut(), &desc as *const _) {
-                component if component.is_null() =>
-                    return Err(Error::NoMatchingDefaultAudioUnitFound),
-                component => component,
-            };
+            //
+            // From the "Audio Unit Hosting Guide for iOS":
+            //
+            // Passing NULL to the first parameter of AudioComponentFindNext tells this function to
+            // find the first system audio unit matching the description, using a system-defined
+            // ordering. If you instead pass a previously found audio unit reference in this
+            // parameter, the function locates the next audio unit matching the description.
+            let component = au::AudioComponentFindNext(ptr::null_mut(), &desc as *const _);
+            if component.is_null() {
+                return Err(Error::NoMatchingDefaultAudioUnitFound);
+            }
 
-            // Get an instance of the default audio unit using the component.
+            // Create an instance of the default audio unit using the component.
             let mut instance: au::AudioUnit = mem::uninitialized();
             try_os_status!(
                 au::AudioComponentInstanceNew(component, &mut instance as *mut au::AudioUnit)

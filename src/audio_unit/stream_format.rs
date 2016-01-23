@@ -19,9 +19,32 @@ use super::SampleFormat;
 /// `bytes_per_frame` = size_of::<S>()
 /// `frames_per_packet` = 1
 /// `bits_per_channel` = size_of::<S>() * 8
+///
+/// > A *packet* is a collection of one or more contiguous frames. In linear PCM audio, a packet is
+/// always a single frame.
+///
+/// [from *Core Audio Overview*](https://developer.apple.com/library/ios/documentation/MusicAudio/Conceptual/CoreAudioOverview/WhatisCoreAudio/WhatisCoreAudio.html)
+///
+/// > The canonical formats in Core Audio are as follows:
+/// >
+/// > - iOS input and output: Linear PCM with 16-bit integer samples.
+/// > - iOS audio units and other audio processing: Noninterleaved linear PCM with 8.24-bit
+/// fixed-point samples
+/// > - Mac input and output: Linear PCM with 32-bit floating point samples.
+/// > - Mac audio units and other audio processing: Noninterleaved linear PCM with 32-bit floating
+/// point samples.
 #[derive(Copy, Clone, Debug)]
 pub struct StreamFormat {
+    /// The number of frames of audio data per second used to represent a signal.
     pub sample_rate: f64,
+    /// The sample format used to represent the audio data.
+    ///
+    /// In OS X, Core Audio xpects audio data to be in native-endian, 32-bit floating-point,
+    /// linear PCM format.
+    ///
+    /// iOS uses integer and fixed-point audio data. The result is faster calculations and less
+    /// battery drain when processing audio. iOS provides a Converter audio unit and inclues the
+    /// interfaces from Audio Converter Services (TODO: look into exposing this).
     pub sample_format: SampleFormat,
     pub flags: super::audio_format::LinearPCMFlags,
     pub channels_per_frame: u32,

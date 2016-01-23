@@ -44,13 +44,12 @@ pub struct Args<'a, D> {
     callback_lifetime: PhantomData<&'a ()>,
 }
 
-/// Format specific render callback buffers.
+/// Format specific render callback data.
 pub mod data {
     use bindings::audio_unit as au;
     use std::marker::PhantomData;
     use std::{iter, slice};
     use super::super::StreamFormat;
-    use super::super::audio_format::linear_pcm_flags;
     use super::super::Sample;
 
     /// Audio data wrappers specific to the `AudioUnit`'s `AudioFormat`.
@@ -62,59 +61,63 @@ pub mod data {
     }
 
     /// A raw pointer to the audio data so that the user may handle it themselves.
-    pub struct Custom {
+    pub struct Raw {
         pub data: *mut au::AudioBufferList,
     }
 
-    /// Arguments that are specific to the `LinearPCM` `AudioFormat` variant.
-    pub struct LinearPcm<B> {
-        pub buffer: B,
-    }
-
-    /// An interleaved linear PCM buffer.
-    pub type LinearPcmInterleaved<'a, S> = LinearPcm<&'a mut [S]>;
-    /// A non-interleaved linear PCM buffer.
-    pub type LinearPcmNonInterleaved<'a, S> = LinearPcm<NonInterleaved<'a, S>>;
-
-    impl Data for Custom {
+    impl Data for Raw {
         fn does_stream_format_match(_: &StreamFormat) -> bool {
             true
         }
         unsafe fn from_input_proc_args(_num_frames: u32, io_data: *mut au::AudioBufferList) -> Self {
-            Custom { data: io_data }
+            Raw { data: io_data }
         }
     }
 
-    // Implementation for an interleaved linear PCM audio format.
-    impl<'a, S> Data for LinearPcm<&'a mut [S]>
-        where S: Sample,
-    {
-        fn does_stream_format_match(format: &StreamFormat) -> bool {
-            !format.flags.contains(linear_pcm_flags::IS_NON_INTERLEAVED) &&
-                S::sample_format().does_match_flags(format.flags)
-        }
+    // TODO: When testing with the `HalOutput` audio unit it seemed not to allow interleaved data.
+    // Even though the `IS_NON_INTERLEAVED` flag was not set, the audio unit continues to deliver
+    // the audio as non-interleaved samples anyway. Investigate this, as it might not even be
+    // possible to use this type with audio units!
+    //
+    // /// An interleaved linear PCM buffer with samples of type `S`.
+    // pub struct Interleaved<'a, S> {
+    //     pub buffer: &'a mut [S],
+    //     pub channels: usize,
+    // }
 
-        #[allow(non_snake_case)]
-        unsafe fn from_input_proc_args(frames: u32, io_data: *mut au::AudioBufferList) -> Self {
-            // We're expecting a single interleaved buffer which will be the first in the array.
-            let au::AudioBuffer { mNumberChannels, mDataByteSize, mData } = (*io_data).mBuffers[0];
+    // // Implementation for an interleaved linear PCM audio format.
+    // impl<'a, S> Data for Interleaved<'a, S>
+    //     where S: Sample,
+    // {
+    //     fn does_stream_format_match(format: &StreamFormat) -> bool {
+    //         !format.flags.contains(linear_pcm_flags::IS_NON_INTERLEAVED) &&
+    //             S::sample_format().does_match_flags(format.flags)
+    //     }
 
-            // Ensure that the size of the data matches the size of the sample format
-            // multiplied by the number of frames.
-            //
-            // TODO: Return an Err instead of `panic`ing.
-            let buffer_len = frames as usize * mNumberChannels as usize;
-            let expected_size = ::std::mem::size_of::<S>() * buffer_len;
-            assert!(mDataByteSize as usize == expected_size);
+    //     #[allow(non_snake_case)]
+    //     unsafe fn from_input_proc_args(frames: u32, io_data: *mut au::AudioBufferList) -> Self {
+    //         // We're expecting a single interleaved buffer which will be the first in the array.
+    //         let au::AudioBuffer { mNumberChannels, mDataByteSize, mData } = (*io_data).mBuffers[0];
 
-            let buffer: &mut [S] = {
-                let buffer_ptr = mData as *mut S;
-                slice::from_raw_parts_mut(buffer_ptr, buffer_len)
-            };
+    //         // Ensure that the size of the data matches the size of the sample format
+    //         // multiplied by the number of frames.
+    //         //
+    //         // TODO: Return an Err instead of `panic`ing.
+    //         let buffer_len = frames as usize * mNumberChannels as usize;
+    //         let expected_size = ::std::mem::size_of::<S>() * buffer_len;
+    //         assert!(mDataByteSize as usize == expected_size);
 
-            LinearPcm { buffer: buffer }
-        }
-    }
+    //         let buffer: &mut [S] = {
+    //             let buffer_ptr = mData as *mut S;
+    //             slice::from_raw_parts_mut(buffer_ptr, buffer_len)
+    //         };
+
+    //         Interleaved {
+    //             buffer: buffer,
+    //             channels: mNumberChannels as usize,
+    //         }
+    //     }
+    // }
 
     /// A wrapper around the pointer to the `mBuffers` array.
     pub struct NonInterleaved<'a, S: 'a> {
@@ -190,7 +193,7 @@ pub mod data {
     }
 
     // Implementation for a non-interleaved linear PCM audio format.
-    impl<'a, S> Data for LinearPcm<NonInterleaved<'a, S>>
+    impl<'a, S> Data for NonInterleaved<'a, S>
         where S: Sample,
     {
         fn does_stream_format_match(format: &StreamFormat) -> bool {
@@ -206,13 +209,11 @@ pub mod data {
             // TODO: This should be a raw pointer to the first elem in the array and fixed in
             // coreaudio-sys because a 128 elem FSA makes no sense!
             let buffers: [au::AudioBuffer; 128] = mBuffers;
-            LinearPcm {
-                buffer: NonInterleaved {
-                    buffers: buffers,
-                    num_buffers: mNumberBuffers as usize,
-                    frames: frames as usize,
-                    sample_format: PhantomData,
-                },
+            NonInterleaved {
+                buffers: buffers,
+                num_buffers: mNumberBuffers as usize,
+                frames: frames as usize,
+                sample_format: PhantomData,
             }
         }
     }

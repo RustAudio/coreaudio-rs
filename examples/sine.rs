@@ -50,12 +50,12 @@ fn run() -> Result<(), coreaudio::Error> {
     Ok(())
 }
 
-type Args<'a> = render_callback::Args<'a, data::LinearPcmNonInterleaved<'a, f32>>;
+type Args<'a> = render_callback::Args<'a, data::NonInterleaved<'a, f32>>;
 fn callback<'a, I: Iterator<Item=f32>>(args: Args<'a>, samples: &mut I) -> Result<(), ()> {
     let Args { num_frames, mut data, .. } = args;
     for i in 0..num_frames {
         let sample = samples.next().unwrap();
-        for channel in data.buffer.channels_mut() {
+        for channel in data.channels_mut() {
             channel[i] = sample;
         }
     }

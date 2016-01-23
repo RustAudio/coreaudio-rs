@@ -2,10 +2,10 @@ use bindings::audio_unit as au;
 use error::{self, Error};
 use libc;
 use std::marker::PhantomData;
-use super::{AudioUnit, Element, Scope, StreamFormat};
+use super::{AudioUnit, Element, Scope};
 
 pub use self::action_flags::ActionFlags;
-pub use self::buffer::Buffer;
+pub use self::data::Data;
 
 
 /// When `set_render_callback` is called, a closure of this type will be used to wrap the given
@@ -26,9 +26,9 @@ pub struct InputProcFnWrapper {
 
 /// Arguments given to the render callback function.
 #[derive(Copy, Clone)]
-pub struct Args<'a, B> {
+pub struct Args<'a, D> {
     /// A type wrapping the the buffer that matches the expected audio format.
-    pub buffer: B,
+    pub data: D,
     /// Timing information for the callback.
     pub time_stamp: au::AudioTimeStamp,
     /// Flags for configuring audio unit rendering.
@@ -45,17 +45,17 @@ pub struct Args<'a, B> {
 }
 
 /// Format specific render callback buffers.
-pub mod buffer {
+pub mod data {
     use bindings::audio_unit as au;
     use std::marker::PhantomData;
     use std::{iter, slice};
-    use super::super::{audio_format, AudioFormat, StreamFormat};
+    use super::super::StreamFormat;
     use super::super::audio_format::linear_pcm_flags;
-    use super::super::{Sample, SampleFormat};
+    use super::super::Sample;
 
-    /// Audio data buffer wrappers specific to the `AudioUnit`'s `AudioFormat`.
-    pub trait Buffer {
-        /// Check whether or not the stream format matches this type of buffer.
+    /// Audio data wrappers specific to the `AudioUnit`'s `AudioFormat`.
+    pub trait Data {
+        /// Check whether or not the stream format matches this type of data.
         fn does_stream_format_match(&StreamFormat) -> bool;
         /// We must be able to construct Self from arguments given to the `input_proc`.
         unsafe fn from_input_proc_args(num_frames: u32, io_data: *mut au::AudioBufferList) -> Self;
@@ -68,7 +68,7 @@ pub mod buffer {
 
     /// Arguments that are specific to the `LinearPCM` `AudioFormat` variant.
     pub struct LinearPcm<B> {
-        pub data: B,
+        pub buffer: B,
     }
 
     /// An interleaved linear PCM buffer.
@@ -76,7 +76,7 @@ pub mod buffer {
     /// A non-interleaved linear PCM buffer.
     pub type LinearPcmNonInterleaved<'a, S> = LinearPcm<NonInterleaved<'a, S>>;
 
-    impl Buffer for Custom {
+    impl Data for Custom {
         fn does_stream_format_match(_: &StreamFormat) -> bool {
             true
         }
@@ -86,7 +86,7 @@ pub mod buffer {
     }
 
     // Implementation for an interleaved linear PCM audio format.
-    impl<'a, S> Buffer for LinearPcm<&'a mut [S]>
+    impl<'a, S> Data for LinearPcm<&'a mut [S]>
         where S: Sample,
     {
         fn does_stream_format_match(format: &StreamFormat) -> bool {
@@ -94,26 +94,25 @@ pub mod buffer {
                 S::sample_format().does_match_flags(format.flags)
         }
 
+        #[allow(non_snake_case)]
         unsafe fn from_input_proc_args(frames: u32, io_data: *mut au::AudioBufferList) -> Self {
-            unsafe {
-                // We're expecting a single interleaved buffer which will be the first in the array.
-                let au::AudioBuffer { mNumberChannels, mDataByteSize, mData } = (*io_data).mBuffers[0];
+            // We're expecting a single interleaved buffer which will be the first in the array.
+            let au::AudioBuffer { mNumberChannels, mDataByteSize, mData } = (*io_data).mBuffers[0];
 
-                // Ensure that the size of the data matches the size of the sample format
-                // multiplied by the number of frames.
-                //
-                // TODO: Return an Err instead of `panic`ing.
-                let buffer_len = frames as usize * mNumberChannels as usize;
-                let expected_size = ::std::mem::size_of::<S>() * buffer_len;
-                assert!(mDataByteSize as usize == expected_size);
+            // Ensure that the size of the data matches the size of the sample format
+            // multiplied by the number of frames.
+            //
+            // TODO: Return an Err instead of `panic`ing.
+            let buffer_len = frames as usize * mNumberChannels as usize;
+            let expected_size = ::std::mem::size_of::<S>() * buffer_len;
+            assert!(mDataByteSize as usize == expected_size);
 
-                let data: &mut [S] = {
-                    let buffer_ptr = mData as *mut S;
-                    slice::from_raw_parts_mut(buffer_ptr, buffer_len)
-                };
+            let buffer: &mut [S] = {
+                let buffer_ptr = mData as *mut S;
+                slice::from_raw_parts_mut(buffer_ptr, buffer_len)
+            };
 
-                LinearPcm { data: data }
-            }
+            LinearPcm { buffer: buffer }
         }
     }
 
@@ -146,6 +145,7 @@ pub mod buffer {
 
     impl<'a, S> Iterator for Channels<'a, S> {
         type Item = &'a [S];
+        #[allow(non_snake_case)]
         fn next(&mut self) -> Option<Self::Item> {
             self.buffers.next().map(|&au::AudioBuffer { mNumberChannels, mData, .. }| {
                 let len = mNumberChannels as usize * self.frames;
@@ -157,6 +157,7 @@ pub mod buffer {
 
     impl<'a, S> Iterator for ChannelsMut<'a, S> {
         type Item = &'a mut [S];
+        #[allow(non_snake_case)]
         fn next(&mut self) -> Option<Self::Item> {
             self.buffers.next().map(|&mut au::AudioBuffer { mNumberChannels, mData, .. }| {
                 let len = mNumberChannels as usize * self.frames;
@@ -189,7 +190,7 @@ pub mod buffer {
     }
 
     // Implementation for a non-interleaved linear PCM audio format.
-    impl<'a, S> Buffer for LinearPcm<NonInterleaved<'a, S>>
+    impl<'a, S> Data for LinearPcm<NonInterleaved<'a, S>>
         where S: Sample,
     {
         fn does_stream_format_match(format: &StreamFormat) -> bool {
@@ -199,18 +200,19 @@ pub mod buffer {
                 S::sample_format().does_match_flags(format.flags)
         }
 
+        #[allow(non_snake_case)]
         unsafe fn from_input_proc_args(frames: u32, io_data: *mut au::AudioBufferList) -> Self {
-            unsafe {
-                let au::AudioBufferList { mNumberBuffers, mut mBuffers } = *io_data;
-                let buffers: [au::AudioBuffer; 128] = mBuffers;
-                LinearPcm {
-                    data: NonInterleaved {
-                        buffers: buffers,
-                        num_buffers: mNumberBuffers as usize,
-                        frames: frames as usize,
-                        sample_format: PhantomData,
-                    },
-                }
+            let au::AudioBufferList { mNumberBuffers, mBuffers } = *io_data;
+            // TODO: This should be a raw pointer to the first elem in the array and fixed in
+            // coreaudio-sys because a 128 elem FSA makes no sense!
+            let buffers: [au::AudioBuffer; 128] = mBuffers;
+            LinearPcm {
+                buffer: NonInterleaved {
+                    buffers: buffers,
+                    num_buffers: mNumberBuffers as usize,
+                    frames: frames as usize,
+                    sample_format: PhantomData,
+                },
             }
         }
     }
@@ -299,16 +301,16 @@ pub mod action_flags {
 impl AudioUnit {
 
     /// Pass a render callback (aka "Input Procedure") to the **AudioUnit**.
-    pub fn set_render_callback<F, B>(&mut self, mut f: F) -> Result<(), Error>
-        where F: for<'a> FnMut(Args<'a, B>) -> Result<(), ()> + 'static,
-              B: Buffer,
+    pub fn set_render_callback<F, D>(&mut self, mut f: F) -> Result<(), Error>
+        where F: for<'a> FnMut(Args<'a, D>) -> Result<(), ()> + 'static,
+              D: Data,
     {
         // First, we'll retrieve the stream format so that we can ensure that the given callback
         // format matches the audio unit's format.
         let stream_format = try!(self.stream_format());
 
         // If the stream format does not match, return an error indicating this.
-        if !B::does_stream_format_match(&stream_format) {
+        if !D::does_stream_format_match(&stream_format) {
             return Err(Error::RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat);
         }
 
@@ -324,11 +326,11 @@ impl AudioUnit {
                                   io_data: *mut au::AudioBufferList| -> au::OSStatus
         {
             let args = unsafe {
-                let buffer = B::from_input_proc_args(in_number_frames, io_data);
+                let data = D::from_input_proc_args(in_number_frames, io_data);
                 let flags = ActionFlags::from_bits(*io_action_flags)
                     .unwrap_or_else(|| ActionFlags::empty());
                 Args {
-                    buffer: buffer,
+                    data: data,
                     time_stamp: *in_time_stamp,
                     flags: flags,
                     bus_number: in_bus_number as u32,

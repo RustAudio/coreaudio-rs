@@ -65,20 +65,16 @@ impl StreamFormat {
     /// Returns an `Error` if the `AudioFormat` inferred by the ASBD is not `LinearPCM`.
     ///
     /// Returns an `Error` if the sample format type kkkkkkkkkkkkkkkkkkkkkk
+    #[allow(non_snake_case)]
     pub fn from_asbd(asbd: au::AudioStreamBasicDescription) -> Result<StreamFormat, Error> {
-        use super::audio_format::linear_pcm_flags;
-
         const NOT_SUPPORTED: Error = Error::AudioUnit(error::audio_unit::Error::FormatNotSupported);
 
         let au::Struct_AudioStreamBasicDescription {
             mSampleRate,
             mFormatID,
             mFormatFlags,
-            mBytesPerPacket,
-            mFramesPerPacket,
             mBytesPerFrame,
             mChannelsPerFrame,
-            mBitsPerChannel,
             ..
         } = asbd;
 

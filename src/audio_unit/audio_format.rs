@@ -312,10 +312,6 @@ pub mod standard_flags {
             /// Clear if the samples for each frame are laid out contiguously and the frames laid out
             /// end to end.
             ///
-            /// In the original API, this flag affects the use of AudioStreamBasicDescription and
-            /// AudioBufferList structures, however in this Rust implementation we aim to make this
-            /// behaviour type safe so that you need not worry about this.
-            ///
             /// **Available** in OS X v10.2 and later.
             const IS_NON_INTERLEAVED = 32,
             /// Set to indicate when a format is nonmixable.

@@ -26,6 +26,7 @@ use std::mem;
 use std::ptr;
 
 pub use self::audio_format::AudioFormat;
+pub use self::sample_format::{SampleFormat, Sample};
 pub use self::stream_format::StreamFormat;
 pub use self::types::{
     Type,
@@ -40,6 +41,7 @@ pub use self::types::{
 
 pub mod audio_format;
 pub mod render_callback;
+pub mod sample_format;
 pub mod stream_format;
 pub mod types;
 

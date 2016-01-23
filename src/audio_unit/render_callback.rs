@@ -48,7 +48,7 @@ pub struct Args<'a, B> {
 pub mod buffer {
     use bindings::audio_unit as au;
     use std::marker::PhantomData;
-    use std::slice;
+    use std::{iter, slice};
     use super::super::{audio_format, AudioFormat, StreamFormat};
     use super::super::audio_format::linear_pcm_flags;
     use super::super::{Sample, SampleFormat};
@@ -90,8 +90,8 @@ pub mod buffer {
         where S: Sample,
     {
         fn does_stream_format_match(format: &StreamFormat) -> bool {
-            !format.flags.contains(linear_pcm_flags::IS_NON_INTERLEAVED)
-                && S::sample_format().does_match_flags(format.flags)
+            !format.flags.contains(linear_pcm_flags::IS_NON_INTERLEAVED) &&
+                S::sample_format().does_match_flags(format.flags)
         }
 
         unsafe fn from_input_proc_args(frames: u32, io_data: *mut au::AudioBufferList) -> Self {
@@ -118,24 +118,28 @@ pub mod buffer {
     }
 
     /// A wrapper around the pointer to the `mBuffers` array.
-    pub struct NonInterleaved<'a, S> {
+    pub struct NonInterleaved<'a, S: 'a> {
         /// A pointer to the first buffer.
-        buffers: &'a mut [au::AudioBuffer],
+        ///
+        /// TODO: Work out why this works and `&'a mut [au::AudioBuffer]` does not!
+        /// Perhaps use a raw pointer instead if a slice won't work.
+        buffers: [au::AudioBuffer; 128],
+        num_buffers: usize,
         /// The number of frames in each channel.
         frames: usize,
-        sample_format: PhantomData<S>,
+        sample_format: PhantomData<&'a S>,
     }
 
     /// An iterator produced by a `NoneInterleaved`, yielding a reference to each channel.
     pub struct Channels<'a, S: 'a> {
-        buffers: slice::Iter<'a, au::AudioBuffer>,
+        buffers: iter::Take<slice::Iter<'a, au::AudioBuffer>>,
         frames: usize,
         sample_format: PhantomData<S>,
     }
 
     /// An iterator produced by a `NoneInterleaved`, yielding a mutable reference to each channel.
     pub struct ChannelsMut<'a, S: 'a> {
-        buffers: slice::IterMut<'a, au::AudioBuffer>,
+        buffers: iter::Take<slice::IterMut<'a, au::AudioBuffer>>,
         frames: usize,
         sample_format: PhantomData<S>,
     }
@@ -167,7 +171,7 @@ pub mod buffer {
         /// An iterator yielding a reference to each channel in the array.
         pub fn channels(&self) -> Channels<S> {
             Channels {
-                buffers: self.buffers.iter(),
+                buffers: self.buffers.iter().take(self.num_buffers),
                 frames: self.frames,
                 sample_format: PhantomData,
             }
@@ -176,7 +180,7 @@ pub mod buffer {
         /// An iterator yielding a mutable reference to each channel in the array.
         pub fn channels_mut(&mut self) -> ChannelsMut<S> {
             ChannelsMut {
-                buffers: self.buffers.iter_mut(),
+                buffers: self.buffers.iter_mut().take(self.num_buffers),
                 frames: self.frames,
                 sample_format: PhantomData,
             }
@@ -189,19 +193,20 @@ pub mod buffer {
         where S: Sample,
     {
         fn does_stream_format_match(format: &StreamFormat) -> bool {
-            format.flags.contains(linear_pcm_flags::IS_NON_INTERLEAVED)
-                && S::sample_format().does_match_flags(format.flags)
+            // TODO: This is never set, in though the default ABSD on OS X is non-interleaved!
+            // Should really investigate why this is.
+            // format.flags.contains(linear_pcm_flags::IS_NON_INTERLEAVED) &&
+                S::sample_format().does_match_flags(format.flags)
         }
 
         unsafe fn from_input_proc_args(frames: u32, io_data: *mut au::AudioBufferList) -> Self {
             unsafe {
                 let au::AudioBufferList { mNumberBuffers, mut mBuffers } = *io_data;
-                let buffers: &'a mut [au::AudioBuffer] = {
-                    slice::from_raw_parts_mut(mBuffers.as_mut_ptr(), mNumberBuffers as usize)
-                };
+                let buffers: [au::AudioBuffer; 128] = mBuffers;
                 LinearPcm {
                     data: NonInterleaved {
                         buffers: buffers,
+                        num_buffers: mNumberBuffers as usize,
                         frames: frames as usize,
                         sample_format: PhantomData,
                     },

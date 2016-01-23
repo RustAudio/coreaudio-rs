@@ -31,6 +31,9 @@ fn run() -> Result<(), coreaudio::Error> {
         .map(|phase| (phase * PI * 2.0).sin() as f32 * 0.15);
 
     // Construct an Output audio unit.
+    //
+    // "HAL" stands for "Hardware Abstraction Layer". `HalOutput` is the simplest, light-weight
+    // audio unit for creating an output stream.
     let mut audio_unit = try!(AudioUnit::new(IOType::HalOutput));
 
     let stream_format = try!(audio_unit.stream_format());
@@ -47,16 +50,13 @@ fn run() -> Result<(), coreaudio::Error> {
     Ok(())
 }
 
-type Args<'a> = render_callback::Args<'a, buffer::LinearPcmInterleaved<'a, f32>>;
+type Args<'a> = render_callback::Args<'a, buffer::LinearPcmNonInterleaved<'a, f32>>;
 fn callback<'a, I: Iterator<Item=f32>>(args: Args<'a>, samples: &mut I) -> Result<(), ()> {
     let Args { num_frames, mut buffer, .. } = args;
-    let mut idx = 0;
-    let channels = buffer.data.len() / num_frames;
-    for _ in 0..num_frames {
+    for i in 0..num_frames {
         let sample = samples.next().unwrap();
-        for _ in 0..channels {
-            buffer.data[idx] = sample;
-            idx += 1;
+        for channel in buffer.data.channels_mut() {
+            channel[i] = sample;
         }
     }
     Ok(())

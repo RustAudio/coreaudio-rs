@@ -249,8 +249,18 @@ impl AudioUnit {
 
     /// Sets the current **StreamFormat** for the AudioUnit.
     ///
-    /// The default format stream is non-interleaved, 32-bit floating point, native-endian, linear
-    /// PCM data.
+    /// Core Audio uses slightly different defaults depending on the platform.
+    ///
+    /// From the Core Audio Overview:
+    ///
+    /// > The canonical formats in Core Audio are as follows:
+    /// >
+    /// > - iOS input and output: Linear PCM with 16-bit integer samples.
+    /// > - iOS audio units and other audio processing: Noninterleaved linear PCM with 8.24-bit
+    /// fixed-point samples
+    /// > - Mac input and output: Linear PCM with 32-bit floating point samples.
+    /// > - Mac audio units and other audio processing: Noninterleaved linear PCM with 32-bit
+    /// floating-point
     pub fn set_stream_format(&mut self, stream_format: StreamFormat) -> Result<(), Error> {
         let id = au::kAudioUnitProperty_StreamFormat;
         let asbd = stream_format.to_asbd();

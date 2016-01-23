@@ -30,11 +30,8 @@ fn run() -> Result<(), coreaudio::Error> {
     let mut samples = Iter { value: 0.0 }
         .map(|phase| (phase * PI * 2.0).sin() as f32 * 0.15);
 
-    // Construct an Output audio unit.
-    //
-    // "HAL" stands for "Hardware Abstraction Layer". `HalOutput` is the simplest, light-weight
-    // audio unit for creating an output stream.
-    let mut audio_unit = try!(AudioUnit::new(IOType::HalOutput));
+    // Construct an Output audio unit that delivers audio to the default output device.
+    let mut audio_unit = try!(AudioUnit::new(IOType::DefaultOutput));
 
     let stream_format = try!(audio_unit.stream_format());
     println!("{:#?}", &stream_format);

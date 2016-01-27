@@ -3,6 +3,7 @@
 use bindings::audio_unit::OSStatus;
 pub use self::audio::Error as AudioError;
 pub use self::audio_codec::Error as AudioCodecError;
+pub use self::audio_format::Error as AudioFormatError;
 pub use self::audio_unit::Error as AudioUnitError;
 
 pub mod audio {
@@ -127,6 +128,59 @@ pub mod audio_codec {
 }
 
 
+pub mod audio_format {
+    use bindings::audio_unit::OSStatus;
+
+    // TODO: Finish implementing these values.
+    #[derive(Copy, Clone, Debug)]
+    pub enum Error {
+        Unspecified, // 'what'
+        UnsupportedProperty, // 'prop'
+        BadPropertySize, // '!siz'
+        BadSpecifierSize, // '!spc'
+        UnsupportedDataFormat = 1718449215, // 'fmt?'
+        UnknownFormat, // '!fmt'
+        Unknown, //
+    }
+
+    impl Error {
+
+        pub fn from_os_status(os_status: OSStatus) -> Result<(), Error> {
+            match os_status {
+                0          => Ok(()),
+                1718449215 => Err(Error::UnsupportedDataFormat),
+                _ => Err(Error::Unknown),
+            }
+        }
+
+        pub fn to_os_status(&self) -> OSStatus {
+            *self as OSStatus
+        }
+
+    }
+
+    impl ::std::fmt::Display for Error {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+            write!(f, "{:?}", self)
+        }
+    }
+
+    impl ::std::error::Error for Error {
+        fn description(&self) -> &str {
+            match *self {
+                Error::Unspecified           => "An unspecified error",
+                Error::UnsupportedProperty   => "The specified property is not supported",
+                Error::BadPropertySize       => "Bad property size",
+                Error::BadSpecifierSize      => "Bad specifier size",
+                Error::UnsupportedDataFormat => "The specified data format is not supported",
+                Error::UnknownFormat         => "The specified data format is not a known format",
+                Error::Unknown               => "Unknown error occurred",
+            }
+        }
+    }
+}
+
+
 pub mod audio_unit {
     use bindings::audio_unit::OSStatus;
 
@@ -223,11 +277,13 @@ pub enum Error {
     Unspecified,
     SystemSoundClientMessageTimedOut,
     NoMatchingDefaultAudioUnitFound,
+    RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat,
     NoKnownSubtype,
     Audio(AudioError),
     AudioCodec(AudioCodecError),
+    AudioFormat(AudioFormatError),
     AudioUnit(AudioUnitError),
-    Unknown,
+    Unknown(OSStatus),
 }
 
 impl Error {
@@ -249,12 +305,17 @@ impl Error {
                     Err(AudioCodecError::Unknown) => (),
                     Err(err)                      => return Err(Error::AudioCodec(err)),
                 }
+                match AudioFormatError::from_os_status(os_status) {
+                    Ok(()) => return Ok(()),
+                    Err(AudioFormatError::Unknown) => (),
+                    Err(err) => return Err(Error::AudioFormat(err)),
+                }
                 match AudioUnitError::from_os_status(os_status) {
                     Ok(())                       => return Ok(()),
                     Err(AudioUnitError::Unknown) => (),
                     Err(err)                     => return Err(Error::AudioUnit(err)),
                 }
-                Err(Error::Unknown)
+                Err(Error::Unknown(os_status))
             },
         }
     }
@@ -262,13 +323,14 @@ impl Error {
     /// Convert an Error to an OSStatus.
     pub fn to_os_status(&self) -> OSStatus {
         match *self {
-            Error::Unspecified                      => -1500,
-            Error::NoMatchingDefaultAudioUnitFound  => -1500,
-            Error::SystemSoundClientMessageTimedOut => -1501,
-            Error::Audio(err)                       => err as OSStatus,
-            Error::AudioCodec(err)                  => err as OSStatus,
-            Error::AudioUnit(err)                   => err as OSStatus,
-            _                                       => -1500,
+            Error::Unspecified                                                 => -1500,
+            Error::NoMatchingDefaultAudioUnitFound                             => -1500,
+            Error::RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat => -1500,
+            Error::SystemSoundClientMessageTimedOut                            => -1501,
+            Error::Audio(err)                                                  => err as OSStatus,
+            Error::AudioCodec(err)                                             => err as OSStatus,
+            Error::AudioUnit(err)                                              => err as OSStatus,
+            _                                                                  => -1500,
         }
     }
 
@@ -285,12 +347,15 @@ impl ::std::error::Error for Error {
         match *self {
             Error::Unspecified                      => "An unspecified error has occurred",
             Error::NoMatchingDefaultAudioUnitFound  => "No matching default audio unit found",
+            Error::RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat =>
+                "The given render callback buffer format does not match the `AudioUnit` `StreamFormat`",
             Error::SystemSoundClientMessageTimedOut => "The system sound client message timed out",
             Error::NoKnownSubtype                   => "The type has no known subtypes",
             Error::Audio(ref err)                   => err.description(),
             Error::AudioCodec(ref err)              => err.description(),
+            Error::AudioFormat(ref err)             => err.description(),
             Error::AudioUnit(ref err)               => err.description(),
-            Error::Unknown                          => "An unknown error occurred",
+            Error::Unknown(_)                       => "An unknown error unknown to the coreaudio-rs API occurred",
         }
     }
 }

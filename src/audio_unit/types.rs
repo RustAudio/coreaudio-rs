@@ -407,6 +407,16 @@ pub enum IOType {
     /// An audio unit that responds to start/stop calls and provides basic services for converting
     /// to and from linear PCM formats.
     ///
+    /// Use this audio unit when sending the output of an audio processing graph to your
+    /// application rather than to the output audio hardware. You would typically use the Generic
+    /// Output unit for offline audio processing. Just like the other I/O units, the Generic Output
+    /// unit incorporates a Format Converter unit. This lets the Generic Output unit perform format
+    /// conversion between the stream format used in an audio processing graph and the format you
+    /// want.
+    ///
+    /// You can also use a Generic Output unit as the final node in a subgraph that you place into
+    /// a parent audio processing graph.
+    ///
     /// **Available** in OS X v10.2 and later.
     GenericOutput = 1734700658,
     /// An audio unit that can provides input/output connection to an a specified audio device.

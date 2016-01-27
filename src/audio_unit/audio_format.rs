@@ -19,7 +19,7 @@ pub enum AudioFormat {
     /// Linear PCM; a non-compressed audio data format with one frame per packet.
     ///
     /// **Available** in OS X v10.0 and later.
-    LinearPCM(Option<LinearPCMFlags>),     // = 1819304813,
+    LinearPCM(LinearPCMFlags),     // = 1819304813,
     /// An AC-3 codec.
     ///
     /// **Available** in OS X v10.2 and later.
@@ -28,7 +28,7 @@ pub enum AudioFormat {
     /// audio interface.
     ///
     /// **Available** in OS X v10.2 and later.
-    F60958AC3(Option<StandardFlags>),      // = 1667326771,
+    F60958AC3(StandardFlags),      // = 1667326771,
     /// Apple's implementation of the IMA 4:1 ADPCM codec.
     ///
     /// **Available** in OS X v10.2 and later.
@@ -36,19 +36,19 @@ pub enum AudioFormat {
     /// MPEG-4 AAC codec.
     ///
     /// **Available** in OS X v10.2 and later.
-    MPEG4AAC(Option<Mpeg4ObjectId>),      // = 1633772320,
+    MPEG4AAC(Mpeg4ObjectId),      // = 1633772320,
     /// MPEG-4 CELP codec.
     ///
     /// **Available** in OS X v10.2 and later.
-    MPEG4CELP(Option<Mpeg4ObjectId>),     // = 1667591280,
+    MPEG4CELP(Mpeg4ObjectId),     // = 1667591280,
     /// MPEG-4 HVXC codec.
     ///
     /// **Available** in OS X v10.2 and later.
-    MPEG4HVXC(Option<Mpeg4ObjectId>),     // = 1752594531,
+    MPEG4HVXC(Mpeg4ObjectId),     // = 1752594531,
     /// MPEG-4 TwinVQ codec.
     ///
     /// **Available** in OS X v10.2 and later.
-    MPEG4TwinVQ(Option<Mpeg4ObjectId>),   // = 1953986161,
+    MPEG4TwinVQ(Mpeg4ObjectId),   // = 1953986161,
     /// MACE 3:1.
     ///
     /// **Available** in OS X v10.3 and later.
@@ -92,7 +92,7 @@ pub enum AudioFormat {
     /// A stream of IOAudioTimeStamp structures.
     ///
     /// **Available** in OS X v10.2 and later.
-    TimeCode(Option<AudioTimeStampFlags>), // = 1953066341,
+    TimeCode(AudioTimeStampFlags), // = 1953066341,
     /// A stream of MIDIPacketList structures where the time stamps in the MIDIPacket structures
     /// are sample offsets in the stream. The `sample_rate` field in the **StreamFormat** structure
     /// is used to describe how time is passed in this kind of stream.
@@ -122,7 +122,7 @@ pub enum AudioFormat {
     /// Apple Lossless format.
     ///
     /// **Available** in OS X v10.3 and later.
-    AppleLossless,                        // = 1634492771,
+    AppleLossless(AppleLosslessFlags),    // = 1634492771,
     /// MPEG-4 High Efficiency AAC audio object.
     ///
     /// **Available** in OS X v10.5 and later.
@@ -183,14 +183,14 @@ impl AudioFormat {
     /// Convert from the FFI C format and flags to a typesafe Rust enum representation.
     pub fn from_format_and_flag(format: libc::c_uint, flag: Option<u32>) -> Option<AudioFormat> {
         match (format, flag) {
-            (1819304813, Some(i)) => Some(AudioFormat::LinearPCM(LinearPCMFlags::from_bits(i))),
+            (1819304813, Some(i)) => Some(AudioFormat::LinearPCM(LinearPCMFlags::from_bits_truncate(i))),
             (1633889587, _)       => Some(AudioFormat::AC3),
-            (1667326771, Some(i)) => Some(AudioFormat::F60958AC3(StandardFlags::from_bits(i))),
+            (1667326771, Some(i)) => Some(AudioFormat::F60958AC3(StandardFlags::from_bits_truncate(i))),
             (1768775988, _)       => Some(AudioFormat::AppleIMA4),
-            (1633772320, Some(i)) => Some(AudioFormat::MPEG4AAC(Mpeg4ObjectId::from_u32(i))),
-            (1667591280, Some(i)) => Some(AudioFormat::MPEG4CELP(Mpeg4ObjectId::from_u32(i))),
-            (1752594531, Some(i)) => Some(AudioFormat::MPEG4HVXC(Mpeg4ObjectId::from_u32(i))),
-            (1953986161, Some(i)) => Some(AudioFormat::MPEG4TwinVQ(Mpeg4ObjectId::from_u32(i))),
+            (1633772320, Some(i)) => Some(AudioFormat::MPEG4AAC(Mpeg4ObjectId::from_u32(i).expect("Unknown Mpeg4ObjectId"))),
+            (1667591280, Some(i)) => Some(AudioFormat::MPEG4CELP(Mpeg4ObjectId::from_u32(i).expect("Unknown Mpeg4ObjectId"))),
+            (1752594531, Some(i)) => Some(AudioFormat::MPEG4HVXC(Mpeg4ObjectId::from_u32(i).expect("Unknown Mpeg4ObjectId"))),
+            (1953986161, Some(i)) => Some(AudioFormat::MPEG4TwinVQ(Mpeg4ObjectId::from_u32(i).expect("Unknown Mpeg4ObjectId"))),
             (1296122675, _)       => Some(AudioFormat::MACE3),
             (1296122678, _)       => Some(AudioFormat::MACE6),
             (1970037111, _)       => Some(AudioFormat::ULaw),
@@ -201,10 +201,10 @@ impl AudioFormat {
             (778924081, _)        => Some(AudioFormat::MPEGLayer1),
             (778924082, _)        => Some(AudioFormat::MPEGLayer2),
             (778924083, _)        => Some(AudioFormat::MPEGLayer3),
-            (1953066341, Some(i)) => Some(AudioFormat::TimeCode(AudioTimeStampFlags::from_bits(i))),
+            (1953066341, Some(i)) => Some(AudioFormat::TimeCode(AudioTimeStampFlags::from_bits_truncate(i))),
             (1835623529, _)       => Some(AudioFormat::MIDIStream),
             (1634760307, _)       => Some(AudioFormat::ParameterValueStream),
-            (1634492771, _)       => Some(AudioFormat::AppleLossless),
+            (1634492771, Some(i)) => Some(AudioFormat::AppleLossless(AppleLosslessFlags::from_bits_truncate(i))),
             (1633772392, _)       => Some(AudioFormat::MPEG4AAC_HE),
             (1633772396, _)       => Some(AudioFormat::MPEG4AAC_LD),
             (1633772389, _)       => Some(AudioFormat::MPEG4AAC_ELD),
@@ -226,14 +226,14 @@ impl AudioFormat {
     /// Convert from the Rust enum to the C format and flag.
     pub fn to_format_and_flag(&self) -> (libc::c_uint, Option<u32>) {
         match *self {
-            AudioFormat::LinearPCM(flag)      => (1819304813, flag.map(|flag| flag.bits())),
+            AudioFormat::LinearPCM(flag)      => (1819304813, Some(flag.bits())),
             AudioFormat::AC3                  => (1633889587, None),
-            AudioFormat::F60958AC3(flag)      => (1667326771, flag.map(|flag| flag.bits())),
+            AudioFormat::F60958AC3(flag)      => (1667326771, Some(flag.bits())),
             AudioFormat::AppleIMA4            => (1768775988, None),
-            AudioFormat::MPEG4AAC(flag)       => (1633772320, flag.map(|flag| flag as u32)),
-            AudioFormat::MPEG4CELP(flag)      => (1667591280, flag.map(|flag| flag as u32)),
-            AudioFormat::MPEG4HVXC(flag)      => (1752594531, flag.map(|flag| flag as u32)),
-            AudioFormat::MPEG4TwinVQ(flag)    => (1953986161, flag.map(|flag| flag as u32)),
+            AudioFormat::MPEG4AAC(flag)       => (1633772320, Some(flag as u32)),
+            AudioFormat::MPEG4CELP(flag)      => (1667591280, Some(flag as u32)),
+            AudioFormat::MPEG4HVXC(flag)      => (1752594531, Some(flag as u32)),
+            AudioFormat::MPEG4TwinVQ(flag)    => (1953986161, Some(flag as u32)),
             AudioFormat::MACE3                => (1296122675, None),
             AudioFormat::MACE6                => (1296122678, None),
             AudioFormat::ULaw                 => (1970037111, None),
@@ -244,10 +244,10 @@ impl AudioFormat {
             AudioFormat::MPEGLayer1           => (778924081, None),
             AudioFormat::MPEGLayer2           => (778924082, None),
             AudioFormat::MPEGLayer3           => (778924083, None),
-            AudioFormat::TimeCode(flag)       => (1953066341, flag.map(|flag| flag.bits())),
+            AudioFormat::TimeCode(flag)       => (1953066341, Some(flag.bits())),
             AudioFormat::MIDIStream           => (1835623529, None),
             AudioFormat::ParameterValueStream => (1634760307, None),
-            AudioFormat::AppleLossless        => (1634492771, None),
+            AudioFormat::AppleLossless(flag)  => (1634492771, Some(flag.bits())),
             AudioFormat::MPEG4AAC_HE          => (1633772392, None),
             AudioFormat::MPEG4AAC_LD          => (1633772396, None),
             AudioFormat::MPEG4AAC_ELD         => (1633772389, None),
@@ -311,10 +311,6 @@ pub mod standard_flags {
             ///
             /// Clear if the samples for each frame are laid out contiguously and the frames laid out
             /// end to end.
-            ///
-            /// In the original API, this flag affects the use of AudioStreamBasicDescription and
-            /// AudioBufferList structures, however in this Rust implementation we aim to make this
-            /// behaviour type safe so that you need not worry about this.
             ///
             /// **Available** in OS X v10.2 and later.
             const IS_NON_INTERLEAVED = 32,
@@ -501,4 +497,3 @@ pub mod audio_time_stamp_flags {
         }
     }
 }
-

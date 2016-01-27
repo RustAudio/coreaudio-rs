@@ -1,10 +1,9 @@
 //! A basic output stream example, using an Output AudioUnit to generate a sine wave.
 
-extern crate coreaudio_rs as coreaudio;
-extern crate num;
+extern crate coreaudio;
 
-use coreaudio::audio_unit::{AudioUnit, IOType};
-use num::Float;
+use coreaudio::audio_unit::{AudioUnit, IOType, SampleFormat};
+use coreaudio::audio_unit::render_callback::{self, data};
 use std::f64::consts::PI;
 
 
@@ -22,26 +21,40 @@ impl Iterator for Iter {
 
 
 fn main() {
+    run().unwrap()
+}
+
+fn run() -> Result<(), coreaudio::Error> {
 
     // 440hz sine wave generator.
     let mut samples = Iter { value: 0.0 }
         .map(|phase| (phase * PI * 2.0).sin() as f32 * 0.15);
 
-    // Construct an Output audio unit.
-    let mut audio_unit = AudioUnit::new(IOType::HalOutput).unwrap();
+    // Construct an Output audio unit that delivers audio to the default output device.
+    let mut audio_unit = try!(AudioUnit::new(IOType::DefaultOutput));
 
-    // Pass the audio unit a callback for filling the buffer.
-    audio_unit.set_render_callback(Some(Box::new(move |buffer, num_frames| {
-        for frame in 0..num_frames {
-            let sample = samples.next().unwrap();
-            for channel in buffer.iter_mut() {
-                channel[frame] = sample;
-            }
+    let stream_format = try!(audio_unit.stream_format());
+    println!("{:#?}", &stream_format);
+
+    // For this example, our sine wave expects `f32` data.
+    assert!(SampleFormat::F32 == stream_format.sample_format);
+
+    try!(audio_unit.set_render_callback(move |args| callback(args, &mut samples)));
+    try!(audio_unit.start());
+
+    std::thread::sleep_ms(3000);
+
+    Ok(())
+}
+
+type Args<'a> = render_callback::Args<'a, data::NonInterleaved<'a, f32>>;
+fn callback<'a, I: Iterator<Item=f32>>(args: Args<'a>, samples: &mut I) -> Result<(), ()> {
+    let Args { num_frames, mut data, .. } = args;
+    for i in 0..num_frames {
+        let sample = samples.next().unwrap();
+        for channel in data.channels_mut() {
+            channel[i] = sample;
         }
-        Ok(())
-    }))).ok();
-
-    audio_unit.start().unwrap();
-
-    ::std::thread::sleep_ms(3000);
+    }
+    Ok(())
 }

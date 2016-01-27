@@ -20,12 +20,14 @@
 
 
 use bindings::audio_unit as au;
-use error::{Error, AudioUnitError};
+use error::Error;
 use libc;
-use self::stream_format::StreamFormat;
 use std::mem;
 use std::ptr;
 
+pub use self::audio_format::AudioFormat;
+pub use self::sample_format::{SampleFormat, Sample};
+pub use self::stream_format::StreamFormat;
 pub use self::types::{
     Type,
     EffectType,
@@ -38,6 +40,8 @@ pub use self::types::{
 
 
 pub mod audio_format;
+pub mod render_callback;
+pub mod sample_format;
 pub mod stream_format;
 pub mod types;
 
@@ -62,21 +66,12 @@ pub enum Element {
 }
 
 
-/// The number of frames available in some buffer.
-pub type NumFrames = usize;
-
-/// A type representing a render callback (aka "Input Procedure")
-/// If set on an AudioUnit, this will be called every time the AudioUnit requests audio.
-/// The first arg is [frames[channels]]; the second is the number of frames to render.
-pub type RenderCallback = FnMut(&mut[&mut[f32]], NumFrames) -> Result<(), String>;
-
-
 /// A rust representation of the au::AudioUnit, including a pointer to the current rendering callback.
 ///
 /// Find the original Audio Unit Programming Guide [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html).
 pub struct AudioUnit {
     instance: au::AudioUnit,
-    maybe_callback: Option<*mut libc::c_void>
+    maybe_callback: Option<*mut render_callback::InputProcFnWrapper>
 }
 
 
@@ -135,13 +130,19 @@ impl AudioUnit {
 
         unsafe {
             // Find the default audio unit for the description.
-            let component = match au::AudioComponentFindNext(ptr::null_mut(), &desc as *const _) {
-                component if component.is_null() =>
-                    return Err(Error::NoMatchingDefaultAudioUnitFound),
-                component => component,
-            };
+            //
+            // From the "Audio Unit Hosting Guide for iOS":
+            //
+            // Passing NULL to the first parameter of AudioComponentFindNext tells this function to
+            // find the first system audio unit matching the description, using a system-defined
+            // ordering. If you instead pass a previously found audio unit reference in this
+            // parameter, the function locates the next audio unit matching the description.
+            let component = au::AudioComponentFindNext(ptr::null_mut(), &desc as *const _);
+            if component.is_null() {
+                return Err(Error::NoMatchingDefaultAudioUnitFound);
+            }
 
-            // Get an instance of the default audio unit using the component.
+            // Create an instance of the default audio unit using the component.
             let mut instance: au::AudioUnit = mem::uninitialized();
             try_os_status!(
                 au::AudioComponentInstanceNew(component, &mut instance as *mut au::AudioUnit)
@@ -214,45 +215,6 @@ impl AudioUnit {
         }
     }
 
-    /// Pass a render callback (aka "Input Procedure") to the **AudioUnit**.
-    pub fn set_render_callback(&mut self, f: Option<Box<RenderCallback>>) -> Result<(), Error> {
-        // Setup render callback. Notice that we relinquish ownership of the Callback
-        // here so that it can be used as the C render callback via a void pointer.
-        // We do however store the *mut so that we can convert back to a
-        // Box<Box<RenderCallback>> within our AudioUnit's Drop implementation
-        // (otherwise it would leak). The double-boxing is due to incompleteness with
-        // Rust's FnMut implemetation and is necessary to be able to convert to the
-        // correct pointer size.
-        let callback_ptr = match f {
-            Some(x) => Box::into_raw(Box::new(x)) as *mut libc::c_void,
-            _ => ptr::null_mut()
-        };
-        let render_callback = au::AURenderCallbackStruct {
-            inputProc: Some(input_proc),
-            inputProcRefCon: callback_ptr
-        };
-
-        try!(self.set_property(au::kAudioUnitProperty_SetRenderCallback,
-                               Scope::Input,
-                               Element::Output,
-                               Some(&render_callback)));
-
-        self.free_render_callback();
-        self.maybe_callback = if !callback_ptr.is_null() { Some(callback_ptr) } else { None };
-        Ok(())
-    }
-
-    /// Retrieves ownership over the render callback and drops it.
-    fn free_render_callback(&mut self) {
-        if let Some(callback) = self.maybe_callback.take() {
-            // Here, we transfer ownership of the callback back to the current scope so that it
-            // is dropped and cleaned up. Without this line, we would leak the Boxed callback.
-            let _: Box<Box<RenderCallback>> = unsafe {
-                Box::from_raw(callback as *mut Box<RenderCallback>)
-            };
-        }
-    }
-
     /// Starts an I/O **AudioUnit**, which in turn starts the audio unit processing graph that it is
     /// connected to.
     ///
@@ -286,6 +248,19 @@ impl AudioUnit {
     }
 
     /// Sets the current **StreamFormat** for the AudioUnit.
+    ///
+    /// Core Audio uses slightly different defaults depending on the platform.
+    ///
+    /// From the Core Audio Overview:
+    ///
+    /// > The canonical formats in Core Audio are as follows:
+    /// >
+    /// > - iOS input and output: Linear PCM with 16-bit integer samples.
+    /// > - iOS audio units and other audio processing: Noninterleaved linear PCM with 8.24-bit
+    /// fixed-point samples
+    /// > - Mac input and output: Linear PCM with 32-bit floating point samples.
+    /// > - Mac audio units and other audio processing: Noninterleaved linear PCM with 32-bit
+    /// floating-point
     pub fn set_stream_format(&mut self, stream_format: StreamFormat) -> Result<(), Error> {
         let id = au::kAudioUnitProperty_StreamFormat;
         let asbd = stream_format.to_asbd();
@@ -307,59 +282,15 @@ impl Drop for AudioUnit {
         unsafe {
             use error;
             use std::error::Error;
-            if let Err(err) = self.stop() {
-                panic!("{:?}", err.description());
-            }
-            if let Err(err) = error::Error::from_os_status(au::AudioUnitUninitialize(self.instance)) {
-                panic!("{:?}", err.description());
-            }
+
+            // We don't want to panic in `drop`, so we'll ignore returned errors.
+            //
+            // A user should explicitly terminate the `AudioUnit` if they want to handle errors (we
+            // still need to provide a way to actually do that).
+            self.stop().ok();
+            error::Error::from_os_status(au::AudioUnitUninitialize(self.instance)).ok();
+
             self.free_render_callback();
-        }
-    }
-}
-
-
-/// Callback procedure that will be called each time our audio_unit requests audio.
-extern "C" fn input_proc(in_ref_con: *mut libc::c_void,
-                         _io_action_flags: *mut au::AudioUnitRenderActionFlags,
-                         _in_time_stamp: *const au::AudioTimeStamp,
-                         _in_bus_number: au::UInt32,
-                         in_number_frames: au::UInt32,
-                         io_data: *mut au::AudioBufferList) -> au::OSStatus {
-    let callback: *mut Box<RenderCallback> = in_ref_con as *mut _;
-    unsafe {
-        let num_channels = (*io_data).mNumberBuffers as usize;
-
-        // FIXME: We shouldn't need a Vec for this, it should probably be something like
-        // `&[&mut [f32]]` instead.
-        let mut channels: Vec<&mut [f32]> =
-            (0..num_channels)
-                .map(|i| {
-                    let slice_ptr = (*io_data).mBuffers[i].mData as *mut libc::c_float;
-                    // TODO: the size of this buffer needs to be calculated properly based on the stream format.
-                    // Currently this won't be correct in at least this case:
-                    /*
-                    stream_format::StreamFormat {
-                        sample_rate: 44100.0,
-                        audio_format: audio_format::AudioFormat::LinearPCM(Some(audio_format::LinearPCMFlag::IsFloat)),
-                        bytes_per_packet: 2 * 4,
-                        frames_per_packet: 1,
-                        bytes_per_frame: 2 * 4,
-                        channels_per_frame: 2,
-                        bits_per_channel: 32
-                    }
-                     */
-                    ::std::slice::from_raw_parts_mut(slice_ptr, in_number_frames as usize)
-                })
-                .collect();
-
-        match (*callback)(&mut channels[..], in_number_frames as usize) {
-            Ok(()) => 0 as au::OSStatus,
-            Err(description) => {
-                use std::io::Write;
-                writeln!(::std::io::stderr(), "{:?}", description).unwrap();
-                AudioUnitError::NoConnection as au::OSStatus
-            },
         }
     }
 }

@@ -14,5 +14,7 @@ pub use coreaudio_sys as bindings;
 
 extern crate libc;
 
+pub use error::Error;
+
 pub mod audio_unit;
 pub mod error;

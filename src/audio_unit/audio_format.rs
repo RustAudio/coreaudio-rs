@@ -279,7 +279,7 @@ pub mod standard_flags {
         /// the **AudioFormat** type.
         /// 
         /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
-        flags StandardFlags: u32 {
+        pub flags StandardFlags: u32 {
             /// Set for floating point, clear for integer.
             ///
             /// **Available** in OS X v10.2 and later.
@@ -337,7 +337,7 @@ pub mod linear_pcm_flags {
         /// the **AudioFormat** type.
         ///
         /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
-        flags LinearPCMFlags: u32 {
+        pub flags LinearPCMFlags: u32 {
             /// Synonmyn for the **IS_FLOAT** **StandardFlags**.
             ///
             /// **Available** in OS X v10.0 and later.
@@ -404,7 +404,7 @@ pub mod apple_lossless_flags {
         /// the **AudioFormat** type.
         ///
         /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
-        flags AppleLosslessFlags: u32 {
+        pub flags AppleLosslessFlags: u32 {
             /// Sourced from 16 bit native endian signed integer data.
             const BIT_16_SOURCE_DATA = 1,
             /// Sourced from 20 bit native endian signed integer data aligned high in 24 bits.
@@ -483,7 +483,7 @@ pub mod audio_time_stamp_flags {
         /// **Available** in OS X v10.0 and later.
         ///
         /// Original Documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/Audio_Time_Stamp_Flags).
-        flags AudioTimeStampFlags: u32 {
+        pub flags AudioTimeStampFlags: u32 {
             /// The sample frame time is valid.
             const SAMPLE_TIME_VALID = 1,
             /// The host time is valid.

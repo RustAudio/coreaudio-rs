@@ -224,7 +224,7 @@ pub mod action_flags {
     use bindings::audio_unit as au;
 
     bitflags!{
-        flags ActionFlags: u32 {
+        pub flags ActionFlags: u32 {
             /// Called on a render notification Proc, which is called either before or after the
             /// render operation of the audio unit. If this flag is set, the proc is being called
             /// before the render operation is performed.

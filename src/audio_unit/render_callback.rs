@@ -1,7 +1,6 @@
 use bindings::audio_unit as au;
 use error::{self, Error};
 use libc;
-use std::marker::PhantomData;
 use super::{AudioUnit, Element, Scope};
 
 pub use self::action_flags::ActionFlags;
@@ -26,7 +25,7 @@ pub struct InputProcFnWrapper {
 
 /// Arguments given to the render callback function.
 #[derive(Copy, Clone)]
-pub struct Args<'a, D> {
+pub struct Args<D> {
     /// A type wrapping the the buffer that matches the expected audio format.
     pub data: D,
     /// Timing information for the callback.
@@ -41,7 +40,6 @@ pub struct Args<'a, D> {
     pub bus_number: u32,
     /// The number of frames in the buffer as `usize` for easier indexing.
     pub num_frames: usize,
-    callback_lifetime: PhantomData<&'a ()>,
 }
 
 /// Format specific render callback data.
@@ -120,7 +118,7 @@ pub mod data {
     // }
 
     /// A wrapper around the pointer to the `mBuffers` array.
-    pub struct NonInterleaved<'a, S: 'a> {
+    pub struct NonInterleaved<S> {
         /// A pointer to the first buffer.
         ///
         /// TODO: Work out why this works and `&'a mut [au::AudioBuffer]` does not!
@@ -129,7 +127,7 @@ pub mod data {
         num_buffers: usize,
         /// The number of frames in each channel.
         frames: usize,
-        sample_format: PhantomData<&'a S>,
+        sample_format: PhantomData<S>,
     }
 
     /// An iterator produced by a `NoneInterleaved`, yielding a reference to each channel.
@@ -145,6 +143,8 @@ pub mod data {
         frames: usize,
         sample_format: PhantomData<S>,
     }
+
+    unsafe impl<S> Send for NonInterleaved<S> where S: Send {}
 
     impl<'a, S> Iterator for Channels<'a, S> {
         type Item = &'a [S];
@@ -170,7 +170,7 @@ pub mod data {
         }
     }
 
-    impl<'a, S> NonInterleaved<'a, S> {
+    impl<S> NonInterleaved<S> {
 
         /// An iterator yielding a reference to each channel in the array.
         pub fn channels(&self) -> Channels<S> {
@@ -193,11 +193,11 @@ pub mod data {
     }
 
     // Implementation for a non-interleaved linear PCM audio format.
-    impl<'a, S> Data for NonInterleaved<'a, S>
+    impl<S> Data for NonInterleaved<S>
         where S: Sample,
     {
         fn does_stream_format_match(format: &StreamFormat) -> bool {
-            // TODO: This is never set, in though the default ABSD on OS X is non-interleaved!
+            // TODO: This is never set, even though the default ABSD on OS X is non-interleaved!
             // Should really investigate why this is.
             // format.flags.contains(linear_pcm_flags::IS_NON_INTERLEAVED) &&
                 S::sample_format().does_match_flags(format.flags)
@@ -303,7 +303,7 @@ impl AudioUnit {
 
     /// Pass a render callback (aka "Input Procedure") to the **AudioUnit**.
     pub fn set_render_callback<F, D>(&mut self, mut f: F) -> Result<(), Error>
-        where F: for<'a> FnMut(Args<'a, D>) -> Result<(), ()> + 'static,
+        where F: FnMut(Args<D>) -> Result<(), ()> + 'static,
               D: Data,
     {
         // First, we'll retrieve the stream format so that we can ensure that the given callback
@@ -336,7 +336,6 @@ impl AudioUnit {
                     flags: flags,
                     bus_number: in_bus_number as u32,
                     num_frames: in_number_frames as usize,
-                    callback_lifetime: PhantomData,
                 }
             };
 

@@ -277,11 +277,13 @@ impl AudioUnit {
 }
 
 
+unsafe impl Send for AudioUnit {}
+
+
 impl Drop for AudioUnit {
     fn drop(&mut self) {
         unsafe {
             use error;
-            use std::error::Error;
 
             // We don't want to panic in `drop`, so we'll ignore returned errors.
             //

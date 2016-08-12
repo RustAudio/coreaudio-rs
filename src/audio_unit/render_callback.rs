@@ -24,23 +24,24 @@ pub struct InputProcFnWrapper {
 }
 
 /// Arguments given to the render callback function.
-#[derive(Copy, Clone)]
 pub struct Args<D> {
     /// A type wrapping the the buffer that matches the expected audio format.
     pub data: D,
     /// Timing information for the callback.
     pub time_stamp: au::AudioTimeStamp,
-    /// Flags for configuring audio unit rendering.
-    ///
-    /// TODO: I can't find any solid documentation on this, but it looks like we should be allowing
-    /// the user to also *set* these flags, as `rust-bindgen` generated a `*mut` to them. If that's
-    /// the case, then perhaps we should change the return type to `Result<ActionFlags, ()>`?
-    pub flags: ActionFlags,
     /// TODO
     pub bus_number: u32,
     /// The number of frames in the buffer as `usize` for easier indexing.
     pub num_frames: usize,
+    /// Flags for configuring audio unit rendering.
+    ///
+    /// This parameter lets a callback provide various hints to the audio unit.
+    ///
+    /// For example: if there is no audio to process, we can insert the `OUTPUT_IS_SILENCE` flag to
+    /// indicate to the audio unit that the buffer does not need to be processed.
+    pub flags: action_flags::Handle,
 }
+
 
 /// Format specific render callback data.
 pub mod data {
@@ -266,7 +267,7 @@ pub mod action_flags {
             const OFFLINE_COMPLETE = au::kAudioOfflineUnitRenderAction_Complete,
             /// If this flag is set on the post-render call an error was returned by the audio
             /// unit's render operation. In this case, the error can be retrieved through the
-            /// `lastRenderError` property and the aduio data in `ioData` handed to the post-render
+            /// `lastRenderError` property and the audio data in `ioData` handed to the post-render
             /// notification will be invalid.
             ///
             /// **Available** in OS X v10.5 and later.
@@ -280,6 +281,83 @@ pub mod action_flags {
             const DO_NOT_CHECK_RENDER_ARGS = au::kAudioUnitRenderAction_DoNotCheckRenderArgs,
         }
     }
+
+    /// A safe handle around the `AudioUnitRenderActionFlags` pointer provided by the render
+    /// callback.
+    ///
+    /// This type lets a callback provide various hints to the audio unit.
+    ///
+    /// For example: if there is no audio to process, we can insert the `OUTPUT_IS_SILENCE` flag to
+    /// indicate to the audio unit that the buffer does not need to be processed.
+    pub struct Handle {
+        ptr: *mut au::AudioUnitRenderActionFlags,
+    }
+
+    impl Handle {
+
+        /// Retrieve the current state of the `ActionFlags`.
+        pub fn get(&self) -> ActionFlags {
+            ActionFlags::from_bits_truncate(unsafe { *self.ptr })
+        }
+
+        fn set(&mut self, flags: ActionFlags) {
+            unsafe { *self.ptr = flags.bits() }
+        }
+
+        /// The raw value of the flags currently stored.
+        pub fn bits(&self) -> u32 {
+            self.get().bits()
+        }
+
+        /// Returns `true` if no flags are currently stored.
+        pub fn is_empty(&self) -> bool {
+            self.get().is_empty()
+        }
+
+        /// Returns `true` if all flags are currently stored.
+        pub fn is_all(&self) -> bool {
+            self.get().is_all()
+        }
+
+        /// Returns `true` if there are flags common to both `self` and `other`.
+        pub fn intersects(&self, other: ActionFlags) -> bool {
+            self.get().intersects(other)
+        }
+
+        /// Returns `true` if all of the flags in `other` are contained within `self`.
+        pub fn contains(&self, other: ActionFlags) -> bool {
+            self.get().contains(other)
+        }
+
+        /// Insert the specified flags in-place.
+        pub fn insert(&mut self, other: ActionFlags) {
+            let mut flags = self.get();
+            flags.insert(other);
+            self.set(flags);
+        }
+
+        /// Remove the specified flags in-place.
+        pub fn remove(&mut self, other: ActionFlags) {
+            let mut flags = self.get();
+            flags.remove(other);
+            self.set(flags);
+        }
+
+        /// Toggles the specified flags in-place.
+        pub fn toggle(&mut self, other: ActionFlags) {
+            let mut flags = self.get();
+            flags.toggle(other);
+            self.set(flags);
+        }
+
+        /// Wrap the given pointer with a `Handle`.
+        pub fn from_ptr(ptr: *mut au::AudioUnitRenderActionFlags) -> Self {
+            Handle { ptr: ptr }
+        }
+
+    }
+
+    unsafe impl Send for Handle {}
 
     impl ::std::fmt::Display for ActionFlags {
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
@@ -328,8 +406,7 @@ impl AudioUnit {
         {
             let args = unsafe {
                 let data = D::from_input_proc_args(in_number_frames, io_data);
-                let flags = ActionFlags::from_bits(*io_action_flags)
-                    .unwrap_or_else(|| ActionFlags::empty());
+                let flags = action_flags::Handle::from_ptr(io_action_flags);
                 Args {
                     data: data,
                     time_stamp: *in_time_stamp,

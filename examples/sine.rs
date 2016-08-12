@@ -39,22 +39,20 @@ fn run() -> Result<(), coreaudio::Error> {
     // For this example, our sine wave expects `f32` data.
     assert!(SampleFormat::F32 == stream_format.sample_format);
 
-    try!(audio_unit.set_render_callback(move |args| callback(args, &mut samples)));
+    type Args = render_callback::Args<data::NonInterleaved<f32>>;
+    try!(audio_unit.set_render_callback(move |args| {
+        let Args { num_frames, mut data, .. } = args;
+        for i in 0..num_frames {
+            let sample = samples.next().unwrap();
+            for channel in data.channels_mut() {
+                channel[i] = sample;
+            }
+        }
+        Ok(())
+    }));
     try!(audio_unit.start());
 
-    std::thread::sleep_ms(3000);
+    std::thread::sleep(std::time::Duration::from_millis(3000));
 
-    Ok(())
-}
-
-type Args<'a> = render_callback::Args<'a, data::NonInterleaved<'a, f32>>;
-fn callback<'a, I: Iterator<Item=f32>>(args: Args<'a>, samples: &mut I) -> Result<(), ()> {
-    let Args { num_frames, mut data, .. } = args;
-    for i in 0..num_frames {
-        let sample = samples.next().unwrap();
-        for channel in data.channels_mut() {
-            channel[i] = sample;
-        }
-    }
     Ok(())
 }

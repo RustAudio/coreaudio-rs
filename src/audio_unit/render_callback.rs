@@ -1,7 +1,6 @@
 use bindings::audio_unit as au;
 use error::{self, Error};
 use libc;
-use std::marker::PhantomData;
 use super::{AudioUnit, Element, Scope};
 
 pub use self::action_flags::ActionFlags;
@@ -25,24 +24,24 @@ pub struct InputProcFnWrapper {
 }
 
 /// Arguments given to the render callback function.
-#[derive(Copy, Clone)]
-pub struct Args<'a, D> {
+pub struct Args<D> {
     /// A type wrapping the the buffer that matches the expected audio format.
     pub data: D,
     /// Timing information for the callback.
     pub time_stamp: au::AudioTimeStamp,
-    /// Flags for configuring audio unit rendering.
-    ///
-    /// TODO: I can't find any solid documentation on this, but it looks like we should be allowing
-    /// the user to also *set* these flags, as `rust-bindgen` generated a `*mut` to them. If that's
-    /// the case, then perhaps we should change the return type to `Result<ActionFlags, ()>`?
-    pub flags: ActionFlags,
     /// TODO
     pub bus_number: u32,
     /// The number of frames in the buffer as `usize` for easier indexing.
     pub num_frames: usize,
-    callback_lifetime: PhantomData<&'a ()>,
+    /// Flags for configuring audio unit rendering.
+    ///
+    /// This parameter lets a callback provide various hints to the audio unit.
+    ///
+    /// For example: if there is no audio to process, we can insert the `OUTPUT_IS_SILENCE` flag to
+    /// indicate to the audio unit that the buffer does not need to be processed.
+    pub flags: action_flags::Handle,
 }
+
 
 /// Format specific render callback data.
 pub mod data {
@@ -120,7 +119,7 @@ pub mod data {
     // }
 
     /// A wrapper around the pointer to the `mBuffers` array.
-    pub struct NonInterleaved<'a, S: 'a> {
+    pub struct NonInterleaved<S> {
         /// A pointer to the first buffer.
         ///
         /// TODO: Work out why this works and `&'a mut [au::AudioBuffer]` does not!
@@ -129,7 +128,7 @@ pub mod data {
         num_buffers: usize,
         /// The number of frames in each channel.
         frames: usize,
-        sample_format: PhantomData<&'a S>,
+        sample_format: PhantomData<S>,
     }
 
     /// An iterator produced by a `NoneInterleaved`, yielding a reference to each channel.
@@ -145,6 +144,8 @@ pub mod data {
         frames: usize,
         sample_format: PhantomData<S>,
     }
+
+    unsafe impl<S> Send for NonInterleaved<S> where S: Send {}
 
     impl<'a, S> Iterator for Channels<'a, S> {
         type Item = &'a [S];
@@ -170,7 +171,7 @@ pub mod data {
         }
     }
 
-    impl<'a, S> NonInterleaved<'a, S> {
+    impl<S> NonInterleaved<S> {
 
         /// An iterator yielding a reference to each channel in the array.
         pub fn channels(&self) -> Channels<S> {
@@ -193,11 +194,11 @@ pub mod data {
     }
 
     // Implementation for a non-interleaved linear PCM audio format.
-    impl<'a, S> Data for NonInterleaved<'a, S>
+    impl<S> Data for NonInterleaved<S>
         where S: Sample,
     {
         fn does_stream_format_match(format: &StreamFormat) -> bool {
-            // TODO: This is never set, in though the default ABSD on OS X is non-interleaved!
+            // TODO: This is never set, even though the default ABSD on OS X is non-interleaved!
             // Should really investigate why this is.
             // format.flags.contains(linear_pcm_flags::IS_NON_INTERLEAVED) &&
                 S::sample_format().does_match_flags(format.flags)
@@ -224,7 +225,7 @@ pub mod action_flags {
     use bindings::audio_unit as au;
 
     bitflags!{
-        flags ActionFlags: u32 {
+        pub flags ActionFlags: u32 {
             /// Called on a render notification Proc, which is called either before or after the
             /// render operation of the audio unit. If this flag is set, the proc is being called
             /// before the render operation is performed.
@@ -266,7 +267,7 @@ pub mod action_flags {
             const OFFLINE_COMPLETE = au::kAudioOfflineUnitRenderAction_Complete,
             /// If this flag is set on the post-render call an error was returned by the audio
             /// unit's render operation. In this case, the error can be retrieved through the
-            /// `lastRenderError` property and the aduio data in `ioData` handed to the post-render
+            /// `lastRenderError` property and the audio data in `ioData` handed to the post-render
             /// notification will be invalid.
             ///
             /// **Available** in OS X v10.5 and later.
@@ -280,6 +281,83 @@ pub mod action_flags {
             const DO_NOT_CHECK_RENDER_ARGS = au::kAudioUnitRenderAction_DoNotCheckRenderArgs,
         }
     }
+
+    /// A safe handle around the `AudioUnitRenderActionFlags` pointer provided by the render
+    /// callback.
+    ///
+    /// This type lets a callback provide various hints to the audio unit.
+    ///
+    /// For example: if there is no audio to process, we can insert the `OUTPUT_IS_SILENCE` flag to
+    /// indicate to the audio unit that the buffer does not need to be processed.
+    pub struct Handle {
+        ptr: *mut au::AudioUnitRenderActionFlags,
+    }
+
+    impl Handle {
+
+        /// Retrieve the current state of the `ActionFlags`.
+        pub fn get(&self) -> ActionFlags {
+            ActionFlags::from_bits_truncate(unsafe { *self.ptr })
+        }
+
+        fn set(&mut self, flags: ActionFlags) {
+            unsafe { *self.ptr = flags.bits() }
+        }
+
+        /// The raw value of the flags currently stored.
+        pub fn bits(&self) -> u32 {
+            self.get().bits()
+        }
+
+        /// Returns `true` if no flags are currently stored.
+        pub fn is_empty(&self) -> bool {
+            self.get().is_empty()
+        }
+
+        /// Returns `true` if all flags are currently stored.
+        pub fn is_all(&self) -> bool {
+            self.get().is_all()
+        }
+
+        /// Returns `true` if there are flags common to both `self` and `other`.
+        pub fn intersects(&self, other: ActionFlags) -> bool {
+            self.get().intersects(other)
+        }
+
+        /// Returns `true` if all of the flags in `other` are contained within `self`.
+        pub fn contains(&self, other: ActionFlags) -> bool {
+            self.get().contains(other)
+        }
+
+        /// Insert the specified flags in-place.
+        pub fn insert(&mut self, other: ActionFlags) {
+            let mut flags = self.get();
+            flags.insert(other);
+            self.set(flags);
+        }
+
+        /// Remove the specified flags in-place.
+        pub fn remove(&mut self, other: ActionFlags) {
+            let mut flags = self.get();
+            flags.remove(other);
+            self.set(flags);
+        }
+
+        /// Toggles the specified flags in-place.
+        pub fn toggle(&mut self, other: ActionFlags) {
+            let mut flags = self.get();
+            flags.toggle(other);
+            self.set(flags);
+        }
+
+        /// Wrap the given pointer with a `Handle`.
+        pub fn from_ptr(ptr: *mut au::AudioUnitRenderActionFlags) -> Self {
+            Handle { ptr: ptr }
+        }
+
+    }
+
+    unsafe impl Send for Handle {}
 
     impl ::std::fmt::Display for ActionFlags {
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
@@ -303,7 +381,7 @@ impl AudioUnit {
 
     /// Pass a render callback (aka "Input Procedure") to the **AudioUnit**.
     pub fn set_render_callback<F, D>(&mut self, mut f: F) -> Result<(), Error>
-        where F: for<'a> FnMut(Args<'a, D>) -> Result<(), ()> + 'static,
+        where F: FnMut(Args<D>) -> Result<(), ()> + 'static,
               D: Data,
     {
         // First, we'll retrieve the stream format so that we can ensure that the given callback
@@ -328,15 +406,13 @@ impl AudioUnit {
         {
             let args = unsafe {
                 let data = D::from_input_proc_args(in_number_frames, io_data);
-                let flags = ActionFlags::from_bits(*io_action_flags)
-                    .unwrap_or_else(|| ActionFlags::empty());
+                let flags = action_flags::Handle::from_ptr(io_action_flags);
                 Args {
                     data: data,
                     time_stamp: *in_time_stamp,
                     flags: flags,
                     bus_number: in_bus_number as u32,
                     num_frames: in_number_frames as usize,
-                    callback_lifetime: PhantomData,
                 }
             };
 

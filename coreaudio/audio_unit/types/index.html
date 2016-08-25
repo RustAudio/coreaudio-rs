@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `types` mod in crate `coreaudio`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, types">
+
+    <title>coreaudio::audio_unit::types - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='../../index.html'>coreaudio</a>::<wbr><a href='../index.html'>audio_unit</a></p><script>window.sidebarCurrent = {name: 'types', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Module <a href='../../index.html'>coreaudio</a>::<wbr><a href='../index.html'>audio_unit</a>::<wbr><a class='mod' href=''>types</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-1585' class='srclink' href='../../../src/coreaudio/src/audio_unit/types.rs.html#1-449' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>Core Audio&#39;s various const audio unit types identifiers represented as typesafe enums.</p>
+
+<p>Oirginal documentation <a href="https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Types">here</a>.</p>
+</div><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.EffectType.html'
+                                  title='coreaudio::audio_unit::types::EffectType'>EffectType</a></td>
+                           <td class='docblock short'>
+                                <p>Effect (digital signal processing) audio unit subtypes for audio units provided by Apple.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.FormatConverterType.html'
+                                  title='coreaudio::audio_unit::types::FormatConverterType'>FormatConverterType</a></td>
+                           <td class='docblock short'>
+                                <p>Audio data format converter audio unit subtypes for <strong>AudioUnit</strong>s provided by Apple.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.GeneratorType.html'
+                                  title='coreaudio::audio_unit::types::GeneratorType'>GeneratorType</a></td>
+                           <td class='docblock short'>
+                                <p>Audio units that serve as sound sources.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.IOType.html'
+                                  title='coreaudio::audio_unit::types::IOType'>IOType</a></td>
+                           <td class='docblock short'>
+                                <p>Input/output <strong>AudioUnit</strong> subtypes for <strong>AudioUnit</strong>s provided by Apple.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.MixerType.html'
+                                  title='coreaudio::audio_unit::types::MixerType'>MixerType</a></td>
+                           <td class='docblock short'>
+                                <p>Audio mixing <strong>AudioUnit</strong> subtypes for <strong>AudioUnit</strong>s provided by Apple.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.MusicDeviceType.html'
+                                  title='coreaudio::audio_unit::types::MusicDeviceType'>MusicDeviceType</a></td>
+                           <td class='docblock short'>
+                                <p>Audio units that can be played as musical instruments via MIDI control.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.Type.html'
+                                  title='coreaudio::audio_unit::types::Type'>Type</a></td>
+                           <td class='docblock short'>
+                                <p>Represents the different kinds of Audio Units that are available.</p>
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../../";
+        window.currentCrate = "coreaudio";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../../jquery.js"></script>
+    <script src="../../../main.js"></script>
+    
+    <script defer src="../../../search-index.js"></script>
+</body>
+</html>

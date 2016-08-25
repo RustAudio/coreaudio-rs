@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="Source to the Rust file `src/audio_unit/types.rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang">
+
+    <title>types.rs.html -- source</title>
+
+    <link rel="stylesheet" type="text/css" href="../../../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content source"><pre class="line-numbers"><span id="1">  1</span>
+<span id="2">  2</span>
+<span id="3">  3</span>
+<span id="4">  4</span>
+<span id="5">  5</span>
+<span id="6">  6</span>
+<span id="7">  7</span>
+<span id="8">  8</span>
+<span id="9">  9</span>
+<span id="10"> 10</span>
+<span id="11"> 11</span>
+<span id="12"> 12</span>
+<span id="13"> 13</span>
+<span id="14"> 14</span>
+<span id="15"> 15</span>
+<span id="16"> 16</span>
+<span id="17"> 17</span>
+<span id="18"> 18</span>
+<span id="19"> 19</span>
+<span id="20"> 20</span>
+<span id="21"> 21</span>
+<span id="22"> 22</span>
+<span id="23"> 23</span>
+<span id="24"> 24</span>
+<span id="25"> 25</span>
+<span id="26"> 26</span>
+<span id="27"> 27</span>
+<span id="28"> 28</span>
+<span id="29"> 29</span>
+<span id="30"> 30</span>
+<span id="31"> 31</span>
+<span id="32"> 32</span>
+<span id="33"> 33</span>
+<span id="34"> 34</span>
+<span id="35"> 35</span>
+<span id="36"> 36</span>
+<span id="37"> 37</span>
+<span id="38"> 38</span>
+<span id="39"> 39</span>
+<span id="40"> 40</span>
+<span id="41"> 41</span>
+<span id="42"> 42</span>
+<span id="43"> 43</span>
+<span id="44"> 44</span>
+<span id="45"> 45</span>
+<span id="46"> 46</span>
+<span id="47"> 47</span>
+<span id="48"> 48</span>
+<span id="49"> 49</span>
+<span id="50"> 50</span>
+<span id="51"> 51</span>
+<span id="52"> 52</span>
+<span id="53"> 53</span>
+<span id="54"> 54</span>
+<span id="55"> 55</span>
+<span id="56"> 56</span>
+<span id="57"> 57</span>
+<span id="58"> 58</span>
+<span id="59"> 59</span>
+<span id="60"> 60</span>
+<span id="61"> 61</span>
+<span id="62"> 62</span>
+<span id="63"> 63</span>
+<span id="64"> 64</span>
+<span id="65"> 65</span>
+<span id="66"> 66</span>
+<span id="67"> 67</span>
+<span id="68"> 68</span>
+<span id="69"> 69</span>
+<span id="70"> 70</span>
+<span id="71"> 71</span>
+<span id="72"> 72</span>
+<span id="73"> 73</span>
+<span id="74"> 74</span>
+<span id="75"> 75</span>
+<span id="76"> 76</span>
+<span id="77"> 77</span>
+<span id="78"> 78</span>
+<span id="79"> 79</span>
+<span id="80"> 80</span>
+<span id="81"> 81</span>
+<span id="82"> 82</span>
+<span id="83"> 83</span>
+<span id="84"> 84</span>
+<span id="85"> 85</span>
+<span id="86"> 86</span>
+<span id="87"> 87</span>
+<span id="88"> 88</span>
+<span id="89"> 89</span>
+<span id="90"> 90</span>
+<span id="91"> 91</span>
+<span id="92"> 92</span>
+<span id="93"> 93</span>
+<span id="94"> 94</span>
+<span id="95"> 95</span>
+<span id="96"> 96</span>
+<span id="97"> 97</span>
+<span id="98"> 98</span>
+<span id="99"> 99</span>
+<span id="100">100</span>
+<span id="101">101</span>
+<span id="102">102</span>
+<span id="103">103</span>
+<span id="104">104</span>
+<span id="105">105</span>
+<span id="106">106</span>
+<span id="107">107</span>
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+<span id="111">111</span>
+<span id="112">112</span>
+<span id="113">113</span>
+<span id="114">114</span>
+<span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
+<span id="127">127</span>
+<span id="128">128</span>
+<span id="129">129</span>
+<span id="130">130</span>
+<span id="131">131</span>
+<span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
+<span id="160">160</span>
+<span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
+<span id="341">341</span>
+<span id="342">342</span>
+<span id="343">343</span>
+<span id="344">344</span>
+<span id="345">345</span>
+<span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
+<span id="350">350</span>
+<span id="351">351</span>
+<span id="352">352</span>
+<span id="353">353</span>
+<span id="354">354</span>
+<span id="355">355</span>
+<span id="356">356</span>
+<span id="357">357</span>
+<span id="358">358</span>
+<span id="359">359</span>
+<span id="360">360</span>
+<span id="361">361</span>
+<span id="362">362</span>
+<span id="363">363</span>
+<span id="364">364</span>
+<span id="365">365</span>
+<span id="366">366</span>
+<span id="367">367</span>
+<span id="368">368</span>
+<span id="369">369</span>
+<span id="370">370</span>
+<span id="371">371</span>
+<span id="372">372</span>
+<span id="373">373</span>
+<span id="374">374</span>
+<span id="375">375</span>
+<span id="376">376</span>
+<span id="377">377</span>
+<span id="378">378</span>
+<span id="379">379</span>
+<span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
+<span id="393">393</span>
+<span id="394">394</span>
+<span id="395">395</span>
+<span id="396">396</span>
+<span id="397">397</span>
+<span id="398">398</span>
+<span id="399">399</span>
+<span id="400">400</span>
+<span id="401">401</span>
+<span id="402">402</span>
+<span id="403">403</span>
+<span id="404">404</span>
+<span id="405">405</span>
+<span id="406">406</span>
+<span id="407">407</span>
+<span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+</pre><pre class='rust '>
+<span class='doccomment'>//! Core Audio&#39;s various const audio unit types identifiers represented as typesafe enums.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! Oirginal documentation [here](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Types).</span>
+
+
+<span class='doccomment'>/// Represents the different kinds of Audio Units that are available.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// Original documentation [here](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Types).</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Type</span> {
+    <span class='doccomment'>/// Provides input, output, or both input and output simultaneously.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// It can be used as the head of an audio unit processing graph.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>IO</span>(<span class='ident'>IOType</span>),
+    <span class='doccomment'>/// An instrument unit can be used as a software musical instrument, such as a sampler or</span>
+    <span class='doccomment'>/// synthesizer.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// It responds to MIDI (Musical Instrument Digital Interface) control signals and can create</span>
+    <span class='doccomment'>/// notes.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>MusicDevice</span>(<span class='ident'>MusicDeviceType</span>),
+    <span class='doccomment'>/// An effect unit that can respond to MIDI control messages, typically through a mapping of</span>
+    <span class='doccomment'>/// MIDI messages to parameters of the audio unit&#39;s DSP algorithm.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>MusicEffect</span>,
+    <span class='doccomment'>/// A format converter unit can transform audio formats, such as performing sample rate</span>
+    <span class='doccomment'>/// conversion.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// A format converter is also appropriate for dferred rendering and for effects such as</span>
+    <span class='doccomment'>/// varispeed.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// A format converter unit can ask for as much or as little audio input as it needs to produce</span>
+    <span class='doccomment'>/// a given output, while still completing its rendering within the time represented by the</span>
+    <span class='doccomment'>/// output buffer.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// For effect-like format converters, such as pitch shifters, it is common to provide both a</span>
+    <span class='doccomment'>/// real-time and an offline version. OS X, for example, includes Time-Pitch and Varispeed</span>
+    <span class='doccomment'>/// audio units in both real-time and offline versions.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>FormatConverter</span>(<span class='ident'>FormatConverterType</span>),
+    <span class='doccomment'>/// An effect unit repeatedly processes a number of audio input samples to produce the same</span>
+    <span class='doccomment'>/// number of audio output samples.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Most commonly, an effect unit has a single input and a single output.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Some effects take side-chain inputs as well.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Effect units can be run offline, such as to process a file without playing it, but are</span>
+    <span class='doccomment'>/// expected to run in real-time.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>Effect</span>(<span class='ident'>EffectType</span>),
+    <span class='doccomment'>/// A mixer unit takes a number of input channels and mixes them to provide one or more output</span>
+    <span class='doccomment'>/// channels.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// For example, the **StereoMixer** **SubType** in OS X takes multiple mono or stereo inputs</span>
+    <span class='doccomment'>/// and produces a single stereo output.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>Mixer</span>(<span class='ident'>MixerType</span>),
+    <span class='doccomment'>/// A panner unit is a specialised effect unit that distributes one or more channels in a</span>
+    <span class='doccomment'>/// single input to one or more channels in a single output.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Panner units must support a set of standard audio unit parameters that specify panning</span>
+    <span class='doccomment'>/// coordinates.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>Panner</span>,
+    <span class='doccomment'>/// A generator unit provides audio output that has no audio input.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// This audio unit type is appropriate for a tone generator.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Unlike an instrument unit, a generator unit does not have a control input.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>Generator</span>(<span class='ident'>GeneratorType</span>),
+    <span class='doccomment'>/// An offline effect unit provides digital signal processing of a sort that cannot proceed in</span>
+    <span class='doccomment'>/// real-time.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// For example, level normalisation requires examination of an entire sound, beginning to end,</span>
+    <span class='doccomment'>/// before the normalisation factor can be calculated.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// As such, offline effect units also have a notion of a priming stage that can be performed</span>
+    <span class='doccomment'>/// before the actual rendering/processing phase is executed.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>OfflineEffect</span>,
+    <span class='doccomment'>/// FIXME: Could not find any documenation for this type - it seems it was added very recently</span>
+    <span class='doccomment'>/// (around 2013) and Apple&#39;s documentation doesn&#39;t seem to have updated to include it.</span>
+    <span class='ident'>MidiProcessor</span>,
+}
+
+
+<span class='kw'>impl</span> <span class='ident'>Type</span> {
+
+    <span class='doccomment'>/// Convert the `Type` to its associated `u32` for compatibility with original API.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>to_u32</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>u32</span> {
+        <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
+            <span class='ident'>Type</span>::<span class='ident'>IO</span>(_)              <span class='op'>=&gt;</span> <span class='number'>1635086197</span>,
+            <span class='ident'>Type</span>::<span class='ident'>MusicDevice</span>(_)     <span class='op'>=&gt;</span> <span class='number'>1635085685</span>,
+            <span class='ident'>Type</span>::<span class='ident'>MusicEffect</span>        <span class='op'>=&gt;</span> <span class='number'>1635085670</span>,
+            <span class='ident'>Type</span>::<span class='ident'>FormatConverter</span>(_) <span class='op'>=&gt;</span> <span class='number'>1635083875</span>,
+            <span class='ident'>Type</span>::<span class='ident'>Effect</span>(_)          <span class='op'>=&gt;</span> <span class='number'>1635083896</span>,
+            <span class='ident'>Type</span>::<span class='ident'>Mixer</span>(_)           <span class='op'>=&gt;</span> <span class='number'>1635085688</span>,
+            <span class='ident'>Type</span>::<span class='ident'>Panner</span>             <span class='op'>=&gt;</span> <span class='number'>1635086446</span>,
+            <span class='ident'>Type</span>::<span class='ident'>Generator</span>(_)       <span class='op'>=&gt;</span> <span class='number'>1635084142</span>,
+            <span class='ident'>Type</span>::<span class='ident'>OfflineEffect</span>      <span class='op'>=&gt;</span> <span class='number'>1635086188</span>,
+            <span class='ident'>Type</span>::<span class='ident'>MidiProcessor</span>      <span class='op'>=&gt;</span> <span class='number'>1635085673</span>,
+        }
+    }
+
+    <span class='doccomment'>/// Convert the `Type` to the const `u32` that is associated with its subtype.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>to_subtype_u32</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span> {
+        <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
+            <span class='ident'>Type</span>::<span class='ident'>IO</span>(<span class='ident'>ty</span>)              <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>ty</span> <span class='kw'>as</span> <span class='ident'>u32</span>),
+            <span class='ident'>Type</span>::<span class='ident'>MusicDevice</span>(<span class='ident'>ty</span>)     <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>ty</span> <span class='kw'>as</span> <span class='ident'>u32</span>),
+            <span class='ident'>Type</span>::<span class='ident'>FormatConverter</span>(<span class='ident'>ty</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>ty</span> <span class='kw'>as</span> <span class='ident'>u32</span>),
+            <span class='ident'>Type</span>::<span class='ident'>Effect</span>(<span class='ident'>ty</span>)          <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>ty</span> <span class='kw'>as</span> <span class='ident'>u32</span>),
+            <span class='ident'>Type</span>::<span class='ident'>Mixer</span>(<span class='ident'>ty</span>)           <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>ty</span> <span class='kw'>as</span> <span class='ident'>u32</span>),
+            <span class='ident'>Type</span>::<span class='ident'>Generator</span>(<span class='ident'>ty</span>)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>ty</span> <span class='kw'>as</span> <span class='ident'>u32</span>),
+            _ <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+        }
+    }
+
+}
+
+
+<span class='kw'>impl</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>EffectType</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Type</span> {
+    <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>ty</span>: <span class='ident'>EffectType</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>Type</span>::<span class='ident'>Effect</span>(<span class='ident'>ty</span>)
+    }
+}
+
+<span class='kw'>impl</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>FormatConverterType</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Type</span> {
+    <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>ty</span>: <span class='ident'>FormatConverterType</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>Type</span>::<span class='ident'>FormatConverter</span>(<span class='ident'>ty</span>)
+    }
+}
+
+<span class='kw'>impl</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>MixerType</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Type</span> {
+    <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>ty</span>: <span class='ident'>MixerType</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>Type</span>::<span class='ident'>Mixer</span>(<span class='ident'>ty</span>)
+    }
+}
+
+<span class='kw'>impl</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>GeneratorType</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Type</span> {
+    <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>ty</span>: <span class='ident'>GeneratorType</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>Type</span>::<span class='ident'>Generator</span>(<span class='ident'>ty</span>)
+    }
+}
+
+<span class='kw'>impl</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>MusicDeviceType</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Type</span> {
+    <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>ty</span>: <span class='ident'>MusicDeviceType</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>Type</span>::<span class='ident'>MusicDevice</span>(<span class='ident'>ty</span>)
+    }
+}
+
+<span class='kw'>impl</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>IOType</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Type</span> {
+    <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>ty</span>: <span class='ident'>IOType</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>Type</span>::<span class='ident'>IO</span>(<span class='ident'>ty</span>)
+    }
+}
+
+
+<span class='doccomment'>/// Effect (digital signal processing) audio unit subtypes for audio units provided by Apple.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>EffectType</span> {
+    <span class='doccomment'>/// An audio unit that enforces an upper dynamic limit on an audio signal.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>PeakLimiter</span> <span class='op'>=</span> <span class='number'>1819112562</span>,
+    <span class='doccomment'>/// An audio unit that provides dynamic compression or expansion.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>DynamicsProcessor</span> <span class='op'>=</span> <span class='number'>1684237680</span>,
+    <span class='doccomment'>/// An audio unit that passes frequencies below a specified cutoff frequency and blocks</span>
+    <span class='doccomment'>/// frequencies above that cutoff frequency.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>LowPassFilter</span> <span class='op'>=</span> <span class='number'>1819304307</span>,
+    <span class='doccomment'>/// An audio unit that passes frequencies above a specified cutoff frequency and blocks</span>
+    <span class='doccomment'>/// frequencies below that cutoff frequency.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>HighPassFilter</span> <span class='op'>=</span> <span class='number'>1752195443</span>,
+    <span class='doccomment'>/// An audio unit that passes frequencies between specified upper and lower cutoff frequencies,</span>
+    <span class='doccomment'>/// and blocks frequencies outside that band.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>BandPassFilter</span> <span class='op'>=</span> <span class='number'>1651532147</span>,
+    <span class='doccomment'>/// An audio unit suitable for implementing a treble control in an audio playback or recording</span>
+    <span class='doccomment'>/// system.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>HighShelfFilter</span> <span class='op'>=</span> <span class='number'>1752393830</span>,
+    <span class='doccomment'>/// An audio unit suitable for implementing a bass control in an audio playback or recording</span>
+    <span class='doccomment'>/// system.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>LowShelfFilter</span> <span class='op'>=</span> <span class='number'>1819502694</span>,
+    <span class='doccomment'>/// An audio unit that provides a filter whose center frequency, boost/cut level, and Q can be</span>
+    <span class='doccomment'>/// adjusted.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>ParametricEQ</span> <span class='op'>=</span> <span class='number'>1886217585</span>,
+    <span class='doccomment'>/// An audio unit that provides a distortion effect.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.5 and later.</span>
+    <span class='ident'>Distortion</span> <span class='op'>=</span> <span class='number'>1684632436</span>,
+    <span class='doccomment'>/// An audio unit that introduces a time delay to a signal.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>Delay</span> <span class='op'>=</span> <span class='number'>1684368505</span>,
+    <span class='doccomment'>/// An audio unit that provides a time delay for a specified number of samples.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.4 and later.</span>
+    <span class='ident'>SampleDelay</span> <span class='op'>=</span> <span class='number'>1935961209</span>,
+    <span class='doccomment'>/// An audio unit that provides a 10- or 31-band graphic equalizer.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Available in OS X v10.2 and later.</span>
+    <span class='ident'>GraphicEQ</span> <span class='op'>=</span> <span class='number'>1735550321</span>,
+    <span class='doccomment'>/// An audio unit that provides four-bands of dynamic compression or expansion.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>MultiBandCompressor</span> <span class='op'>=</span> <span class='number'>1835232624</span>,
+    <span class='doccomment'>/// An audio unit that provides a reverberation effect that can be used to simulate a variety</span>
+    <span class='doccomment'>/// of acoustic spaces.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>MatrixReverb</span> <span class='op'>=</span> <span class='number'>1836213622</span>,
+    <span class='doccomment'>/// An audio unit for modifying the pitch of a signal.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.4 and later.</span>
+    <span class='ident'>Pitch</span> <span class='op'>=</span> <span class='number'>1953329268</span>,
+    <span class='doccomment'>/// An audio unit that provides a combination of five filters: low-frequency, three</span>
+    <span class='doccomment'>/// mid-frequencies, and high-frequency.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.4 and later.</span>
+    <span class='ident'>AUFilter</span> <span class='op'>=</span> <span class='number'>1718185076</span>,
+    <span class='doccomment'>/// An audio unit for use in conjunction with a kAudioUnitSubType_NetReceive audio unit for</span>
+    <span class='doccomment'>/// sending audio across a network or from one application to another.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.4 and later.</span>
+    <span class='ident'>NetSend</span> <span class='op'>=</span> <span class='number'>1853058660</span>,
+    <span class='doccomment'>/// An audio unit that detects gaps between segments of speech and fills the gaps with a short</span>
+    <span class='doccomment'>/// tone, simulating the sound of a walkie-talkie communication device.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.5 and later.</span>
+    <span class='ident'>RogerBeep</span> <span class='op'>=</span> <span class='number'>1919903602</span>,
+    <span class='doccomment'>/// A multi-band equalizer with specifiable filter type for each band.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.9 and later.</span>
+    <span class='ident'>NBandEQ</span> <span class='op'>=</span> <span class='number'>1851942257</span>,
+}
+
+
+<span class='doccomment'>/// Audio data format converter audio unit subtypes for **AudioUnit**s provided by Apple.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>FormatConverterType</span> {
+    <span class='doccomment'>/// An audio unit that uses an audio converter to do linear PCM conversions, such as changes to</span>
+    <span class='doccomment'>/// sample rate, bit depth, or interleaving.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>AUConverter</span> <span class='op'>=</span> <span class='number'>1668247158</span>,
+    <span class='doccomment'>/// An audio unit that can be used to have independent control of both playback rate and pitch.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// In OS X it provides a generic view, so it can be used in both a UI and programmatic</span>
+    <span class='doccomment'>/// context.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// It also comes in an offline version for processing audio files.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.7 and later.</span>
+    <span class='ident'>NewTimePitch</span> <span class='op'>=</span> <span class='number'>1853191280</span>,
+    <span class='doccomment'>/// An audio unit that can provide independent control of playback rate and pitch. This subtype</span>
+    <span class='doccomment'>/// provides a generic view, making it suitable for UI and programmatic context. OS X provides</span>
+    <span class='doccomment'>/// realtime and offline audio units of this subtype.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>TimePitch</span> <span class='op'>=</span> <span class='number'>1953329268</span>,
+    <span class='doccomment'>/// An audio unit that acquires audio input from a separate thread than the thread on which its</span>
+    <span class='doccomment'>/// render method is called.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// You can use this subtype to introduce multiple threads into an audio unit processing graph.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// There is a delay, equal to the buffer size, introduced between the audio input and output.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.4 and later.</span>
+    <span class='ident'>DeferredRenderer</span> <span class='op'>=</span> <span class='number'>1684366962</span>,
+    <span class='doccomment'>/// An audio unit with one input bus and two output buses. The audio unit duplicates the input</span>
+    <span class='doccomment'>/// signal to each of its two output buses.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.4 and later.</span>
+    <span class='ident'>Splitter</span> <span class='op'>=</span> <span class='number'>1936747636</span>,
+    <span class='doccomment'>/// An audio unit with two input buses and one output bus. The audio unit merges the two input</span>
+    <span class='doccomment'>/// signals to the single output.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.4 and later.</span>
+    <span class='ident'>Merger</span> <span class='op'>=</span> <span class='number'>1835364967</span>,
+    <span class='doccomment'>/// An audio unit that can control playback rate. As the playback rate increases, so does</span>
+    <span class='doccomment'>/// pitch.</span>
+    <span class='doccomment'>/// </span>
+    <span class='doccomment'>/// This subtype provides a generic view, making it suitable for UI and programmatic context.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// OS X provides realtime and offline audio units of this subtype.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>Varispeed</span> <span class='op'>=</span> <span class='number'>1986097769</span>,
+    <span class='doccomment'>/// **Available** in OS X v10.9 and later.</span>
+    <span class='ident'>AUiPodTimeOther</span> <span class='op'>=</span> <span class='number'>1768977519</span>,
+}
+
+
+<span class='doccomment'>/// Audio mixing **AudioUnit** subtypes for **AudioUnit**s provided by Apple.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>MixerType</span> {
+    <span class='doccomment'>/// An audio unit that can have any number of input buses, with any number of channels on each</span>
+    <span class='doccomment'>/// input bus, and one output bus.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// In OS X, the output bus can have any number of channels.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// In iPhone OS, the output bus always has two channels.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.5 and later.</span>
+    <span class='ident'>MultiChannelMixer</span> <span class='op'>=</span> <span class='number'>1835232632</span>,
+    <span class='doccomment'>/// An audio unit that can have any number of input buses, each of which is mono or stereo, and</span>
+    <span class='doccomment'>/// one stereo output bus.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>StereoMixer</span> <span class='op'>=</span> <span class='number'>1936554098</span>,
+    <span class='doccomment'>/// An audio unit that can have any number of input buses and one output bus.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Each input bus can be mono, in which case it can be panned using 3D coordinates and</span>
+    <span class='doccomment'>/// parameters.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Stereo input buses pass directly through to the output.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Four-channel ambisonic inputs are rendered to the output configuration.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The single output bus can be configured with 2, 4, 5, 6, 7 or 8 channels.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='doccomment'>/// </span>
+    <span class='doccomment'>/// **Deprecated** in OS X v10.10.</span>
+    <span class='ident'>Mixer3D</span> <span class='op'>=</span> <span class='number'>862219640</span>,
+    <span class='doccomment'>/// An audio unit that can have any number of input and output buses with any number of</span>
+    <span class='doccomment'>/// channels on each bus.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// You configure the mix using a matrix of channels with a separate input level control for</span>
+    <span class='doccomment'>/// each channel.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The audio unit also provides individual level control for each</span>
+    <span class='doccomment'>/// input-channel-to-output-channel combination, as well as level control for each output</span>
+    <span class='doccomment'>/// channel.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Finally, the audio unit provides a global level control for the matrix as a whole.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>MatrixMixer</span> <span class='op'>=</span> <span class='number'>1836608888</span>,
+}
+
+
+<span class='doccomment'>/// Audio units that serve as sound sources.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>GeneratorType</span> {
+    <span class='doccomment'>/// A generator unit that can be used to schedule slices of audio to be played at specified</span>
+    <span class='doccomment'>/// times.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The audio is scheduled using the time stamps for the render operation and can be scheduled</span>
+    <span class='doccomment'>/// from any thread.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.4 and later.</span>
+    <span class='ident'>ScheduledSoundPlayer</span> <span class='op'>=</span> <span class='number'>1936945260</span>,
+    <span class='doccomment'>/// A generator unit that is used to play a file. In OS X it presents a custom UI so can be</span>
+    <span class='doccomment'>/// used in a UI context as well as in a programmatic context.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.4 and later.</span>
+    <span class='ident'>AudioFilePlayer</span> <span class='op'>=</span> <span class='number'>1634103404</span>,
+}
+
+
+<span class='doccomment'>/// Audio units that can be played as musical instruments via MIDI control.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>MusicDeviceType</span> {
+    <span class='doccomment'>/// A multitimbral instrument unit that can use sample banks in either DLS or SoundFont</span>
+    <span class='doccomment'>/// formats.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// It fully supports GM-MIDI and the basic extensions of GS-MIDI</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>DLSSynth</span> <span class='op'>=</span> <span class='number'>1684828960</span>,
+    <span class='doccomment'>/// A monotimbral instrument unit that functions a a sampler-synthesizer and supports full</span>
+    <span class='doccomment'>/// interactive editing of its state.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.7 and later.</span>
+    <span class='ident'>Sampler</span> <span class='op'>=</span> <span class='number'>1935764848</span>,
+}
+
+
+<span class='doccomment'>/// Input/output **AudioUnit** subtypes for **AudioUnit**s provided by Apple.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>IOType</span> {
+    <span class='doccomment'>/// An audio unit that responds to start/stop calls and provides basic services for converting</span>
+    <span class='doccomment'>/// to and from linear PCM formats.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Use this audio unit when sending the output of an audio processing graph to your</span>
+    <span class='doccomment'>/// application rather than to the output audio hardware. You would typically use the Generic</span>
+    <span class='doccomment'>/// Output unit for offline audio processing. Just like the other I/O units, the Generic Output</span>
+    <span class='doccomment'>/// unit incorporates a Format Converter unit. This lets the Generic Output unit perform format</span>
+    <span class='doccomment'>/// conversion between the stream format used in an audio processing graph and the format you</span>
+    <span class='doccomment'>/// want.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// You can also use a Generic Output unit as the final node in a subgraph that you place into</span>
+    <span class='doccomment'>/// a parent audio processing graph.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>GenericOutput</span> <span class='op'>=</span> <span class='number'>1734700658</span>,
+    <span class='doccomment'>/// An audio unit that can provides input/output connection to an a specified audio device.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Bus 0 provides output to the audio device and bus 1 accepts input from the audio device.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>HalOutput</span> <span class='op'>=</span> <span class='number'>1634230636</span>,
+    <span class='doccomment'>/// A specialized **HalOutput** audio unit that connects to the user’s selected default device</span>
+    <span class='doccomment'>/// in Sound Preferences.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>DefaultOutput</span> <span class='op'>=</span> <span class='number'>1684366880</span>,
+    <span class='doccomment'>/// A specialized **HalOutput** audio unit that connects to the user’s selected device for</span>
+    <span class='doccomment'>/// sound effects, alerts, and other user-interface sounds.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>SystemOutput</span> <span class='op'>=</span> <span class='number'>1937339168</span>,
+    <span class='doccomment'>/// An audio unit that interfaces to the audio inputs and outputs of iPhone OS devices and</span>
+    <span class='doccomment'>/// provides voice processing features.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Bus 0 provides output to hardware and bus 1 accepts input from hardware.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// See the [Voice-Processing I/O Audio Unit</span>
+    <span class='doccomment'>/// Properties](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AudioUnitPropertiesReference/index.html#//apple_ref/doc/constant_group/Voice_Processing_I_O_Audio_Unit_Properties)</span>
+    <span class='doccomment'>/// enumeration for the identifiers for this audio unit’s properties.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.7 and later.</span>
+    <span class='ident'>VoiceProcessingIO</span> <span class='op'>=</span> <span class='number'>1987078511</span>,
+}
+
+</pre>
+</section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../../../";
+        window.currentCrate = "coreaudio";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../../../jquery.js"></script>
+    <script src="../../../../main.js"></script>
+    
+    <script defer src="../../../../search-index.js"></script>
+</body>
+</html>

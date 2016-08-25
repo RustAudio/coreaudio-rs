@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="Source to the Rust file `src/audio_unit/stream_format.rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang">
+
+    <title>stream_format.rs.html -- source</title>
+
+    <link rel="stylesheet" type="text/css" href="../../../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content source"><pre class="line-numbers"><span id="1">  1</span>
+<span id="2">  2</span>
+<span id="3">  3</span>
+<span id="4">  4</span>
+<span id="5">  5</span>
+<span id="6">  6</span>
+<span id="7">  7</span>
+<span id="8">  8</span>
+<span id="9">  9</span>
+<span id="10"> 10</span>
+<span id="11"> 11</span>
+<span id="12"> 12</span>
+<span id="13"> 13</span>
+<span id="14"> 14</span>
+<span id="15"> 15</span>
+<span id="16"> 16</span>
+<span id="17"> 17</span>
+<span id="18"> 18</span>
+<span id="19"> 19</span>
+<span id="20"> 20</span>
+<span id="21"> 21</span>
+<span id="22"> 22</span>
+<span id="23"> 23</span>
+<span id="24"> 24</span>
+<span id="25"> 25</span>
+<span id="26"> 26</span>
+<span id="27"> 27</span>
+<span id="28"> 28</span>
+<span id="29"> 29</span>
+<span id="30"> 30</span>
+<span id="31"> 31</span>
+<span id="32"> 32</span>
+<span id="33"> 33</span>
+<span id="34"> 34</span>
+<span id="35"> 35</span>
+<span id="36"> 36</span>
+<span id="37"> 37</span>
+<span id="38"> 38</span>
+<span id="39"> 39</span>
+<span id="40"> 40</span>
+<span id="41"> 41</span>
+<span id="42"> 42</span>
+<span id="43"> 43</span>
+<span id="44"> 44</span>
+<span id="45"> 45</span>
+<span id="46"> 46</span>
+<span id="47"> 47</span>
+<span id="48"> 48</span>
+<span id="49"> 49</span>
+<span id="50"> 50</span>
+<span id="51"> 51</span>
+<span id="52"> 52</span>
+<span id="53"> 53</span>
+<span id="54"> 54</span>
+<span id="55"> 55</span>
+<span id="56"> 56</span>
+<span id="57"> 57</span>
+<span id="58"> 58</span>
+<span id="59"> 59</span>
+<span id="60"> 60</span>
+<span id="61"> 61</span>
+<span id="62"> 62</span>
+<span id="63"> 63</span>
+<span id="64"> 64</span>
+<span id="65"> 65</span>
+<span id="66"> 66</span>
+<span id="67"> 67</span>
+<span id="68"> 68</span>
+<span id="69"> 69</span>
+<span id="70"> 70</span>
+<span id="71"> 71</span>
+<span id="72"> 72</span>
+<span id="73"> 73</span>
+<span id="74"> 74</span>
+<span id="75"> 75</span>
+<span id="76"> 76</span>
+<span id="77"> 77</span>
+<span id="78"> 78</span>
+<span id="79"> 79</span>
+<span id="80"> 80</span>
+<span id="81"> 81</span>
+<span id="82"> 82</span>
+<span id="83"> 83</span>
+<span id="84"> 84</span>
+<span id="85"> 85</span>
+<span id="86"> 86</span>
+<span id="87"> 87</span>
+<span id="88"> 88</span>
+<span id="89"> 89</span>
+<span id="90"> 90</span>
+<span id="91"> 91</span>
+<span id="92"> 92</span>
+<span id="93"> 93</span>
+<span id="94"> 94</span>
+<span id="95"> 95</span>
+<span id="96"> 96</span>
+<span id="97"> 97</span>
+<span id="98"> 98</span>
+<span id="99"> 99</span>
+<span id="100">100</span>
+<span id="101">101</span>
+<span id="102">102</span>
+<span id="103">103</span>
+<span id="104">104</span>
+<span id="105">105</span>
+<span id="106">106</span>
+<span id="107">107</span>
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+<span id="111">111</span>
+<span id="112">112</span>
+<span id="113">113</span>
+<span id="114">114</span>
+<span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
+<span id="127">127</span>
+<span id="128">128</span>
+<span id="129">129</span>
+<span id="130">130</span>
+<span id="131">131</span>
+<span id="132">132</span>
+</pre><pre class='rust '>
+<span class='doccomment'>//! A rustification of the `AudioStreamBasicDescription` type.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! Find the original `AudioStreamBasicDescription` reference [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/c/tdef/AudioStreamBasicDescription).</span>
+
+<span class='kw'>use</span> <span class='ident'>bindings</span>::<span class='ident'>audio_unit</span> <span class='kw'>as</span> <span class='ident'>au</span>;
+<span class='kw'>use</span> <span class='ident'>error</span>::{<span class='self'>self</span>, <span class='ident'>Error</span>};
+<span class='kw'>use</span> <span class='kw'>super</span>::<span class='ident'>audio_format</span>::<span class='ident'>AudioFormat</span>;
+<span class='kw'>use</span> <span class='kw'>super</span>::<span class='ident'>SampleFormat</span>;
+
+<span class='doccomment'>/// A representation of the AudioStreamBasicDescription specifically for use with the AudioUnit API.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// By using a type specific to the audio unit API, we can remove a lot of unnecessary boilerplate</span>
+<span class='doccomment'>/// that is normally associated with the AudioStreamBasicDescription.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// Seeing as `LinearPCM` data (the `AudioFormat` used by the `AudioUnit` API) implies a single</span>
+<span class='doccomment'>/// frame per packet, we can infer many of the fields in an ASBD from the sample type.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// `bytes_per_packet` = size_of::&lt;S&gt;()</span>
+<span class='doccomment'>/// `bytes_per_frame` = size_of::&lt;S&gt;()</span>
+<span class='doccomment'>/// `frames_per_packet` = 1</span>
+<span class='doccomment'>/// `bits_per_channel` = size_of::&lt;S&gt;() * 8</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// &gt; A *packet* is a collection of one or more contiguous frames. In linear PCM audio, a packet is</span>
+<span class='doccomment'>/// always a single frame.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// [from *Core Audio Overview*](https://developer.apple.com/library/ios/documentation/MusicAudio/Conceptual/CoreAudioOverview/WhatisCoreAudio/WhatisCoreAudio.html)</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// &gt; The canonical formats in Core Audio are as follows:</span>
+<span class='doccomment'>/// &gt;</span>
+<span class='doccomment'>/// &gt; - iOS input and output: Linear PCM with 16-bit integer samples.</span>
+<span class='doccomment'>/// &gt; - iOS audio units and other audio processing: Noninterleaved linear PCM with 8.24-bit</span>
+<span class='doccomment'>/// fixed-point samples</span>
+<span class='doccomment'>/// &gt; - Mac input and output: Linear PCM with 32-bit floating point samples.</span>
+<span class='doccomment'>/// &gt; - Mac audio units and other audio processing: Noninterleaved linear PCM with 32-bit floating</span>
+<span class='doccomment'>/// point samples.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>StreamFormat</span> {
+    <span class='doccomment'>/// The number of frames of audio data per second used to represent a signal.</span>
+    <span class='kw'>pub</span> <span class='ident'>sample_rate</span>: <span class='ident'>f64</span>,
+    <span class='doccomment'>/// The sample format used to represent the audio data.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// In OS X, Core Audio xpects audio data to be in native-endian, 32-bit floating-point,</span>
+    <span class='doccomment'>/// linear PCM format.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// iOS uses integer and fixed-point audio data. The result is faster calculations and less</span>
+    <span class='doccomment'>/// battery drain when processing audio. iOS provides a Converter audio unit and inclues the</span>
+    <span class='doccomment'>/// interfaces from Audio Converter Services (TODO: look into exposing this).</span>
+    <span class='kw'>pub</span> <span class='ident'>sample_format</span>: <span class='ident'>SampleFormat</span>,
+    <span class='kw'>pub</span> <span class='ident'>flags</span>: <span class='kw'>super</span>::<span class='ident'>audio_format</span>::<span class='ident'>LinearPCMFlags</span>,
+    <span class='kw'>pub</span> <span class='ident'>channels_per_frame</span>: <span class='ident'>u32</span>,
+}
+
+<span class='kw'>impl</span> <span class='ident'>StreamFormat</span> {
+
+    <span class='doccomment'>/// Convert an AudioStreamBasicDescription into a StreamFormat.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Note: `audio_unit::StreamFormat` exclusively uses the `LinearPCM` `AudioFormat`. This is as</span>
+    <span class='doccomment'>/// specified in the documentation:</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// &gt; Specify kAudioFormatLinearPCM for the mFormatID field. Audio units use uncompressed audio</span>
+    <span class='doccomment'>/// data, so this is the correct format identifier to use whenever you work with audio units.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// [*Audio Unit Hosting Guide for iOS*](https://developer.apple.com/library/ios/documentation/MusicAudio/Conceptual/AudioUnitHostingGuide_iOS/AudioUnitHostingFundamentals/AudioUnitHostingFundamentals.html)</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Returns an `Error` if the `AudioFormat` inferred by the ASBD is not `LinearPCM`.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Returns an `Error` if the sample format type kkkkkkkkkkkkkkkkkkkkkk</span>
+    <span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>non_snake_case</span>)]</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_asbd</span>(<span class='ident'>asbd</span>: <span class='ident'>au</span>::<span class='ident'>AudioStreamBasicDescription</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>StreamFormat</span>, <span class='ident'>Error</span><span class='op'>&gt;</span> {
+        <span class='kw'>const</span> <span class='ident'>NOT_SUPPORTED</span>: <span class='ident'>Error</span> <span class='op'>=</span> <span class='ident'>Error</span>::<span class='ident'>AudioUnit</span>(<span class='ident'>error</span>::<span class='ident'>audio_unit</span>::<span class='ident'>Error</span>::<span class='ident'>FormatNotSupported</span>);
+
+        <span class='kw'>let</span> <span class='ident'>au</span>::<span class='ident'>Struct_AudioStreamBasicDescription</span> {
+            <span class='ident'>mSampleRate</span>,
+            <span class='ident'>mFormatID</span>,
+            <span class='ident'>mFormatFlags</span>,
+            <span class='ident'>mBytesPerFrame</span>,
+            <span class='ident'>mChannelsPerFrame</span>,
+            ..
+        } <span class='op'>=</span> <span class='ident'>asbd</span>;
+
+        <span class='comment'>// Retrieve the LinearPCM flags.</span>
+        <span class='kw'>let</span> <span class='ident'>flags</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>AudioFormat</span>::<span class='ident'>from_format_and_flag</span>(<span class='ident'>mFormatID</span>, <span class='prelude-val'>Some</span>(<span class='ident'>mFormatFlags</span>)) {
+            <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>LinearPCM</span>(<span class='ident'>flags</span>)) <span class='op'>=&gt;</span> <span class='ident'>flags</span>,
+            _ <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>NOT_SUPPORTED</span>),
+        };
+
+        <span class='comment'>// Determine the `SampleFormat` to use.</span>
+        <span class='kw'>let</span> <span class='ident'>sample_format</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>SampleFormat</span>::<span class='ident'>from_flags_and_bytes_per_frame</span>(<span class='ident'>flags</span>, <span class='ident'>mBytesPerFrame</span>) {
+            <span class='prelude-val'>Some</span>(<span class='ident'>sample_format</span>) <span class='op'>=&gt;</span> <span class='ident'>sample_format</span>,
+            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>NOT_SUPPORTED</span>),
+        };
+
+        <span class='prelude-val'>Ok</span>(<span class='ident'>StreamFormat</span> {
+            <span class='ident'>sample_rate</span>: <span class='ident'>mSampleRate</span>,
+            <span class='ident'>flags</span>: <span class='ident'>flags</span>,
+            <span class='ident'>sample_format</span>: <span class='ident'>sample_format</span>,
+            <span class='ident'>channels_per_frame</span>: <span class='ident'>mChannelsPerFrame</span>,
+        })
+    }
+
+    <span class='doccomment'>/// Convert a StreamFormat into an AudioStreamBasicDescription.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>to_asbd</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>au</span>::<span class='ident'>AudioStreamBasicDescription</span> {
+        <span class='kw'>let</span> <span class='ident'>StreamFormat</span> {
+            <span class='ident'>sample_rate</span>,
+            <span class='ident'>flags</span>,
+            <span class='ident'>sample_format</span>,
+            <span class='ident'>channels_per_frame</span>,
+        } <span class='op'>=</span> <span class='self'>self</span>;
+
+        <span class='kw'>let</span> (<span class='ident'>format</span>, <span class='ident'>maybe_flag</span>) <span class='op'>=</span> <span class='ident'>AudioFormat</span>::<span class='ident'>LinearPCM</span>(<span class='ident'>flags</span>).<span class='ident'>to_format_and_flag</span>();
+
+        <span class='kw'>let</span> <span class='ident'>flag</span> <span class='op'>=</span> <span class='ident'>maybe_flag</span>.<span class='ident'>unwrap_or</span>(::<span class='ident'>std</span>::<span class='ident'>u32</span>::<span class='ident'>MAX</span> <span class='op'>-</span><span class='number'>2147483647</span>);
+
+        <span class='kw'>let</span> <span class='ident'>bytes_per_frame</span> <span class='op'>=</span> <span class='ident'>sample_format</span>.<span class='ident'>size_in_bytes</span>() <span class='kw'>as</span> <span class='ident'>u32</span>;
+        <span class='kw'>const</span> <span class='ident'>FRAMES_PER_PACKET</span>: <span class='ident'>u32</span> <span class='op'>=</span> <span class='number'>1</span>;
+        <span class='kw'>let</span> <span class='ident'>bytes_per_packet</span> <span class='op'>=</span> <span class='ident'>bytes_per_frame</span> <span class='op'>*</span> <span class='ident'>FRAMES_PER_PACKET</span>;
+        <span class='kw'>let</span> <span class='ident'>bits_per_channel</span> <span class='op'>=</span> <span class='ident'>bytes_per_frame</span> <span class='op'>*</span> <span class='number'>8</span>;
+
+        <span class='ident'>au</span>::<span class='ident'>AudioStreamBasicDescription</span> {
+            <span class='ident'>mSampleRate</span>: <span class='ident'>sample_rate</span>,
+            <span class='ident'>mFormatID</span>: <span class='ident'>format</span>,
+            <span class='ident'>mFormatFlags</span>: <span class='ident'>flag</span>,
+            <span class='ident'>mBytesPerPacket</span>: <span class='ident'>bytes_per_packet</span>,
+            <span class='ident'>mFramesPerPacket</span>: <span class='ident'>FRAMES_PER_PACKET</span>,
+            <span class='ident'>mBytesPerFrame</span>: <span class='ident'>bytes_per_frame</span>,
+            <span class='ident'>mChannelsPerFrame</span>: <span class='ident'>channels_per_frame</span>,
+            <span class='ident'>mBitsPerChannel</span>: <span class='ident'>bits_per_channel</span>,
+            <span class='ident'>mReserved</span>: <span class='number'>0</span>,
+        }
+    }
+
+}
+</pre>
+</section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../../../";
+        window.currentCrate = "coreaudio";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../../../jquery.js"></script>
+    <script src="../../../../main.js"></script>
+    
+    <script defer src="../../../../search-index.js"></script>
+</body>
+</html>

@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="Source to the Rust file `src/audio_unit/audio_format.rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang">
+
+    <title>audio_format.rs.html -- source</title>
+
+    <link rel="stylesheet" type="text/css" href="../../../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content source"><pre class="line-numbers"><span id="1">  1</span>
+<span id="2">  2</span>
+<span id="3">  3</span>
+<span id="4">  4</span>
+<span id="5">  5</span>
+<span id="6">  6</span>
+<span id="7">  7</span>
+<span id="8">  8</span>
+<span id="9">  9</span>
+<span id="10"> 10</span>
+<span id="11"> 11</span>
+<span id="12"> 12</span>
+<span id="13"> 13</span>
+<span id="14"> 14</span>
+<span id="15"> 15</span>
+<span id="16"> 16</span>
+<span id="17"> 17</span>
+<span id="18"> 18</span>
+<span id="19"> 19</span>
+<span id="20"> 20</span>
+<span id="21"> 21</span>
+<span id="22"> 22</span>
+<span id="23"> 23</span>
+<span id="24"> 24</span>
+<span id="25"> 25</span>
+<span id="26"> 26</span>
+<span id="27"> 27</span>
+<span id="28"> 28</span>
+<span id="29"> 29</span>
+<span id="30"> 30</span>
+<span id="31"> 31</span>
+<span id="32"> 32</span>
+<span id="33"> 33</span>
+<span id="34"> 34</span>
+<span id="35"> 35</span>
+<span id="36"> 36</span>
+<span id="37"> 37</span>
+<span id="38"> 38</span>
+<span id="39"> 39</span>
+<span id="40"> 40</span>
+<span id="41"> 41</span>
+<span id="42"> 42</span>
+<span id="43"> 43</span>
+<span id="44"> 44</span>
+<span id="45"> 45</span>
+<span id="46"> 46</span>
+<span id="47"> 47</span>
+<span id="48"> 48</span>
+<span id="49"> 49</span>
+<span id="50"> 50</span>
+<span id="51"> 51</span>
+<span id="52"> 52</span>
+<span id="53"> 53</span>
+<span id="54"> 54</span>
+<span id="55"> 55</span>
+<span id="56"> 56</span>
+<span id="57"> 57</span>
+<span id="58"> 58</span>
+<span id="59"> 59</span>
+<span id="60"> 60</span>
+<span id="61"> 61</span>
+<span id="62"> 62</span>
+<span id="63"> 63</span>
+<span id="64"> 64</span>
+<span id="65"> 65</span>
+<span id="66"> 66</span>
+<span id="67"> 67</span>
+<span id="68"> 68</span>
+<span id="69"> 69</span>
+<span id="70"> 70</span>
+<span id="71"> 71</span>
+<span id="72"> 72</span>
+<span id="73"> 73</span>
+<span id="74"> 74</span>
+<span id="75"> 75</span>
+<span id="76"> 76</span>
+<span id="77"> 77</span>
+<span id="78"> 78</span>
+<span id="79"> 79</span>
+<span id="80"> 80</span>
+<span id="81"> 81</span>
+<span id="82"> 82</span>
+<span id="83"> 83</span>
+<span id="84"> 84</span>
+<span id="85"> 85</span>
+<span id="86"> 86</span>
+<span id="87"> 87</span>
+<span id="88"> 88</span>
+<span id="89"> 89</span>
+<span id="90"> 90</span>
+<span id="91"> 91</span>
+<span id="92"> 92</span>
+<span id="93"> 93</span>
+<span id="94"> 94</span>
+<span id="95"> 95</span>
+<span id="96"> 96</span>
+<span id="97"> 97</span>
+<span id="98"> 98</span>
+<span id="99"> 99</span>
+<span id="100">100</span>
+<span id="101">101</span>
+<span id="102">102</span>
+<span id="103">103</span>
+<span id="104">104</span>
+<span id="105">105</span>
+<span id="106">106</span>
+<span id="107">107</span>
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+<span id="111">111</span>
+<span id="112">112</span>
+<span id="113">113</span>
+<span id="114">114</span>
+<span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
+<span id="127">127</span>
+<span id="128">128</span>
+<span id="129">129</span>
+<span id="130">130</span>
+<span id="131">131</span>
+<span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
+<span id="160">160</span>
+<span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
+<span id="341">341</span>
+<span id="342">342</span>
+<span id="343">343</span>
+<span id="344">344</span>
+<span id="345">345</span>
+<span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
+<span id="350">350</span>
+<span id="351">351</span>
+<span id="352">352</span>
+<span id="353">353</span>
+<span id="354">354</span>
+<span id="355">355</span>
+<span id="356">356</span>
+<span id="357">357</span>
+<span id="358">358</span>
+<span id="359">359</span>
+<span id="360">360</span>
+<span id="361">361</span>
+<span id="362">362</span>
+<span id="363">363</span>
+<span id="364">364</span>
+<span id="365">365</span>
+<span id="366">366</span>
+<span id="367">367</span>
+<span id="368">368</span>
+<span id="369">369</span>
+<span id="370">370</span>
+<span id="371">371</span>
+<span id="372">372</span>
+<span id="373">373</span>
+<span id="374">374</span>
+<span id="375">375</span>
+<span id="376">376</span>
+<span id="377">377</span>
+<span id="378">378</span>
+<span id="379">379</span>
+<span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
+<span id="393">393</span>
+<span id="394">394</span>
+<span id="395">395</span>
+<span id="396">396</span>
+<span id="397">397</span>
+<span id="398">398</span>
+<span id="399">399</span>
+<span id="400">400</span>
+<span id="401">401</span>
+<span id="402">402</span>
+<span id="403">403</span>
+<span id="404">404</span>
+<span id="405">405</span>
+<span id="406">406</span>
+<span id="407">407</span>
+<span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+<span id="476">476</span>
+<span id="477">477</span>
+<span id="478">478</span>
+<span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+</pre><pre class='rust '>
+<span class='doccomment'>//! Typification of the various AudioFormat codes and flags offered by the Core Audio API.</span>
+<span class='doccomment'>//! </span>
+<span class='doccomment'>//! See the Core Audio Data Types Reference</span>
+<span class='doccomment'>//! [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/Audio_Data_Format_Identifiers) for more info.</span>
+
+
+<span class='kw'>use</span> <span class='ident'>libc</span>;
+
+<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>standard_flags</span>::<span class='ident'>StandardFlags</span>;
+<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>linear_pcm_flags</span>::<span class='ident'>LinearPCMFlags</span>;
+<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>apple_lossless_flags</span>::<span class='ident'>AppleLosslessFlags</span>;
+<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>audio_time_stamp_flags</span>::<span class='ident'>AudioTimeStampFlags</span>;
+
+
+<span class='doccomment'>/// A type-safe representation of both the `AudioFormatId` and their associated flags.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
+<span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>non_camel_case_types</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>AudioFormat</span> {
+    <span class='doccomment'>/// Linear PCM; a non-compressed audio data format with one frame per packet.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.0 and later.</span>
+    <span class='ident'>LinearPCM</span>(<span class='ident'>LinearPCMFlags</span>),     <span class='comment'>// = 1819304813,</span>
+    <span class='doccomment'>/// An AC-3 codec.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>AC3</span>,                                  <span class='comment'>// = 1633889587,</span>
+    <span class='doccomment'>/// AC-3 codec that provides data packaged for transport over an IEC 60958 compliant digital</span>
+    <span class='doccomment'>/// audio interface.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>F60958AC3</span>(<span class='ident'>StandardFlags</span>),      <span class='comment'>// = 1667326771,</span>
+    <span class='doccomment'>/// Apple&#39;s implementation of the IMA 4:1 ADPCM codec.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>AppleIMA4</span>,                            <span class='comment'>// = 1768775988,</span>
+    <span class='doccomment'>/// MPEG-4 AAC codec.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>MPEG4AAC</span>(<span class='ident'>Mpeg4ObjectId</span>),      <span class='comment'>// = 1633772320,</span>
+    <span class='doccomment'>/// MPEG-4 CELP codec.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>MPEG4CELP</span>(<span class='ident'>Mpeg4ObjectId</span>),     <span class='comment'>// = 1667591280,</span>
+    <span class='doccomment'>/// MPEG-4 HVXC codec.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>MPEG4HVXC</span>(<span class='ident'>Mpeg4ObjectId</span>),     <span class='comment'>// = 1752594531,</span>
+    <span class='doccomment'>/// MPEG-4 TwinVQ codec.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>MPEG4TwinVQ</span>(<span class='ident'>Mpeg4ObjectId</span>),   <span class='comment'>// = 1953986161,</span>
+    <span class='doccomment'>/// MACE 3:1.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>MACE3</span>,                                <span class='comment'>// = 1296122675,</span>
+    <span class='doccomment'>/// MACE 6:1.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>MACE6</span>,                                <span class='comment'>// = 1296122678,</span>
+    <span class='doccomment'>/// μLaw 2:1.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>ULaw</span>,                                 <span class='comment'>// = 1970037111,</span>
+    <span class='doccomment'>/// aLaw 2:1.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>ALaw</span>,                                 <span class='comment'>// = 1634492791,</span>
+    <span class='doccomment'>/// QDesign Music.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>QDesign</span>,                              <span class='comment'>// = 1363430723,</span>
+    <span class='doccomment'>/// QDesign2 Music.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>QDesign2</span>,                             <span class='comment'>// = 1363430706,</span>
+    <span class='doccomment'>/// QUALCOMM PureVoice.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>QUALCOMM</span>,                             <span class='comment'>// = 1365470320,</span>
+    <span class='doccomment'>/// MPEG-1/2, Layer 1 audio.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>MPEGLayer1</span>,                           <span class='comment'>// = 778924081,</span>
+    <span class='doccomment'>/// MPEG-1/2, Layer 2 audio.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>MPEGLayer2</span>,                           <span class='comment'>// = 778924082,</span>
+    <span class='doccomment'>/// MPEG-1/2, Layer 3 audio.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>MPEGLayer3</span>,                           <span class='comment'>// = 778924083,</span>
+    <span class='doccomment'>/// A stream of IOAudioTimeStamp structures.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>TimeCode</span>(<span class='ident'>AudioTimeStampFlags</span>), <span class='comment'>// = 1953066341,</span>
+    <span class='doccomment'>/// A stream of MIDIPacketList structures where the time stamps in the MIDIPacket structures</span>
+    <span class='doccomment'>/// are sample offsets in the stream. The `sample_rate` field in the **StreamFormat** structure</span>
+    <span class='doccomment'>/// is used to describe how time is passed in this kind of stream.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// An audio unit that receives or generates this stream can use this sample rate together with</span>
+    <span class='doccomment'>/// the number of frames it is rendering.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The sample offsets within the MIDIPacketList can be used to define the time for any MIDI</span>
+    <span class='doccomment'>/// event within the list.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// TODO: Review whether or not this audio format should indicate some fundamental change</span>
+    <span class='doccomment'>/// within the **StreamFormat**.</span>
+    <span class='ident'>MIDIStream</span>,                           <span class='comment'>// = 1835623529,</span>
+    <span class='doccomment'>/// A &quot;side-chain&quot; of f32 data that can be fed or generated by an audio unit and that is used</span>
+    <span class='doccomment'>/// to send a high density of parameter value control information.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// An audio unit typically runs a parameter value stream at either the sample rate of the</span>
+    <span class='doccomment'>/// audio unit&#39;s audio data, or some integer quotient of this (i.e. a half or a third of the</span>
+    <span class='doccomment'>/// sample rate of the audio).</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The `sample_rate` field in the **StreamFormat** type describes this relationship.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+    <span class='ident'>ParameterValueStream</span>,                 <span class='comment'>// = 1634760307,</span>
+    <span class='doccomment'>/// Apple Lossless format.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+    <span class='ident'>AppleLossless</span>(<span class='ident'>AppleLosslessFlags</span>),    <span class='comment'>// = 1634492771,</span>
+    <span class='doccomment'>/// MPEG-4 High Efficiency AAC audio object.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.5 and later.</span>
+    <span class='ident'>MPEG4AAC_HE</span>,                          <span class='comment'>// = 1633772392,</span>
+    <span class='doccomment'>/// MPEG-4 AAC Low Delay audio object.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.5 and later.</span>
+    <span class='ident'>MPEG4AAC_LD</span>,                          <span class='comment'>// = 1633772396,</span>
+    <span class='doccomment'>/// MPEG-4 AAC Enhanced Low Delay audio object.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.7 and later.</span>
+    <span class='ident'>MPEG4AAC_ELD</span>,                         <span class='comment'>// = 1633772389,</span>
+    <span class='doccomment'>/// MPEG-4 AAC Enhanced Low Delay audio object with SBR (spectral band replication) extension</span>
+    <span class='doccomment'>/// layer.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.7 and later.</span>
+    <span class='ident'>MPEG4AAC_ELD_SBR</span>,                     <span class='comment'>// = 1633772390,</span>
+    <span class='ident'>MPEG4AAC_ELD_V2</span>,                      <span class='comment'>// = 1633772391,</span>
+    <span class='doccomment'>/// MPEG-4 High Efficiency AAC Version 2 audio object.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.5 and later.</span>
+    <span class='ident'>MPEG4AAC_HE_V2</span>,                       <span class='comment'>// = 1633772400,</span>
+    <span class='doccomment'>/// MPEG-4 Apatial Audio audio object.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.5 and later.</span>
+    <span class='ident'>MPEG4AAC_Spatial</span>,                     <span class='comment'>// = 1633772403,</span>
+    <span class='doccomment'>/// The AMR (adaptive Multi-Rate) narrow band speech codec.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.5 and later.</span>
+    <span class='ident'>AMR</span>,                                  <span class='comment'>// = 1935764850,</span>
+    <span class='ident'>AMR_WB</span>,                               <span class='comment'>// = 1935767394,</span>
+    <span class='doccomment'>/// The codec used for Audible, Inc. audio books.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.6 and later.</span>
+    <span class='ident'>Audible</span>,                              <span class='comment'>// = 1096107074,</span>
+    <span class='doccomment'>/// The iLBC (internet Low Bitrate Codec) narrow band cpeech codec.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.6 and later.</span>
+    <span class='ident'>iLBC</span>,                                 <span class='comment'>// = 1768710755,</span>
+    <span class='doccomment'>/// DVI/Intel IMA ADPCM - ACM code 17.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.6 and later.</span>
+    <span class='ident'>DVIIntelIMA</span>,                          <span class='comment'>// = 1836253201,</span>
+    <span class='doccomment'>/// Microsoft GSM 6.10 - ACM code 49.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Available** in OS X v10.6 and later.</span>
+    <span class='ident'>MicrosoftGSM</span>,                         <span class='comment'>// = 1836253233,</span>
+    <span class='doccomment'>/// The format defined by the AES3-2003 standard.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Adopted into MXF and MPEG-2 containers and SDTI transport streams with SMPTE specs</span>
+    <span class='doccomment'>/// 203M-2002 and 331M-2000.</span>
+    <span class='ident'>AES3</span>,                                 <span class='comment'>// = 1634038579,</span>
+}
+
+
+<span class='kw'>impl</span> <span class='ident'>AudioFormat</span> {
+
+    <span class='doccomment'>/// Convert from the FFI C format and flags to a typesafe Rust enum representation.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_format_and_flag</span>(<span class='ident'>format</span>: <span class='ident'>libc</span>::<span class='ident'>c_uint</span>, <span class='ident'>flag</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>AudioFormat</span><span class='op'>&gt;</span> {
+        <span class='kw'>match</span> (<span class='ident'>format</span>, <span class='ident'>flag</span>) {
+            (<span class='number'>1819304813</span>, <span class='prelude-val'>Some</span>(<span class='ident'>i</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>LinearPCM</span>(<span class='ident'>LinearPCMFlags</span>::<span class='ident'>from_bits_truncate</span>(<span class='ident'>i</span>))),
+            (<span class='number'>1633889587</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>AC3</span>),
+            (<span class='number'>1667326771</span>, <span class='prelude-val'>Some</span>(<span class='ident'>i</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>F60958AC3</span>(<span class='ident'>StandardFlags</span>::<span class='ident'>from_bits_truncate</span>(<span class='ident'>i</span>))),
+            (<span class='number'>1768775988</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>AppleIMA4</span>),
+            (<span class='number'>1633772320</span>, <span class='prelude-val'>Some</span>(<span class='ident'>i</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>from_u32</span>(<span class='ident'>i</span>).<span class='ident'>expect</span>(<span class='string'>&quot;Unknown Mpeg4ObjectId&quot;</span>))),
+            (<span class='number'>1667591280</span>, <span class='prelude-val'>Some</span>(<span class='ident'>i</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4CELP</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>from_u32</span>(<span class='ident'>i</span>).<span class='ident'>expect</span>(<span class='string'>&quot;Unknown Mpeg4ObjectId&quot;</span>))),
+            (<span class='number'>1752594531</span>, <span class='prelude-val'>Some</span>(<span class='ident'>i</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4HVXC</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>from_u32</span>(<span class='ident'>i</span>).<span class='ident'>expect</span>(<span class='string'>&quot;Unknown Mpeg4ObjectId&quot;</span>))),
+            (<span class='number'>1953986161</span>, <span class='prelude-val'>Some</span>(<span class='ident'>i</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4TwinVQ</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>from_u32</span>(<span class='ident'>i</span>).<span class='ident'>expect</span>(<span class='string'>&quot;Unknown Mpeg4ObjectId&quot;</span>))),
+            (<span class='number'>1296122675</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MACE3</span>),
+            (<span class='number'>1296122678</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MACE6</span>),
+            (<span class='number'>1970037111</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>ULaw</span>),
+            (<span class='number'>1634492791</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>ALaw</span>),
+            (<span class='number'>1363430723</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>QDesign</span>),
+            (<span class='number'>1363430706</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>QDesign2</span>),
+            (<span class='number'>1365470320</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>QUALCOMM</span>),
+            (<span class='number'>778924081</span>, _)        <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEGLayer1</span>),
+            (<span class='number'>778924082</span>, _)        <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEGLayer2</span>),
+            (<span class='number'>778924083</span>, _)        <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEGLayer3</span>),
+            (<span class='number'>1953066341</span>, <span class='prelude-val'>Some</span>(<span class='ident'>i</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>TimeCode</span>(<span class='ident'>AudioTimeStampFlags</span>::<span class='ident'>from_bits_truncate</span>(<span class='ident'>i</span>))),
+            (<span class='number'>1835623529</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MIDIStream</span>),
+            (<span class='number'>1634760307</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>ParameterValueStream</span>),
+            (<span class='number'>1634492771</span>, <span class='prelude-val'>Some</span>(<span class='ident'>i</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>AppleLossless</span>(<span class='ident'>AppleLosslessFlags</span>::<span class='ident'>from_bits_truncate</span>(<span class='ident'>i</span>))),
+            (<span class='number'>1633772392</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_HE</span>),
+            (<span class='number'>1633772396</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_LD</span>),
+            (<span class='number'>1633772389</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_ELD</span>),
+            (<span class='number'>1633772390</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_ELD_SBR</span>),
+            (<span class='number'>1633772391</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_ELD_V2</span>),
+            (<span class='number'>1633772400</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_HE_V2</span>),
+            (<span class='number'>1633772403</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_Spatial</span>),
+            (<span class='number'>1935764850</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>AMR</span>),
+            (<span class='number'>1935767394</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>AMR_WB</span>),
+            (<span class='number'>1096107074</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>Audible</span>),
+            (<span class='number'>1768710755</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>iLBC</span>),
+            (<span class='number'>1836253201</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>DVIIntelIMA</span>),
+            (<span class='number'>1836253233</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>MicrosoftGSM</span>),
+            (<span class='number'>1634038579</span>, _)       <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>AudioFormat</span>::<span class='ident'>AES3</span>),
+            _                     <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+        }
+    }
+
+    <span class='doccomment'>/// Convert from the Rust enum to the C format and flag.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>to_format_and_flag</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>libc</span>::<span class='ident'>c_uint</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span>) {
+        <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
+            <span class='ident'>AudioFormat</span>::<span class='ident'>LinearPCM</span>(<span class='ident'>flag</span>)      <span class='op'>=&gt;</span> (<span class='number'>1819304813</span>, <span class='prelude-val'>Some</span>(<span class='ident'>flag</span>.<span class='ident'>bits</span>())),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>AC3</span>                  <span class='op'>=&gt;</span> (<span class='number'>1633889587</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>F60958AC3</span>(<span class='ident'>flag</span>)      <span class='op'>=&gt;</span> (<span class='number'>1667326771</span>, <span class='prelude-val'>Some</span>(<span class='ident'>flag</span>.<span class='ident'>bits</span>())),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>AppleIMA4</span>            <span class='op'>=&gt;</span> (<span class='number'>1768775988</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC</span>(<span class='ident'>flag</span>)       <span class='op'>=&gt;</span> (<span class='number'>1633772320</span>, <span class='prelude-val'>Some</span>(<span class='ident'>flag</span> <span class='kw'>as</span> <span class='ident'>u32</span>)),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4CELP</span>(<span class='ident'>flag</span>)      <span class='op'>=&gt;</span> (<span class='number'>1667591280</span>, <span class='prelude-val'>Some</span>(<span class='ident'>flag</span> <span class='kw'>as</span> <span class='ident'>u32</span>)),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4HVXC</span>(<span class='ident'>flag</span>)      <span class='op'>=&gt;</span> (<span class='number'>1752594531</span>, <span class='prelude-val'>Some</span>(<span class='ident'>flag</span> <span class='kw'>as</span> <span class='ident'>u32</span>)),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4TwinVQ</span>(<span class='ident'>flag</span>)    <span class='op'>=&gt;</span> (<span class='number'>1953986161</span>, <span class='prelude-val'>Some</span>(<span class='ident'>flag</span> <span class='kw'>as</span> <span class='ident'>u32</span>)),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MACE3</span>                <span class='op'>=&gt;</span> (<span class='number'>1296122675</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MACE6</span>                <span class='op'>=&gt;</span> (<span class='number'>1296122678</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>ULaw</span>                 <span class='op'>=&gt;</span> (<span class='number'>1970037111</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>ALaw</span>                 <span class='op'>=&gt;</span> (<span class='number'>1634492791</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>QDesign</span>              <span class='op'>=&gt;</span> (<span class='number'>1363430723</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>QDesign2</span>             <span class='op'>=&gt;</span> (<span class='number'>1363430706</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>QUALCOMM</span>             <span class='op'>=&gt;</span> (<span class='number'>1365470320</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEGLayer1</span>           <span class='op'>=&gt;</span> (<span class='number'>778924081</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEGLayer2</span>           <span class='op'>=&gt;</span> (<span class='number'>778924082</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEGLayer3</span>           <span class='op'>=&gt;</span> (<span class='number'>778924083</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>TimeCode</span>(<span class='ident'>flag</span>)       <span class='op'>=&gt;</span> (<span class='number'>1953066341</span>, <span class='prelude-val'>Some</span>(<span class='ident'>flag</span>.<span class='ident'>bits</span>())),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MIDIStream</span>           <span class='op'>=&gt;</span> (<span class='number'>1835623529</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>ParameterValueStream</span> <span class='op'>=&gt;</span> (<span class='number'>1634760307</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>AppleLossless</span>(<span class='ident'>flag</span>)  <span class='op'>=&gt;</span> (<span class='number'>1634492771</span>, <span class='prelude-val'>Some</span>(<span class='ident'>flag</span>.<span class='ident'>bits</span>())),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_HE</span>          <span class='op'>=&gt;</span> (<span class='number'>1633772392</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_LD</span>          <span class='op'>=&gt;</span> (<span class='number'>1633772396</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_ELD</span>         <span class='op'>=&gt;</span> (<span class='number'>1633772389</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_ELD_SBR</span>     <span class='op'>=&gt;</span> (<span class='number'>1633772390</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_ELD_V2</span>      <span class='op'>=&gt;</span> (<span class='number'>1633772391</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_HE_V2</span>       <span class='op'>=&gt;</span> (<span class='number'>1633772400</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MPEG4AAC_Spatial</span>     <span class='op'>=&gt;</span> (<span class='number'>1633772403</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>AMR</span>                  <span class='op'>=&gt;</span> (<span class='number'>1935764850</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>AMR_WB</span>               <span class='op'>=&gt;</span> (<span class='number'>1935767394</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>Audible</span>              <span class='op'>=&gt;</span> (<span class='number'>1096107074</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>iLBC</span>                 <span class='op'>=&gt;</span> (<span class='number'>1768710755</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>DVIIntelIMA</span>          <span class='op'>=&gt;</span> (<span class='number'>1836253201</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>MicrosoftGSM</span>         <span class='op'>=&gt;</span> (<span class='number'>1836253233</span>, <span class='prelude-val'>None</span>),
+            <span class='ident'>AudioFormat</span>::<span class='ident'>AES3</span>                 <span class='op'>=&gt;</span> (<span class='number'>1634038579</span>, <span class='prelude-val'>None</span>),
+        }
+    }
+
+}
+
+
+<span class='doccomment'>/// A wrapper around the const **StandardFlags**.</span>
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>standard_flags</span> {
+    <span class='macro'>bitflags</span><span class='macro'>!</span> {
+        <span class='doccomment'>/// Standard flags for use in the **F60958AC3** **AudioFormat** variant.</span>
+        <span class='doccomment'>///</span>
+        <span class='doccomment'>/// Note: In the original Core Audio API these are consolidated with what we have named the</span>
+        <span class='doccomment'>/// **StandardFlags** and **AppleLosslessFlags** types under the `AudioFormatFlag` type. We</span>
+        <span class='doccomment'>/// have chosen to separate these for greater type safety and clearer compatibility with</span>
+        <span class='doccomment'>/// the **AudioFormat** type.</span>
+        <span class='doccomment'>/// </span>
+        <span class='doccomment'>/// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).</span>
+        <span class='kw'>pub</span> <span class='ident'>flags</span> <span class='ident'>StandardFlags</span>: <span class='ident'>u32</span> {
+            <span class='doccomment'>/// Set for floating point, clear for integer.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_FLOAT</span> <span class='op'>=</span> <span class='number'>1</span>,
+            <span class='doccomment'>/// Set for big endian, clear for little endian.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_BIG_ENDIAN</span> <span class='op'>=</span> <span class='number'>2</span>,
+            <span class='doccomment'>/// Set for signed integer, clear for unsigned integer.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// Note: This is only valid if `IS_FLOAT` is clear.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_SIGNED_INTEGER</span> <span class='op'>=</span> <span class='number'>4</span>,
+            <span class='doccomment'>/// Set if the sample bits occupy the entire available bits for the channel, clear if they</span>
+            <span class='doccomment'>/// are high- or low-aligned within the channel.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_PACKED</span> <span class='op'>=</span> <span class='number'>8</span>,
+            <span class='doccomment'>/// Set if the sample bits are placed into the high bits of the channel, clear for low bit</span>
+            <span class='doccomment'>/// placement.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// Note: This is only valid if `IS_PACKED` is clear.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_ALIGNED_HIGH</span> <span class='op'>=</span> <span class='number'>16</span>,
+            <span class='doccomment'>/// Set if the sample for each channel are located contiguously and the channels are laid</span>
+            <span class='doccomment'>/// out end to end.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// Clear if the samples for each frame are laid out contiguously and the frames laid out</span>
+            <span class='doccomment'>/// end to end.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_NON_INTERLEAVED</span> <span class='op'>=</span> <span class='number'>32</span>,
+            <span class='doccomment'>/// Set to indicate when a format is nonmixable.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// Note: that this flag is only used when interacting with the HAL&#39;s stream format</span>
+            <span class='doccomment'>/// information. It is **not** valid for any other use.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_NON_MIXABLE</span> <span class='op'>=</span> <span class='number'>64</span>,
+        }
+    }
+}
+
+
+<span class='doccomment'>/// A wrapper around the const **LinearPCMFlags**.</span>
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>linear_pcm_flags</span> {
+    <span class='macro'>bitflags</span><span class='macro'>!</span> {
+        <span class='doccomment'>/// Flags for use within the **LinearPCM** **AudioFormat**.</span>
+        <span class='doccomment'>///</span>
+        <span class='doccomment'>/// Note: In the original Core Audio API these are consolidated with what we have named the</span>
+        <span class='doccomment'>/// **StandardFlags** and **AppleLosslessFlags** types under the `AudioFormatFlag` type. We</span>
+        <span class='doccomment'>/// have chosen to separate these for greater type safety and clearer compatibility with</span>
+        <span class='doccomment'>/// the **AudioFormat** type.</span>
+        <span class='doccomment'>///</span>
+        <span class='doccomment'>/// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).</span>
+        <span class='kw'>pub</span> <span class='ident'>flags</span> <span class='ident'>LinearPCMFlags</span>: <span class='ident'>u32</span> {
+            <span class='doccomment'>/// Synonmyn for the **IS_FLOAT** **StandardFlags**.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.0 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_FLOAT</span> <span class='op'>=</span> <span class='number'>1</span>,
+            <span class='doccomment'>/// Synonmyn for the **IS_BIG_ENDIAN** **StandardFlags**.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.0 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_BIG_ENDIAN</span> <span class='op'>=</span> <span class='number'>2</span>,
+            <span class='doccomment'>/// Synonmyn for the **IS_SIGNED_INTEGER** **StandardFlags**.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.0 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_SIGNED_INTEGER</span> <span class='op'>=</span> <span class='number'>4</span>,
+            <span class='doccomment'>/// Synonmyn for the **IS_PACKED** **StandardFlags**.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.0 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_PACKED</span> <span class='op'>=</span> <span class='number'>8</span>,
+            <span class='doccomment'>/// Synonmyn for the **IS_ALIGNED_HIGH** **StandardFlags**.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.0 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_ALIGNED_HIGH</span> <span class='op'>=</span> <span class='number'>16</span>,
+            <span class='doccomment'>/// Synonmyn for the **IS_NON_INTERLEAVED** **StandardFlags**.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.2 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_NON_INTERLEAVED</span> <span class='op'>=</span> <span class='number'>32</span>,
+            <span class='doccomment'>/// Synonmyn for the **IS_NON_MIXABLE** **StandardFlags**.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>IS_NON_MIXABLE</span> <span class='op'>=</span> <span class='number'>64</span>,
+            <span class='doccomment'>/// The linear PCM flags contain a 6-bit bitfield indicating that an integer format is to</span>
+            <span class='doccomment'>/// be interpreted as fixed point.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// The value indicates the number of bits are used to represent the fractional portion of</span>
+            <span class='doccomment'>/// each sample value.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// This constant indicates the bit position (counting from the right) of the bitfield in</span>
+            <span class='doccomment'>/// `mFormatFlags` field.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// TODO: Review whether or not this flag indicates that we need to treat LinearPCM format</span>
+            <span class='doccomment'>/// uniquely in some way.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.6 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>FLAGS_SAMPLE_FRACTION_SHIFT</span> <span class='op'>=</span> <span class='number'>7</span>,
+            <span class='doccomment'>/// The number of fractional bits.</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// `== (&lt;other_flags&gt; &amp; FLAGS_SAMPLE_FRACTION_MASK) &gt;&gt; FLAGS_SAMPLE_FRACTION_SHIFT`</span>
+            <span class='doccomment'>///</span>
+            <span class='doccomment'>/// **Available** in OS X v10.6 and later.</span>
+            <span class='kw'>const</span> <span class='ident'>FLAGS_SAMPLE_FRACTION_MASK</span> <span class='op'>=</span> <span class='number'>8064</span>,
+        }
+    }
+}
+
+
+<span class='doccomment'>/// A wrapper around the const **AppleLosslessFlags**.</span>
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>apple_lossless_flags</span> {
+    <span class='macro'>bitflags</span><span class='macro'>!</span> {
+        <span class='doccomment'>/// Flags set for Apple Lossless data.</span>
+        <span class='doccomment'>///</span>
+        <span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+        <span class='doccomment'>///</span>
+        <span class='doccomment'>/// Note: In the original Core Audio API these are consolidated with what we have named the</span>
+        <span class='doccomment'>/// **StandardFlags** and **AppleLosslessFlags** types under the `AudioFormatFlag` type. We</span>
+        <span class='doccomment'>/// have chosen to separate these for greater type safety and clearer compatibility with</span>
+        <span class='doccomment'>/// the **AudioFormat** type.</span>
+        <span class='doccomment'>///</span>
+        <span class='doccomment'>/// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).</span>
+        <span class='kw'>pub</span> <span class='ident'>flags</span> <span class='ident'>AppleLosslessFlags</span>: <span class='ident'>u32</span> {
+            <span class='doccomment'>/// Sourced from 16 bit native endian signed integer data.</span>
+            <span class='kw'>const</span> <span class='ident'>BIT_16_SOURCE_DATA</span> <span class='op'>=</span> <span class='number'>1</span>,
+            <span class='doccomment'>/// Sourced from 20 bit native endian signed integer data aligned high in 24 bits.</span>
+            <span class='kw'>const</span> <span class='ident'>BIT_20_SOURCE_DATA</span> <span class='op'>=</span> <span class='number'>2</span>,
+            <span class='doccomment'>/// Sourced from 24 bit native endian signed integer data.</span>
+            <span class='kw'>const</span> <span class='ident'>BIT_24_SOURCE_DATA</span> <span class='op'>=</span> <span class='number'>3</span>,
+            <span class='doccomment'>/// Sourced from 32 bit native endian signed integer data.</span>
+            <span class='kw'>const</span> <span class='ident'>BIT_32_SOURCE_DATA</span> <span class='op'>=</span> <span class='number'>4</span>,
+        }
+    }
+}
+
+
+<span class='doccomment'>/// &quot;Used in the `mFormatFlags` field of an `AudioStreamBasicDescription` structure that</span>
+<span class='doccomment'>/// describes an MPEG-4 audio stream to specify the type of MPEG-4 audio data.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// **Available** in OS X v10.3 and later.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// **Deprecated** in OS X v10.5.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// Note: This type was originally represented using a bitflag field in the original API, however</span>
+<span class='doccomment'>/// there is only ever one flag set at a time. Thus, we use an enum as a more accurate,</span>
+<span class='doccomment'>/// user-friendly, type-safe representation.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// Original documenation</span>
+<span class='doccomment'>/// [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/MPEG_4_Audio_Object_Type_Constants).</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>non_camel_case_types</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Mpeg4ObjectId</span> {
+    <span class='doccomment'>/// Advanced audio coding; the baisc MPEG-4 technology.</span>
+    <span class='ident'>AAC_Main</span> <span class='op'>=</span> <span class='number'>1</span>,
+    <span class='doccomment'>/// Lossless coding; provides compression with no loss of quality.</span>
+    <span class='ident'>AAC_LC</span> <span class='op'>=</span> <span class='number'>2</span>,
+    <span class='doccomment'>/// Scalable sampling rate; provides different sampling frequencies for different targets.</span>
+    <span class='ident'>AAC_SSR</span> <span class='op'>=</span> <span class='number'>3</span>,
+    <span class='doccomment'>/// Long term prediction; reduces redundancy in a coded signal.</span>
+    <span class='ident'>AAC_LTP</span> <span class='op'>=</span> <span class='number'>4</span>,
+    <span class='doccomment'>/// Spectral band replication; reconstructs high-frequency content from lower frequencies</span>
+    <span class='doccomment'>/// and side information.</span>
+    <span class='ident'>AAC_SBR</span> <span class='op'>=</span> <span class='number'>5</span>,
+    <span class='doccomment'>/// Scalable lossless coding.</span>
+    <span class='ident'>AAC_Scalable</span> <span class='op'>=</span> <span class='number'>6</span>,
+    <span class='doccomment'>/// Transform-domain weighted interleaved vector quantization; an audio codec optimised for</span>
+    <span class='doccomment'>/// audio coding at ultra low bit rates around 8kbit/s.</span>
+    <span class='ident'>TwinVQ</span> <span class='op'>=</span> <span class='number'>7</span>,
+    <span class='doccomment'>/// Code Excited Linear Prdiction; a narrow-band/wide-band speech codec.</span>
+    <span class='ident'>CELP</span> <span class='op'>=</span> <span class='number'>8</span>,
+    <span class='doccomment'>/// Harmonic Vector Excitation Coding; a very-low bit-rate parametric speech codec.</span>
+    <span class='ident'>HVXC</span> <span class='op'>=</span> <span class='number'>9</span>,
+}
+
+<span class='kw'>impl</span> <span class='ident'>Mpeg4ObjectId</span> {
+    <span class='doccomment'>/// Create an Mpeg4ObjectId from a u32.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_u32</span>(<span class='ident'>u</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Mpeg4ObjectId</span><span class='op'>&gt;</span> {
+        <span class='kw'>match</span> <span class='ident'>u</span> {
+            <span class='number'>1</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>AAC_Main</span>),
+            <span class='number'>2</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>AAC_LC</span>),
+            <span class='number'>3</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>AAC_SSR</span>),
+            <span class='number'>4</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>AAC_LTP</span>),
+            <span class='number'>5</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>AAC_SBR</span>),
+            <span class='number'>6</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>AAC_Scalable</span>),
+            <span class='number'>7</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>TwinVQ</span>),
+            <span class='number'>8</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>CELP</span>),
+            <span class='number'>9</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Mpeg4ObjectId</span>::<span class='ident'>HVXC</span>),
+            _ <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+        }
+    }
+}
+
+
+<span class='doccomment'>/// A wrapper around the const **AudioTimeStampFlags**.</span>
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>audio_time_stamp_flags</span> {
+    <span class='macro'>bitflags</span><span class='macro'>!</span> {
+        <span class='doccomment'>/// &quot;These flags indicate the valuid fields in an AudioTimeStamp structure.&quot;</span>
+        <span class='doccomment'>///</span>
+        <span class='doccomment'>/// **Available** in OS X v10.0 and later.</span>
+        <span class='doccomment'>///</span>
+        <span class='doccomment'>/// Original Documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/Audio_Time_Stamp_Flags).</span>
+        <span class='kw'>pub</span> <span class='ident'>flags</span> <span class='ident'>AudioTimeStampFlags</span>: <span class='ident'>u32</span> {
+            <span class='doccomment'>/// The sample frame time is valid.</span>
+            <span class='kw'>const</span> <span class='ident'>SAMPLE_TIME_VALID</span> <span class='op'>=</span> <span class='number'>1</span>,
+            <span class='doccomment'>/// The host time is valid.</span>
+            <span class='kw'>const</span> <span class='ident'>HOST_TIME_VALID</span> <span class='op'>=</span> <span class='number'>2</span>,
+            <span class='doccomment'>/// The rate scalar is valid.</span>
+            <span class='kw'>const</span> <span class='ident'>RATE_SCALAR_VALID</span> <span class='op'>=</span> <span class='number'>4</span>,
+            <span class='doccomment'>/// The world clock time is valid.</span>
+            <span class='kw'>const</span> <span class='ident'>WORLD_CLOCK_TIME_VALID</span> <span class='op'>=</span> <span class='number'>8</span>,
+            <span class='doccomment'>/// The SMPTE time is valid.</span>
+            <span class='kw'>const</span> <span class='ident'>SMPTE_TIME_VALID</span> <span class='op'>=</span> <span class='number'>16</span>,
+        }
+    }
+}
+</pre>
+</section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../../../";
+        window.currentCrate = "coreaudio";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../../../jquery.js"></script>
+    <script src="../../../../main.js"></script>
+    
+    <script defer src="../../../../search-index.js"></script>
+</body>
+</html>

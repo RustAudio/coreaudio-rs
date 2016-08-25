@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Args` struct in crate `coreaudio`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Args">
+
+    <title>coreaudio::audio_unit::render_callback::Args - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='../../index.html'>coreaudio</a>::<wbr><a href='../index.html'>audio_unit</a>::<wbr><a href='index.html'>render_callback</a></p><script>window.sidebarCurrent = {name: 'Args', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content struct">
+<h1 class='fqn'><span class='in-band'>Struct <a href='../../index.html'>coreaudio</a>::<wbr><a href='../index.html'>audio_unit</a>::<wbr><a href='index.html'>render_callback</a>::<wbr><a class='struct' href=''>Args</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-1083' class='srclink' href='../../../src/coreaudio/src/audio_unit/render_callback.rs.html#27-43' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct Args&lt;D&gt; {
+    pub data: D,
+    pub time_stamp: <a class='type' href='../../../coreaudio_sys/audio_unit/type.AudioTimeStamp.html' title='coreaudio_sys::audio_unit::AudioTimeStamp'>AudioTimeStamp</a>,
+    pub bus_number: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>,
+    pub num_frames: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>,
+    pub flags: <a class='struct' href='../../../coreaudio/audio_unit/render_callback/action_flags/struct.Handle.html' title='coreaudio::audio_unit::render_callback::action_flags::Handle'>Handle</a>,
+}</pre><div class='docblock'><p>Arguments given to the render callback function.</p>
+</div><h2 class='fields'>Fields</h2><span id='structfield.data' class='structfield'><code>data: D</code>
+                           </span><span class='stab '></span><div class='docblock'><p>A type wrapping the the buffer that matches the expected audio format.</p>
+</div><span id='structfield.time_stamp' class='structfield'><code>time_stamp: <a class='type' href='../../../coreaudio_sys/audio_unit/type.AudioTimeStamp.html' title='coreaudio_sys::audio_unit::AudioTimeStamp'>AudioTimeStamp</a></code>
+                           </span><span class='stab '></span><div class='docblock'><p>Timing information for the callback.</p>
+</div><span id='structfield.bus_number' class='structfield'><code>bus_number: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a></code>
+                           </span><span class='stab '></span><div class='docblock'><p>TODO</p>
+</div><span id='structfield.num_frames' class='structfield'><code>num_frames: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code>
+                           </span><span class='stab '></span><div class='docblock'><p>The number of frames in the buffer as <code>usize</code> for easier indexing.</p>
+</div><span id='structfield.flags' class='structfield'><code>flags: <a class='struct' href='../../../coreaudio/audio_unit/render_callback/action_flags/struct.Handle.html' title='coreaudio::audio_unit::render_callback::action_flags::Handle'>Handle</a></code>
+                           </span><span class='stab '></span><div class='docblock'><p>Flags for configuring audio unit rendering.</p>
+
+<p>This parameter lets a callback provide various hints to the audio unit.</p>
+
+<p>For example: if there is no audio to process, we can insert the <code>OUTPUT_IS_SILENCE</code> flag to
+indicate to the audio unit that the buffer does not need to be processed.</p>
+</div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../../";
+        window.currentCrate = "coreaudio";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../../jquery.js"></script>
+    <script src="../../../main.js"></script>
+    
+    <script defer src="../../../search-index.js"></script>
+</body>
+</html>

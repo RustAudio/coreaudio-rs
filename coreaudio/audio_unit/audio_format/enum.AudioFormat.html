@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `AudioFormat` enum in crate `coreaudio`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, AudioFormat">
+
+    <title>coreaudio::audio_unit::audio_format::AudioFormat - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='../../index.html'>coreaudio</a>::<wbr><a href='../index.html'>audio_unit</a>::<wbr><a href='index.html'>audio_format</a></p><script>window.sidebarCurrent = {name: 'AudioFormat', ty: 'enum', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content enum">
+<h1 class='fqn'><span class='in-band'>Enum <a href='../../index.html'>coreaudio</a>::<wbr><a href='../index.html'>audio_unit</a>::<wbr><a href='index.html'>audio_format</a>::<wbr><a class='enum' href=''>AudioFormat</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-84' class='srclink' href='../../../src/coreaudio/src/audio_unit/audio_format.rs.html#18-178' title='goto source code'>[src]</a></span></h1>
+<pre class='rust enum'>pub enum AudioFormat {
+    LinearPCM(<a class='struct' href='../../../coreaudio/audio_unit/audio_format/linear_pcm_flags/struct.LinearPCMFlags.html' title='coreaudio::audio_unit::audio_format::linear_pcm_flags::LinearPCMFlags'>LinearPCMFlags</a>),
+    AC3,
+    F60958AC3(<a class='struct' href='../../../coreaudio/audio_unit/audio_format/standard_flags/struct.StandardFlags.html' title='coreaudio::audio_unit::audio_format::standard_flags::StandardFlags'>StandardFlags</a>),
+    AppleIMA4,
+    MPEG4AAC(<a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.Mpeg4ObjectId.html' title='coreaudio::audio_unit::audio_format::Mpeg4ObjectId'>Mpeg4ObjectId</a>),
+    MPEG4CELP(<a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.Mpeg4ObjectId.html' title='coreaudio::audio_unit::audio_format::Mpeg4ObjectId'>Mpeg4ObjectId</a>),
+    MPEG4HVXC(<a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.Mpeg4ObjectId.html' title='coreaudio::audio_unit::audio_format::Mpeg4ObjectId'>Mpeg4ObjectId</a>),
+    MPEG4TwinVQ(<a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.Mpeg4ObjectId.html' title='coreaudio::audio_unit::audio_format::Mpeg4ObjectId'>Mpeg4ObjectId</a>),
+    MACE3,
+    MACE6,
+    ULaw,
+    ALaw,
+    QDesign,
+    QDesign2,
+    QUALCOMM,
+    MPEGLayer1,
+    MPEGLayer2,
+    MPEGLayer3,
+    TimeCode(<a class='struct' href='../../../coreaudio/audio_unit/audio_format/audio_time_stamp_flags/struct.AudioTimeStampFlags.html' title='coreaudio::audio_unit::audio_format::audio_time_stamp_flags::AudioTimeStampFlags'>AudioTimeStampFlags</a>),
+    MIDIStream,
+    ParameterValueStream,
+    AppleLossless(<a class='struct' href='../../../coreaudio/audio_unit/audio_format/apple_lossless_flags/struct.AppleLosslessFlags.html' title='coreaudio::audio_unit::audio_format::apple_lossless_flags::AppleLosslessFlags'>AppleLosslessFlags</a>),
+    MPEG4AAC_HE,
+    MPEG4AAC_LD,
+    MPEG4AAC_ELD,
+    MPEG4AAC_ELD_SBR,
+    MPEG4AAC_ELD_V2,
+    MPEG4AAC_HE_V2,
+    MPEG4AAC_Spatial,
+    AMR,
+    AMR_WB,
+    Audible,
+    iLBC,
+    DVIIntelIMA,
+    MicrosoftGSM,
+    AES3,
+}</pre><div class='docblock'><p>A type-safe representation of both the <code>AudioFormatId</code> and their associated flags.</p>
+</div><h2 class='variants'>Variants</h2>
+<span id='variant.LinearPCM' class='variant'><code>LinearPCM(<a class='struct' href='../../../coreaudio/audio_unit/audio_format/linear_pcm_flags/struct.LinearPCMFlags.html' title='coreaudio::audio_unit::audio_format::linear_pcm_flags::LinearPCMFlags'>LinearPCMFlags</a>)</code></span><div class='docblock'><p>Linear PCM; a non-compressed audio data format with one frame per packet.</p>
+
+<p><strong>Available</strong> in OS X v10.0 and later.</p>
+</div><span id='variant.AC3' class='variant'><code>AC3</code></span><div class='docblock'><p>An AC-3 codec.</p>
+
+<p><strong>Available</strong> in OS X v10.2 and later.</p>
+</div><span id='variant.F60958AC3' class='variant'><code>F60958AC3(<a class='struct' href='../../../coreaudio/audio_unit/audio_format/standard_flags/struct.StandardFlags.html' title='coreaudio::audio_unit::audio_format::standard_flags::StandardFlags'>StandardFlags</a>)</code></span><div class='docblock'><p>AC-3 codec that provides data packaged for transport over an IEC 60958 compliant digital
+audio interface.</p>
+
+<p><strong>Available</strong> in OS X v10.2 and later.</p>
+</div><span id='variant.AppleIMA4' class='variant'><code>AppleIMA4</code></span><div class='docblock'><p>Apple&#39;s implementation of the IMA 4:1 ADPCM codec.</p>
+
+<p><strong>Available</strong> in OS X v10.2 and later.</p>
+</div><span id='variant.MPEG4AAC' class='variant'><code>MPEG4AAC(<a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.Mpeg4ObjectId.html' title='coreaudio::audio_unit::audio_format::Mpeg4ObjectId'>Mpeg4ObjectId</a>)</code></span><div class='docblock'><p>MPEG-4 AAC codec.</p>
+
+<p><strong>Available</strong> in OS X v10.2 and later.</p>
+</div><span id='variant.MPEG4CELP' class='variant'><code>MPEG4CELP(<a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.Mpeg4ObjectId.html' title='coreaudio::audio_unit::audio_format::Mpeg4ObjectId'>Mpeg4ObjectId</a>)</code></span><div class='docblock'><p>MPEG-4 CELP codec.</p>
+
+<p><strong>Available</strong> in OS X v10.2 and later.</p>
+</div><span id='variant.MPEG4HVXC' class='variant'><code>MPEG4HVXC(<a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.Mpeg4ObjectId.html' title='coreaudio::audio_unit::audio_format::Mpeg4ObjectId'>Mpeg4ObjectId</a>)</code></span><div class='docblock'><p>MPEG-4 HVXC codec.</p>
+
+<p><strong>Available</strong> in OS X v10.2 and later.</p>
+</div><span id='variant.MPEG4TwinVQ' class='variant'><code>MPEG4TwinVQ(<a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.Mpeg4ObjectId.html' title='coreaudio::audio_unit::audio_format::Mpeg4ObjectId'>Mpeg4ObjectId</a>)</code></span><div class='docblock'><p>MPEG-4 TwinVQ codec.</p>
+
+<p><strong>Available</strong> in OS X v10.2 and later.</p>
+</div><span id='variant.MACE3' class='variant'><code>MACE3</code></span><div class='docblock'><p>MACE 3:1.</p>
+
+<p><strong>Available</strong> in OS X v10.3 and later.</p>
+</div><span id='variant.MACE6' class='variant'><code>MACE6</code></span><div class='docblock'><p>MACE 6:1.</p>
+
+<p><strong>Available</strong> in OS X v10.3 and later.</p>
+</div><span id='variant.ULaw' class='variant'><code>ULaw</code></span><div class='docblock'><p>μLaw 2:1.</p>
+
+<p><strong>Available</strong> in OS X v10.3 and later.</p>
+</div><span id='variant.ALaw' class='variant'><code>ALaw</code></span><div class='docblock'><p>aLaw 2:1.</p>
+
+<p><strong>Available</strong> in OS X v10.3 and later.</p>
+</div><span id='variant.QDesign' class='variant'><code>QDesign</code></span><div class='docblock'><p>QDesign Music.</p>
+
+<p><strong>Available</strong> in OS X v10.3 and later.</p>
+</div><span id='variant.QDesign2' class='variant'><code>QDesign2</code></span><div class='docblock'><p>QDesign2 Music.</p>
+
+<p><strong>Available</strong> in OS X v10.3 and later.</p>
+</div><span id='variant.QUALCOMM' class='variant'><code>QUALCOMM</code></span><div class='docblock'><p>QUALCOMM PureVoice.</p>
+
+<p><strong>Available</strong> in OS X v10.3 and later.</p>
+</div><span id='variant.MPEGLayer1' class='variant'><code>MPEGLayer1</code></span><div class='docblock'><p>MPEG-1/2, Layer 1 audio.</p>
+
+<p><strong>Available</strong> in OS X v10.3 and later.</p>
+</div><span id='variant.MPEGLayer2' class='variant'><code>MPEGLayer2</code></span><div class='docblock'><p>MPEG-1/2, Layer 2 audio.</p>
+
+<p><strong>Available</strong> in OS X v10.3 and later.</p>
+</div><span id='variant.MPEGLayer3' class='variant'><code>MPEGLayer3</code></span><div class='docblock'><p>MPEG-1/2, Layer 3 audio.</p>
+
+<p><strong>Available</strong> in OS X v10.3 and later.</p>
+</div><span id='variant.TimeCode' class='variant'><code>TimeCode(<a class='struct' href='../../../coreaudio/audio_unit/audio_format/audio_time_stamp_flags/struct.AudioTimeStampFlags.html' title='coreaudio::audio_unit::audio_format::audio_time_stamp_flags::AudioTimeStampFlags'>AudioTimeStampFlags</a>)</code></span><div class='docblock'><p>A stream of IOAudioTimeStamp structures.</p>
+
+<p><strong>Available</strong> in OS X v10.2 and later.</p>
+</div><span id='variant.MIDIStream' class='variant'><code>MIDIStream</code></span><div class='docblock'><p>A stream of MIDIPacketList structures where the time stamps in the MIDIPacket structures
+are sample offsets in the stream. The <code>sample_rate</code> field in the <strong>StreamFormat</strong> structure
+is used to describe how time is passed in this kind of stream.</p>
+
+<p>An audio unit that receives or generates this stream can use this sample rate together with
+the number of frames it is rendering.</p>
+
+<p>The sample offsets within the MIDIPacketList can be used to define the time for any MIDI
+event within the list.</p>
+
+<p><strong>Available</strong> in OS X v10.2 and later.</p>
+
+<p>TODO: Review whether or not this audio format should indicate some fundamental change
+within the <strong>StreamFormat</strong>.</p>
+</div><span id='variant.ParameterValueStream' class='variant'><code>ParameterValueStream</code></span><div class='docblock'><p>A &quot;side-chain&quot; of f32 data that can be fed or generated by an audio unit and that is used
+to send a high density of parameter value control information.</p>
+
+<p>An audio unit typically runs a parameter value stream at either the sample rate of the
+audio unit&#39;s audio data, or some integer quotient of this (i.e. a half or a third of the
+sample rate of the audio).</p>
+
+<p>The <code>sample_rate</code> field in the <strong>StreamFormat</strong> type describes this relationship.</p>
+
+<p><strong>Available</strong> in OS X v10.2 and later.</p>
+</div><span id='variant.AppleLossless' class='variant'><code>AppleLossless(<a class='struct' href='../../../coreaudio/audio_unit/audio_format/apple_lossless_flags/struct.AppleLosslessFlags.html' title='coreaudio::audio_unit::audio_format::apple_lossless_flags::AppleLosslessFlags'>AppleLosslessFlags</a>)</code></span><div class='docblock'><p>Apple Lossless format.</p>
+
+<p><strong>Available</strong> in OS X v10.3 and later.</p>
+</div><span id='variant.MPEG4AAC_HE' class='variant'><code>MPEG4AAC_HE</code></span><div class='docblock'><p>MPEG-4 High Efficiency AAC audio object.</p>
+
+<p><strong>Available</strong> in OS X v10.5 and later.</p>
+</div><span id='variant.MPEG4AAC_LD' class='variant'><code>MPEG4AAC_LD</code></span><div class='docblock'><p>MPEG-4 AAC Low Delay audio object.</p>
+
+<p><strong>Available</strong> in OS X v10.5 and later.</p>
+</div><span id='variant.MPEG4AAC_ELD' class='variant'><code>MPEG4AAC_ELD</code></span><div class='docblock'><p>MPEG-4 AAC Enhanced Low Delay audio object.</p>
+
+<p><strong>Available</strong> in OS X v10.7 and later.</p>
+</div><span id='variant.MPEG4AAC_ELD_SBR' class='variant'><code>MPEG4AAC_ELD_SBR</code></span><div class='docblock'><p>MPEG-4 AAC Enhanced Low Delay audio object with SBR (spectral band replication) extension
+layer.</p>
+
+<p><strong>Available</strong> in OS X v10.7 and later.</p>
+</div><span id='variant.MPEG4AAC_ELD_V2' class='variant'><code>MPEG4AAC_ELD_V2</code></span><span id='variant.MPEG4AAC_HE_V2' class='variant'><code>MPEG4AAC_HE_V2</code></span><div class='docblock'><p>MPEG-4 High Efficiency AAC Version 2 audio object.</p>
+
+<p><strong>Available</strong> in OS X v10.5 and later.</p>
+</div><span id='variant.MPEG4AAC_Spatial' class='variant'><code>MPEG4AAC_Spatial</code></span><div class='docblock'><p>MPEG-4 Apatial Audio audio object.</p>
+
+<p><strong>Available</strong> in OS X v10.5 and later.</p>
+</div><span id='variant.AMR' class='variant'><code>AMR</code></span><div class='docblock'><p>The AMR (adaptive Multi-Rate) narrow band speech codec.</p>
+
+<p><strong>Available</strong> in OS X v10.5 and later.</p>
+</div><span id='variant.AMR_WB' class='variant'><code>AMR_WB</code></span><span id='variant.Audible' class='variant'><code>Audible</code></span><div class='docblock'><p>The codec used for Audible, Inc. audio books.</p>
+
+<p><strong>Available</strong> in OS X v10.6 and later.</p>
+</div><span id='variant.iLBC' class='variant'><code>iLBC</code></span><div class='docblock'><p>The iLBC (internet Low Bitrate Codec) narrow band cpeech codec.</p>
+
+<p><strong>Available</strong> in OS X v10.6 and later.</p>
+</div><span id='variant.DVIIntelIMA' class='variant'><code>DVIIntelIMA</code></span><div class='docblock'><p>DVI/Intel IMA ADPCM - ACM code 17.</p>
+
+<p><strong>Available</strong> in OS X v10.6 and later.</p>
+</div><span id='variant.MicrosoftGSM' class='variant'><code>MicrosoftGSM</code></span><div class='docblock'><p>Microsoft GSM 6.10 - ACM code 49.</p>
+
+<p><strong>Available</strong> in OS X v10.6 and later.</p>
+</div><span id='variant.AES3' class='variant'><code>AES3</code></span><div class='docblock'><p>The format defined by the AES3-2003 standard.</p>
+
+<p>Adopted into MXF and MPEG-2 containers and SDTI transport streams with SMPTE specs
+203M-2002 and 331M-2000.</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.AudioFormat.html' title='coreaudio::audio_unit::audio_format::AudioFormat'>AudioFormat</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-129' class='srclink' href='../../../src/coreaudio/src/audio_unit/audio_format.rs.html#181-268' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.from_format_and_flag' class='method'><code>fn <a href='#method.from_format_and_flag' class='fnname'>from_format_and_flag</a>(format: <a class='type' href='../../../libc/type.c_uint.html' title='libc::c_uint'>c_uint</a>, flag: <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>&gt;) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;<a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.AudioFormat.html' title='coreaudio::audio_unit::audio_format::AudioFormat'>AudioFormat</a>&gt;</code></h4>
+<div class='docblock'><p>Convert from the FFI C format and flags to a typesafe Rust enum representation.</p>
+</div><h4 id='method.to_format_and_flag' class='method'><code>fn <a href='#method.to_format_and_flag' class='fnname'>to_format_and_flag</a>(&amp;self) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>(</a><a class='type' href='../../../libc/type.c_uint.html' title='libc::c_uint'>c_uint</a>, <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>&gt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>)</a></code></h4>
+<div class='docblock'><p>Convert from the Rust enum to the C format and flag.</p>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html' title='core::fmt::Debug'>Debug</a> for <a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.AudioFormat.html' title='coreaudio::audio_unit::audio_format::AudioFormat'>AudioFormat</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-24' class='srclink' href='../../../src/coreaudio/src/audio_unit/audio_format.rs.html#16' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, __arg_0: &amp;mut <a class='struct' href='https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html' title='core::fmt::Formatter'>Formatter</a>) -&gt; <a class='type' href='https://doc.rust-lang.org/nightly/core/fmt/type.Result.html' title='core::fmt::Result'>Result</a></code></h4>
+<div class='docblock'><p>Formats the value using the given formatter.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.AudioFormat.html' title='coreaudio::audio_unit::audio_format::AudioFormat'>AudioFormat</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-72' class='srclink' href='../../../src/coreaudio/src/audio_unit/audio_format.rs.html#16' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.clone' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.AudioFormat.html' title='coreaudio::audio_unit::audio_format::AudioFormat'>AudioFormat</a></code></h4>
+<div class='docblock'><p>Returns a copy of the value. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone">Read more</a></p>
+</div><h4 id='method.clone_from' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code><div class='since' title='Stable since Rust version 1.0.0'>1.0.0</div></h4>
+<div class='docblock'><p>Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from">Read more</a></p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html' title='core::marker::Copy'>Copy</a> for <a class='enum' href='../../../coreaudio/audio_unit/audio_format/enum.AudioFormat.html' title='coreaudio::audio_unit::audio_format::AudioFormat'>AudioFormat</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-83' class='srclink' href='../../../src/coreaudio/src/audio_unit/audio_format.rs.html#16' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../../";
+        window.currentCrate = "coreaudio";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../../jquery.js"></script>
+    <script src="../../../main.js"></script>
+    
+    <script defer src="../../../search-index.js"></script>
+</body>
+</html>

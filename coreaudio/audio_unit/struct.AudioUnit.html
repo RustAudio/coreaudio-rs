@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `AudioUnit` struct in crate `coreaudio`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, AudioUnit">
+
+    <title>coreaudio::audio_unit::AudioUnit - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='../index.html'>coreaudio</a>::<wbr><a href='index.html'>audio_unit</a></p><script>window.sidebarCurrent = {name: 'AudioUnit', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content struct">
+<h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>coreaudio</a>::<wbr><a href='index.html'>audio_unit</a>::<wbr><a class='struct' href=''>AudioUnit</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-1902' class='srclink' href='../../src/coreaudio/src/audio_unit/mod.rs.html#72-75' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct AudioUnit {
+    // some fields omitted
+}</pre><div class='docblock'><p>A rust representation of the au::AudioUnit, including a pointer to the current rendering callback.</p>
+
+<p>Find the original Audio Unit Programming Guide <a href="https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html">here</a>.</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class='struct' href='../../coreaudio/audio_unit/struct.AudioUnit.html' title='coreaudio::audio_unit::AudioUnit'>AudioUnit</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-1446' class='srclink' href='../../src/coreaudio/src/audio_unit/render_callback.rs.html#380-461' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.set_render_callback' class='method'><code>fn <a href='#method.set_render_callback' class='fnname'>set_render_callback</a>&lt;F,&nbsp;D&gt;(&amp;mut self, f: F) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>,&nbsp;<a class='enum' href='../../coreaudio/error/enum.Error.html' title='coreaudio::error::Error'>Error</a>&gt; <span class='where'>where F: <a class='trait' href='https://doc.rust-lang.org/nightly/core/ops/trait.FnMut.html' title='core::ops::FnMut'>FnMut</a>(<a class='struct' href='../../coreaudio/audio_unit/render_callback/struct.Args.html' title='coreaudio::audio_unit::render_callback::Args'>Args</a>&lt;D&gt;) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>,&nbsp;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>&gt; + 'static, D: <a class='trait' href='../../coreaudio/audio_unit/render_callback/data/trait.Data.html' title='coreaudio::audio_unit::render_callback::data::Data'>Data</a></span></code></h4>
+<div class='docblock'><p>Pass a render callback (aka &quot;Input Procedure&quot;) to the <strong>AudioUnit</strong>.</p>
+</div><h4 id='method.free_render_callback' class='method'><code>fn <a href='#method.free_render_callback' class='fnname'>free_render_callback</a>(&amp;mut self)</code></h4>
+<div class='docblock'><p>Retrieves ownership over the render callback and drops it.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class='struct' href='../../coreaudio/audio_unit/struct.AudioUnit.html' title='coreaudio::audio_unit::AudioUnit'>AudioUnit</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-1905' class='srclink' href='../../src/coreaudio/src/audio_unit/mod.rs.html#83-277' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.new' class='method'><code>fn <a href='#method.new' class='fnname'>new</a>&lt;T&gt;(ty: T) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='struct' href='../../coreaudio/audio_unit/struct.AudioUnit.html' title='coreaudio::audio_unit::AudioUnit'>AudioUnit</a>,&nbsp;<a class='enum' href='../../coreaudio/error/enum.Error.html' title='coreaudio::error::Error'>Error</a>&gt; <span class='where'>where T: <a class='trait' href='https://doc.rust-lang.org/nightly/core/convert/trait.Into.html' title='core::convert::Into'>Into</a>&lt;<a class='enum' href='../../coreaudio/audio_unit/types/enum.Type.html' title='coreaudio::audio_unit::types::Type'>Type</a>&gt;</span></code></h4>
+<div class='docblock'><p>Construct a new AudioUnit with any type that may be automatically converted into
+<a href="./enum.Type"><strong>Type</strong></a>.</p>
+
+<p>Here is a list of compatible types:</p>
+
+<ul>
+<li><a href="./types/enum.Type"><strong>Type</strong></a></li>
+<li><a href="./types/enum.IOType"><strong>IOType</strong></a></li>
+<li><a href="./types/enum.MusicDeviceType"><strong>MusicDeviceType</strong></a></li>
+<li><a href="./types/enum.GeneratorType"><strong>GeneratorType</strong></a></li>
+<li><a href="./types/enum.FormatConverterType"><strong>FormatConverterType</strong></a></li>
+<li><a href="./types/enum.EffectType"><strong>EffectType</strong></a></li>
+<li><a href="./types/enum.MixerType"><strong>MixerType</strong></a></li>
+</ul>
+
+<p>To construct the <strong>AudioUnit</strong> with some component flags, see
+<a href="./struct.AudioUnit#method.new_with_flags"><strong>AudioUnit::new_with_flags</strong></a>.</p>
+
+<p>Note: the <code>AudioUnit</code> is constructed with the <code>kAudioUnitManufacturer_Apple</code> Manufacturer
+Identifier, as this is the only Audio Unit Manufacturer Identifier documented by Apple in
+the AudioUnit reference (see <a href="https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Manufacturer_Identifier">here</a>).</p>
+</div><h4 id='method.new_with_flags' class='method'><code>fn <a href='#method.new_with_flags' class='fnname'>new_with_flags</a>&lt;T&gt;(ty: T, flags: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>, mask: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='struct' href='../../coreaudio/audio_unit/struct.AudioUnit.html' title='coreaudio::audio_unit::AudioUnit'>AudioUnit</a>,&nbsp;<a class='enum' href='../../coreaudio/error/enum.Error.html' title='coreaudio::error::Error'>Error</a>&gt; <span class='where'>where T: <a class='trait' href='https://doc.rust-lang.org/nightly/core/convert/trait.Into.html' title='core::convert::Into'>Into</a>&lt;<a class='enum' href='../../coreaudio/audio_unit/types/enum.Type.html' title='coreaudio::audio_unit::types::Type'>Type</a>&gt;</span></code></h4>
+<div class='docblock'><p>The same as <a href="./struct.AudioUnit#method.new"><strong>AudioUnit::new</strong></a> but with the given
+component flags and mask.</p>
+</div><h4 id='method.set_property' class='method'><code>fn <a href='#method.set_property' class='fnname'>set_property</a>&lt;T&gt;(&amp;mut self, id: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>, scope: <a class='enum' href='../../coreaudio/audio_unit/enum.Scope.html' title='coreaudio::audio_unit::Scope'>Scope</a>, elem: <a class='enum' href='../../coreaudio/audio_unit/enum.Element.html' title='coreaudio::audio_unit::Element'>Element</a>, maybe_data: <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;&amp;T&gt;) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>,&nbsp;<a class='enum' href='../../coreaudio/error/enum.Error.html' title='coreaudio::error::Error'>Error</a>&gt;</code></h4>
+<div class='docblock'><p>Sets the value for some property of the <strong>AudioUnit</strong>.</p>
+
+<p>To clear an audio unit property value, set the data paramater with <code>None::&lt;()&gt;</code>.</p>
+
+<p>Clearing properties only works for those properties that do not have a default value.</p>
+
+<p>For more on &quot;properties&quot; see <a href="https://developer.apple.com/library/ios/documentation/AudioUnit/Reference/AudioUnitPropertiesReference/index.html#//apple_ref/doc/uid/TP40007288">the reference</a>.</p>
+
+<p><strong>Available</strong> in iOS 2.0 and later.</p>
+
+<h2 id='parameters' class='section-header'><a href='#parameters'>Parameters</a></h2>
+<ul>
+<li><strong>id</strong>: The identifier of the property.</li>
+<li><strong>scope</strong>: The audio unit scope for the property.</li>
+<li><strong>elem</strong>: The audio unit element for the property.</li>
+<li><strong>maybe_data</strong>: The value that you want to apply to the property.</li>
+</ul>
+</div><h4 id='method.get_property' class='method'><code>fn <a href='#method.get_property' class='fnname'>get_property</a>&lt;T&gt;(&amp;self, id: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>, scope: <a class='enum' href='../../coreaudio/audio_unit/enum.Scope.html' title='coreaudio::audio_unit::Scope'>Scope</a>, elem: <a class='enum' href='../../coreaudio/audio_unit/enum.Element.html' title='coreaudio::audio_unit::Element'>Element</a>) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;T,&nbsp;<a class='enum' href='../../coreaudio/error/enum.Error.html' title='coreaudio::error::Error'>Error</a>&gt;</code></h4>
+<div class='docblock'><p>Gets the value of an <strong>AudioUnit</strong> property.</p>
+
+<p><strong>Available</strong> in iOS 2.0 and later.</p>
+
+<h2 id='parameters-1' class='section-header'><a href='#parameters-1'>Parameters</a></h2>
+<ul>
+<li><strong>id</strong>: The identifier of the property.</li>
+<li><strong>scope</strong>: The audio unit scope for the property.</li>
+<li><strong>elem</strong>: The audio unit element for the property.</li>
+</ul>
+</div><h4 id='method.start' class='method'><code>fn <a href='#method.start' class='fnname'>start</a>(&amp;mut self) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>,&nbsp;<a class='enum' href='../../coreaudio/error/enum.Error.html' title='coreaudio::error::Error'>Error</a>&gt;</code></h4>
+<div class='docblock'><p>Starts an I/O <strong>AudioUnit</strong>, which in turn starts the audio unit processing graph that it is
+connected to.</p>
+
+<p><strong>Available</strong> in OS X v10.0 and later.</p>
+</div><h4 id='method.stop' class='method'><code>fn <a href='#method.stop' class='fnname'>stop</a>(&amp;mut self) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>,&nbsp;<a class='enum' href='../../coreaudio/error/enum.Error.html' title='coreaudio::error::Error'>Error</a>&gt;</code></h4>
+<div class='docblock'><p>Stops an I/O <strong>AudioUnit</strong>, which in turn stops the audio unit processing graph that it is
+connected to.</p>
+
+<p><strong>Available</strong> in OS X v10.0 and later.</p>
+</div><h4 id='method.set_sample_rate' class='method'><code>fn <a href='#method.set_sample_rate' class='fnname'>set_sample_rate</a>(&amp;mut self, sample_rate: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.f64.html'>f64</a>) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>,&nbsp;<a class='enum' href='../../coreaudio/error/enum.Error.html' title='coreaudio::error::Error'>Error</a>&gt;</code></h4>
+<div class='docblock'><p>Set the <strong>AudioUnit</strong>&#39;s sample rate.</p>
+
+<p><strong>Available</strong> in iOS 2.0 and later.</p>
+</div><h4 id='method.sample_rate' class='method'><code>fn <a href='#method.sample_rate' class='fnname'>sample_rate</a>(&amp;self) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.f64.html'>f64</a>,&nbsp;<a class='enum' href='../../coreaudio/error/enum.Error.html' title='coreaudio::error::Error'>Error</a>&gt;</code></h4>
+<div class='docblock'><p>Get the <strong>AudioUnit</strong>&#39;s sample rate.</p>
+</div><h4 id='method.set_stream_format' class='method'><code>fn <a href='#method.set_stream_format' class='fnname'>set_stream_format</a>(&amp;mut self, stream_format: <a class='struct' href='../../coreaudio/audio_unit/stream_format/struct.StreamFormat.html' title='coreaudio::audio_unit::stream_format::StreamFormat'>StreamFormat</a>) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>,&nbsp;<a class='enum' href='../../coreaudio/error/enum.Error.html' title='coreaudio::error::Error'>Error</a>&gt;</code></h4>
+<div class='docblock'><p>Sets the current <strong>StreamFormat</strong> for the AudioUnit.</p>
+
+<p>Core Audio uses slightly different defaults depending on the platform.</p>
+
+<p>From the Core Audio Overview:</p>
+
+<blockquote>
+<p>The canonical formats in Core Audio are as follows:</p>
+
+<ul>
+<li>iOS input and output: Linear PCM with 16-bit integer samples.</li>
+<li>iOS audio units and other audio processing: Noninterleaved linear PCM with 8.24-bit
+fixed-point samples</li>
+<li>Mac input and output: Linear PCM with 32-bit floating point samples.</li>
+<li>Mac audio units and other audio processing: Noninterleaved linear PCM with 32-bit
+floating-point</li>
+</ul>
+</blockquote>
+</div><h4 id='method.stream_format' class='method'><code>fn <a href='#method.stream_format' class='fnname'>stream_format</a>(&amp;self) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='struct' href='../../coreaudio/audio_unit/stream_format/struct.StreamFormat.html' title='coreaudio::audio_unit::stream_format::StreamFormat'>StreamFormat</a>,&nbsp;<a class='enum' href='../../coreaudio/error/enum.Error.html' title='coreaudio::error::Error'>Error</a>&gt;</code></h4>
+<div class='docblock'><p>Return the current Stream Format for the AudioUnit.</p>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> for <a class='struct' href='../../coreaudio/audio_unit/struct.AudioUnit.html' title='coreaudio::audio_unit::AudioUnit'>AudioUnit</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-1984' class='srclink' href='../../src/coreaudio/src/audio_unit/mod.rs.html#280' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'></div><h3 class='impl'><span class='in-band'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/ops/trait.Drop.html' title='core::ops::Drop'>Drop</a> for <a class='struct' href='../../coreaudio/audio_unit/struct.AudioUnit.html' title='coreaudio::audio_unit::AudioUnit'>AudioUnit</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-1985' class='srclink' href='../../src/coreaudio/src/audio_unit/mod.rs.html#283-298' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.drop' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/trait.Drop.html#tymethod.drop' class='fnname'>drop</a>(&amp;mut self)</code></h4>
+<div class='docblock'><p>A method called when the value goes out of scope. <a href="https://doc.rust-lang.org/nightly/core/ops/trait.Drop.html#tymethod.drop">Read more</a></p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../";
+        window.currentCrate = "coreaudio";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../jquery.js"></script>
+    <script src="../../main.js"></script>
+    
+    <script defer src="../../search-index.js"></script>
+</body>
+</html>

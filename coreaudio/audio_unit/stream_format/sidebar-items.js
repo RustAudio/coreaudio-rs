@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["StreamFormat","A representation of the AudioStreamBasicDescription specifically for use with the AudioUnit API."]]});

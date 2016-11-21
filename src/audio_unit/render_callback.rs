@@ -398,7 +398,7 @@ impl AudioUnit {
         // First, we'll retrieve the stream format so that we can ensure that the given callback
         // format matches the audio unit's format.
         let id = sys::kAudioUnitProperty_StreamFormat;
-        let asbd = try!(self.get_property(id, Scope::Output, Element::Output));
+        let asbd = try!(self.get_property(id, Scope::Input, Element::Output));
         let stream_format = super::StreamFormat::from_asbd(asbd)?;
 
         // If the stream format does not match, return an error indicating this.

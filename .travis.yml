@@ -8,10 +8,6 @@ notifications:
   - mitchell.nordine@gmail.com
 os:
 - osx
-matrix:
-  allow_failures:
-  - rust: beta
-  - rust: nightly
 env:
   matrix:
   - LD_LIBRARY_PATH: /usr/local/lib

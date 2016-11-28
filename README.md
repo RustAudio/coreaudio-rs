@@ -6,4 +6,4 @@ This crate aims to expose and wrap the functionality of the original C API in a 
 
 If you just want direct access to the unsafe bindings, use [coreaudio-sys](https://crates.io/crates/coreaudio-sys).
 
-[Documentation](https://docs.rs/crate/coreaudio-rs/0.6.0)
+[Documentation](https://docs.rs/crate/coreaudio-rs)

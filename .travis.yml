@@ -16,7 +16,7 @@ env:
   matrix:
   - LD_LIBRARY_PATH: /usr/local/lib
   global:
-    secure: Ua2xv6+p4Dh86acOk0DH09g7MSq+iHitkrdSAHJm4lL8N6sE4kjGgVGZzFvlpbpl0PUKKTm8cCIOo7wu1XR5WkGm3pX7nlsoOViUfNlJx4sltq+AC6K33QjNBi8UOGdabmCmizDQboQkotd2M00vQ/S0LF8/eUaGDeovzC/EKWQ=
+  - secure: URNNlOqxnfwWDC/w4PDTCswqe9ccnkIqDwfQecppfEui4KhpYXfrG9gx3xupWzWMfX+NPEcXtiyWA4CuUYaHbWWINLeLQUk650AFEqaRSiTpeh45Y9nh3dHT4fFDz4OeNfayNBBKL0kx5YwrugoeQggIgnF2KEcIHMF0+BbTtAM=
 before_script:
 - rustc --version
 - cargo --version
@@ -29,6 +29,8 @@ after_success: |
   [ $TRAVIS_PULL_REQUEST = false ] &&
   cargo doc &&
   echo "<meta http-equiv=refresh content=0;url=coreaudio/index.html>" > target/doc/index.html &&
-  sudo pip install ghp-import &&
+  pip install --user ghp-import &&
   ghp-import -n target/doc &&
-  git push -fq https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
+  # Redirect any output to `/dev/null` to hide any sensitive
+  # credential data that might otherwise be exposed.
+  git push -fq https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages > /dev/null 2>&1

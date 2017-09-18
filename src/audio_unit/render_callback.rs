@@ -13,15 +13,15 @@ use std::marker::PhantomData;
 ///
 /// This allows the user to provide a custom, more rust-esque callback function type that takes
 /// greater advantage of rust's type safety.
-pub type InputProcFn = FnMut(*mut au::AudioUnitRenderActionFlags,
+pub type InputProcFn<'a> = FnMut(*mut au::AudioUnitRenderActionFlags,
                              *const au::AudioTimeStamp,
                              au::UInt32,
                              au::UInt32,
-                             *mut au::AudioBufferList) -> au::OSStatus;
+                             *mut au::AudioBufferList) -> au::OSStatus + 'a;
 
 /// This type allows us to safely wrap a boxed `RenderCallback` to use within the input proc.
 pub struct InputProcFnWrapper<'a> {
-    callback: Box<InputProcFn>,
+    callback: Box<InputProcFn<'a>>,
     ph: PhantomData<&'a ()>
 }
 

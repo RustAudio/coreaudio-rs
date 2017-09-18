@@ -24,6 +24,7 @@ use error::Error;
 use libc;
 use std::mem;
 use std::ptr;
+use std::marker::PhantomData;
 
 pub use self::audio_format::AudioFormat;
 pub use self::sample_format::{SampleFormat, Sample};
@@ -69,9 +70,10 @@ pub enum Element {
 /// A rust representation of the au::AudioUnit, including a pointer to the current rendering callback.
 ///
 /// Find the original Audio Unit Programming Guide [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html).
-pub struct AudioUnit {
+pub struct AudioUnit<'a> {
     instance: au::AudioUnit,
-    maybe_callback: Option<*mut render_callback::InputProcFnWrapper>
+    maybe_callback: Option<*mut render_callback::InputProcFnWrapper<'a>>,
+    ph: PhantomData<&'a ()>
 }
 
 
@@ -80,7 +82,7 @@ macro_rules! try_os_status {
 }
 
 
-impl AudioUnit {
+impl<'a> AudioUnit<'a> {
 
     /// Construct a new AudioUnit with any type that may be automatically converted into
     /// [**Type**](./enum.Type).
@@ -101,7 +103,7 @@ impl AudioUnit {
     /// Note: the `AudioUnit` is constructed with the `kAudioUnitManufacturer_Apple` Manufacturer
     /// Identifier, as this is the only Audio Unit Manufacturer Identifier documented by Apple in
     /// the AudioUnit reference (see [here](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Manufacturer_Identifier)).
-    pub fn new<T>(ty: T) -> Result<AudioUnit, Error>
+    pub fn new<T>(ty: T) -> Result<AudioUnit<'a>, Error>
         where T: Into<Type>,
     {
         AudioUnit::new_with_flags(ty, 0, 0)
@@ -109,7 +111,7 @@ impl AudioUnit {
 
     /// The same as [**AudioUnit::new**](./struct.AudioUnit#method.new) but with the given
     /// component flags and mask.
-    pub fn new_with_flags<T>(ty: T, flags: u32, mask: u32) -> Result<AudioUnit, Error>
+    pub fn new_with_flags<T>(ty: T, flags: u32, mask: u32) -> Result<AudioUnit<'a>, Error>
         where T: Into<Type>,
     {
         const MANUFACTURER_IDENTIFIER: u32 = au::kAudioUnitManufacturer_Apple;
@@ -152,7 +154,8 @@ impl AudioUnit {
             try_os_status!(au::AudioUnitInitialize(instance));
             Ok(AudioUnit {
                 instance: instance,
-                maybe_callback: None
+                maybe_callback: None,
+                ph: PhantomData
             })
         }
     }
@@ -277,10 +280,10 @@ impl AudioUnit {
 }
 
 
-unsafe impl Send for AudioUnit {}
+unsafe impl<'a> Send for AudioUnit<'a> {}
 
 
-impl Drop for AudioUnit {
+impl<'a> Drop for AudioUnit<'a> {
     fn drop(&mut self) {
         unsafe {
             use error;

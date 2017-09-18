@@ -6,6 +6,7 @@ use super::{AudioUnit, Element, Scope};
 pub use self::action_flags::ActionFlags;
 pub use self::data::Data;
 
+use std::marker::PhantomData;
 
 /// When `set_render_callback` is called, a closure of this type will be used to wrap the given
 /// render callback function.
@@ -19,8 +20,9 @@ pub type InputProcFn = FnMut(*mut au::AudioUnitRenderActionFlags,
                              *mut au::AudioBufferList) -> au::OSStatus;
 
 /// This type allows us to safely wrap a boxed `RenderCallback` to use within the input proc.
-pub struct InputProcFnWrapper {
+pub struct InputProcFnWrapper<'a> {
     callback: Box<InputProcFn>,
+    ph: PhantomData<&'a ()>
 }
 
 /// Arguments given to the render callback function.
@@ -377,11 +379,11 @@ pub mod action_flags {
 }
 
 
-impl AudioUnit {
+impl<'a> AudioUnit<'a> {
 
     /// Pass a render callback (aka "Input Procedure") to the **AudioUnit**.
-    pub fn set_render_callback<F, D>(&mut self, mut f: F) -> Result<(), Error>
-        where F: FnMut(Args<D>) -> Result<(), ()> + 'static,
+    pub fn set_render_callback<'b:'a, F:'b, D>(&mut self, mut f: F) -> Result<(), Error>
+        where F: FnMut(Args<D>) -> Result<(), ()> + 'b,
               D: Data,
     {
         // First, we'll retrieve the stream format so that we can ensure that the given callback
@@ -422,8 +424,9 @@ impl AudioUnit {
             }
         };
 
-        let input_proc_fn_wrapper = Box::new(InputProcFnWrapper {
+        let input_proc_fn_wrapper = Box::new(InputProcFnWrapper::<'b> {
             callback: Box::new(input_proc_fn),
+            ph: PhantomData
         });
 
         // Setup render callback. Notice that we relinquish ownership of the Callback

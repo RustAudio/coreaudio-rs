@@ -283,29 +283,29 @@ pub mod standard_flags {
             /// Set for floating point, clear for integer.
             ///
             /// **Available** in OS X v10.2 and later.
-            const IS_FLOAT = 1,
+            const IS_FLOAT = 1;
             /// Set for big endian, clear for little endian.
             ///
             /// **Available** in OS X v10.2 and later.
-            const IS_BIG_ENDIAN = 2,
+            const IS_BIG_ENDIAN = 2;
             /// Set for signed integer, clear for unsigned integer.
             ///
             /// Note: This is only valid if `IS_FLOAT` is clear.
             ///
             /// **Available** in OS X v10.2 and later.
-            const IS_SIGNED_INTEGER = 4,
+            const IS_SIGNED_INTEGER = 4;
             /// Set if the sample bits occupy the entire available bits for the channel, clear if they
             /// are high- or low-aligned within the channel.
             ///
             /// **Available** in OS X v10.2 and later.
-            const IS_PACKED = 8,
+            const IS_PACKED = 8;
             /// Set if the sample bits are placed into the high bits of the channel, clear for low bit
             /// placement.
             ///
             /// Note: This is only valid if `IS_PACKED` is clear.
             ///
             /// **Available** in OS X v10.2 and later.
-            const IS_ALIGNED_HIGH = 16,
+            const IS_ALIGNED_HIGH = 16;
             /// Set if the sample for each channel are located contiguously and the channels are laid
             /// out end to end.
             ///
@@ -313,14 +313,14 @@ pub mod standard_flags {
             /// end to end.
             ///
             /// **Available** in OS X v10.2 and later.
-            const IS_NON_INTERLEAVED = 32,
+            const IS_NON_INTERLEAVED = 32;
             /// Set to indicate when a format is nonmixable.
             ///
             /// Note: that this flag is only used when interacting with the HAL's stream format
             /// information. It is **not** valid for any other use.
             ///
             /// **Available** in OS X v10.3 and later.
-            const IS_NON_MIXABLE = 64,
+            const IS_NON_MIXABLE = 64;
         }
     }
 }
@@ -341,31 +341,31 @@ pub mod linear_pcm_flags {
             /// Synonmyn for the **IS_FLOAT** **StandardFlags**.
             ///
             /// **Available** in OS X v10.0 and later.
-            const IS_FLOAT = 1,
+            const IS_FLOAT = 1;
             /// Synonmyn for the **IS_BIG_ENDIAN** **StandardFlags**.
             ///
             /// **Available** in OS X v10.0 and later.
-            const IS_BIG_ENDIAN = 2,
+            const IS_BIG_ENDIAN = 2;
             /// Synonmyn for the **IS_SIGNED_INTEGER** **StandardFlags**.
             ///
             /// **Available** in OS X v10.0 and later.
-            const IS_SIGNED_INTEGER = 4,
+            const IS_SIGNED_INTEGER = 4;
             /// Synonmyn for the **IS_PACKED** **StandardFlags**.
             ///
             /// **Available** in OS X v10.0 and later.
-            const IS_PACKED = 8,
+            const IS_PACKED = 8;
             /// Synonmyn for the **IS_ALIGNED_HIGH** **StandardFlags**.
             ///
             /// **Available** in OS X v10.0 and later.
-            const IS_ALIGNED_HIGH = 16,
+            const IS_ALIGNED_HIGH = 16;
             /// Synonmyn for the **IS_NON_INTERLEAVED** **StandardFlags**.
             ///
             /// **Available** in OS X v10.2 and later.
-            const IS_NON_INTERLEAVED = 32,
+            const IS_NON_INTERLEAVED = 32;
             /// Synonmyn for the **IS_NON_MIXABLE** **StandardFlags**.
             ///
             /// **Available** in OS X v10.3 and later.
-            const IS_NON_MIXABLE = 64,
+            const IS_NON_MIXABLE = 64;
             /// The linear PCM flags contain a 6-bit bitfield indicating that an integer format is to
             /// be interpreted as fixed point.
             ///
@@ -379,13 +379,13 @@ pub mod linear_pcm_flags {
             /// uniquely in some way.
             ///
             /// **Available** in OS X v10.6 and later.
-            const FLAGS_SAMPLE_FRACTION_SHIFT = 7,
+            const FLAGS_SAMPLE_FRACTION_SHIFT = 7;
             /// The number of fractional bits.
             ///
             /// `== (<other_flags> & FLAGS_SAMPLE_FRACTION_MASK) >> FLAGS_SAMPLE_FRACTION_SHIFT`
             ///
             /// **Available** in OS X v10.6 and later.
-            const FLAGS_SAMPLE_FRACTION_MASK = 8064,
+            const FLAGS_SAMPLE_FRACTION_MASK = 8064;
         }
     }
 }
@@ -406,13 +406,13 @@ pub mod apple_lossless_flags {
         /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
         pub struct AppleLosslessFlags: u32 {
             /// Sourced from 16 bit native endian signed integer data.
-            const BIT_16_SOURCE_DATA = 1,
+            const BIT_16_SOURCE_DATA = 1;
             /// Sourced from 20 bit native endian signed integer data aligned high in 24 bits.
-            const BIT_20_SOURCE_DATA = 2,
+            const BIT_20_SOURCE_DATA = 2;
             /// Sourced from 24 bit native endian signed integer data.
-            const BIT_24_SOURCE_DATA = 3,
+            const BIT_24_SOURCE_DATA = 3;
             /// Sourced from 32 bit native endian signed integer data.
-            const BIT_32_SOURCE_DATA = 4,
+            const BIT_32_SOURCE_DATA = 4;
         }
     }
 }
@@ -485,15 +485,15 @@ pub mod audio_time_stamp_flags {
         /// Original Documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/Audio_Time_Stamp_Flags).
         pub struct AudioTimeStampFlags: u32 {
             /// The sample frame time is valid.
-            const SAMPLE_TIME_VALID = 1,
+            const SAMPLE_TIME_VALID = 1;
             /// The host time is valid.
-            const HOST_TIME_VALID = 2,
+            const HOST_TIME_VALID = 2;
             /// The rate scalar is valid.
-            const RATE_SCALAR_VALID = 4,
+            const RATE_SCALAR_VALID = 4;
             /// The world clock time is valid.
-            const WORLD_CLOCK_TIME_VALID = 8,
+            const WORLD_CLOCK_TIME_VALID = 8;
             /// The SMPTE time is valid.
-            const SMPTE_TIME_VALID = 16,
+            const SMPTE_TIME_VALID = 16;
         }
     }
 }

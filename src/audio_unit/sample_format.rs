@@ -1,4 +1,4 @@
-use super::audio_format::{self, linear_pcm_flags};
+use super::audio_format::{self, LinearPcmFlags};
 
 
 /// Dynamic representation of audio data sample format.
@@ -12,9 +12,9 @@ pub enum SampleFormat {
 
 impl SampleFormat {
 
-    pub fn does_match_flags(&self, flags: audio_format::LinearPCMFlags) -> bool {
-        let is_float = flags.contains(linear_pcm_flags::IS_FLOAT);
-        let is_signed_integer = flags.contains(linear_pcm_flags::IS_SIGNED_INTEGER);
+    pub fn does_match_flags(&self, flags: audio_format::LinearPcmFlags) -> bool {
+        let is_float = flags.contains(LinearPcmFlags::IS_FLOAT);
+        let is_signed_integer = flags.contains(LinearPcmFlags::IS_SIGNED_INTEGER);
         match *self {
             SampleFormat::F32 => is_float && !is_signed_integer,
             SampleFormat::I32 |
@@ -23,10 +23,10 @@ impl SampleFormat {
         }
     }
 
-    pub fn from_flags_and_bytes_per_frame(flags: audio_format::LinearPCMFlags,
+    pub fn from_flags_and_bytes_per_frame(flags: audio_format::LinearPcmFlags,
                                           bytes_per_frame: u32) -> Option<Self>
     {
-        Some(if flags.contains(linear_pcm_flags::IS_FLOAT) {
+        Some(if flags.contains(LinearPcmFlags::IS_FLOAT) {
             SampleFormat::F32
         } else {
             // TODO: Check whether or not we need to consider unsigned ints and `IS_PACKED`.

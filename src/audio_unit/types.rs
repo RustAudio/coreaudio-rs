@@ -446,5 +446,12 @@ pub enum IOType {
     ///
     /// **Available** in OS X v10.7 and later.
     VoiceProcessingIO = 1987078511,
+    /// Connects to device hardware for input, output, or simultaneous input and output.
+    /// Use it for playback, recording, or low-latency simultaneous input and output where echo
+    /// cancelation is not needed.
+    ///
+    /// See https://developer.apple.com/library/content/documentation/MusicAudio/Conceptual/AudioUnitHostingGuide_iOS/UsingSpecificAudioUnits/UsingSpecificAudioUnits.html
+    /// **Available** in iOS.
+    RemoteIO = 1919512419,
 }
 

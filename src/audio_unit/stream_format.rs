@@ -46,7 +46,7 @@ pub struct StreamFormat {
     /// battery drain when processing audio. iOS provides a Converter audio unit and inclues the
     /// interfaces from Audio Converter Services (TODO: look into exposing this).
     pub sample_format: SampleFormat,
-    pub flags: super::audio_format::LinearPCMFlags,
+    pub flags: super::audio_format::LinearPcmFlags,
     pub channels_per_frame: u32,
 }
 

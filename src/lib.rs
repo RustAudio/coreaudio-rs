@@ -9,9 +9,7 @@
 //! eventually we'd like to cover at least the majority of the C API.
 
 #[macro_use] extern crate bitflags;
-pub extern crate coreaudio_sys as bindings;
-
-extern crate libc;
+pub extern crate coreaudio_sys as sys;
 
 pub use error::Error;
 

@@ -1,7 +1,7 @@
-use bindings::audio_unit as au;
 use error::{self, Error};
-use libc;
+use std::os::raw::c_void;
 use super::{AudioUnit, Element, Scope};
+use sys;
 
 pub use self::action_flags::ActionFlags;
 pub use self::data::Data;
@@ -12,11 +12,11 @@ pub use self::data::Data;
 ///
 /// This allows the user to provide a custom, more rust-esque callback function type that takes
 /// greater advantage of rust's type safety.
-pub type InputProcFn = FnMut(*mut au::AudioUnitRenderActionFlags,
-                             *const au::AudioTimeStamp,
-                             au::UInt32,
-                             au::UInt32,
-                             *mut au::AudioBufferList) -> au::OSStatus;
+pub type InputProcFn = FnMut(*mut sys::AudioUnitRenderActionFlags,
+                             *const sys::AudioTimeStamp,
+                             sys::UInt32,
+                             sys::UInt32,
+                             *mut sys::AudioBufferList) -> sys::OSStatus;
 
 /// This type allows us to safely wrap a boxed `RenderCallback` to use within the input proc.
 pub struct InputProcFnWrapper {
@@ -28,7 +28,7 @@ pub struct Args<D> {
     /// A type wrapping the the buffer that matches the expected audio format.
     pub data: D,
     /// Timing information for the callback.
-    pub time_stamp: au::AudioTimeStamp,
+    pub time_stamp: sys::AudioTimeStamp,
     /// TODO
     pub bus_number: u32,
     /// The number of frames in the buffer as `usize` for easier indexing.
@@ -45,30 +45,30 @@ pub struct Args<D> {
 
 /// Format specific render callback data.
 pub mod data {
-    use bindings::audio_unit as au;
     use std::marker::PhantomData;
-    use std::{iter, slice};
+    use std::slice;
     use super::super::StreamFormat;
     use super::super::Sample;
+    use sys;
 
     /// Audio data wrappers specific to the `AudioUnit`'s `AudioFormat`.
     pub trait Data {
         /// Check whether or not the stream format matches this type of data.
         fn does_stream_format_match(&StreamFormat) -> bool;
         /// We must be able to construct Self from arguments given to the `input_proc`.
-        unsafe fn from_input_proc_args(num_frames: u32, io_data: *mut au::AudioBufferList) -> Self;
+        unsafe fn from_input_proc_args(num_frames: u32, io_data: *mut sys::AudioBufferList) -> Self;
     }
 
     /// A raw pointer to the audio data so that the user may handle it themselves.
     pub struct Raw {
-        pub data: *mut au::AudioBufferList,
+        pub data: *mut sys::AudioBufferList,
     }
 
     impl Data for Raw {
         fn does_stream_format_match(_: &StreamFormat) -> bool {
             true
         }
-        unsafe fn from_input_proc_args(_num_frames: u32, io_data: *mut au::AudioBufferList) -> Self {
+        unsafe fn from_input_proc_args(_num_frames: u32, io_data: *mut sys::AudioBufferList) -> Self {
             Raw { data: io_data }
         }
     }
@@ -94,9 +94,9 @@ pub mod data {
     //     }
 
     //     #[allow(non_snake_case)]
-    //     unsafe fn from_input_proc_args(frames: u32, io_data: *mut au::AudioBufferList) -> Self {
+    //     unsafe fn from_input_proc_args(frames: u32, io_data: *mut sys::AudioBufferList) -> Self {
     //         // We're expecting a single interleaved buffer which will be the first in the array.
-    //         let au::AudioBuffer { mNumberChannels, mDataByteSize, mData } = (*io_data).mBuffers[0];
+    //         let sys::AudioBuffer { mNumberChannels, mDataByteSize, mData } = (*io_data).mBuffers[0];
 
     //         // Ensure that the size of the data matches the size of the sample format
     //         // multiplied by the number of frames.
@@ -120,12 +120,8 @@ pub mod data {
 
     /// A wrapper around the pointer to the `mBuffers` array.
     pub struct NonInterleaved<S> {
-        /// A pointer to the first buffer.
-        ///
-        /// TODO: Work out why this works and `&'a mut [au::AudioBuffer]` does not!
-        /// Perhaps use a raw pointer instead if a slice won't work.
-        buffers: [au::AudioBuffer; 128],
-        num_buffers: usize,
+        /// The list of audio buffers.
+        buffers: &'static mut [sys::AudioBuffer],
         /// The number of frames in each channel.
         frames: usize,
         sample_format: PhantomData<S>,
@@ -133,14 +129,14 @@ pub mod data {
 
     /// An iterator produced by a `NoneInterleaved`, yielding a reference to each channel.
     pub struct Channels<'a, S: 'a> {
-        buffers: iter::Take<slice::Iter<'a, au::AudioBuffer>>,
+        buffers: slice::Iter<'a, sys::AudioBuffer>,
         frames: usize,
         sample_format: PhantomData<S>,
     }
 
     /// An iterator produced by a `NoneInterleaved`, yielding a mutable reference to each channel.
     pub struct ChannelsMut<'a, S: 'a> {
-        buffers: iter::Take<slice::IterMut<'a, au::AudioBuffer>>,
+        buffers: slice::IterMut<'a, sys::AudioBuffer>,
         frames: usize,
         sample_format: PhantomData<S>,
     }
@@ -151,7 +147,7 @@ pub mod data {
         type Item = &'a [S];
         #[allow(non_snake_case)]
         fn next(&mut self) -> Option<Self::Item> {
-            self.buffers.next().map(|&au::AudioBuffer { mNumberChannels, mData, .. }| {
+            self.buffers.next().map(|&sys::AudioBuffer { mNumberChannels, mData, .. }| {
                 let len = mNumberChannels as usize * self.frames;
                 let ptr = mData as *mut S;
                 unsafe { slice::from_raw_parts(ptr, len) }
@@ -163,7 +159,7 @@ pub mod data {
         type Item = &'a mut [S];
         #[allow(non_snake_case)]
         fn next(&mut self) -> Option<Self::Item> {
-            self.buffers.next().map(|&mut au::AudioBuffer { mNumberChannels, mData, .. }| {
+            self.buffers.next().map(|&mut sys::AudioBuffer { mNumberChannels, mData, .. }| {
                 let len = mNumberChannels as usize * self.frames;
                 let ptr = mData as *mut S;
                 unsafe { slice::from_raw_parts_mut(ptr, len) }
@@ -176,7 +172,7 @@ pub mod data {
         /// An iterator yielding a reference to each channel in the array.
         pub fn channels(&self) -> Channels<S> {
             Channels {
-                buffers: self.buffers.iter().take(self.num_buffers),
+                buffers: self.buffers.iter(),
                 frames: self.frames,
                 sample_format: PhantomData,
             }
@@ -185,7 +181,7 @@ pub mod data {
         /// An iterator yielding a mutable reference to each channel in the array.
         pub fn channels_mut(&mut self) -> ChannelsMut<S> {
             ChannelsMut {
-                buffers: self.buffers.iter_mut().take(self.num_buffers),
+                buffers: self.buffers.iter_mut(),
                 frames: self.frames,
                 sample_format: PhantomData,
             }
@@ -205,14 +201,12 @@ pub mod data {
         }
 
         #[allow(non_snake_case)]
-        unsafe fn from_input_proc_args(frames: u32, io_data: *mut au::AudioBufferList) -> Self {
-            let au::AudioBufferList { mNumberBuffers, mBuffers } = *io_data;
-            // TODO: This should be a raw pointer to the first elem in the array and fixed in
-            // coreaudio-sys because a 128 elem FSA makes no sense!
-            let buffers: [au::AudioBuffer; 128] = mBuffers;
+        unsafe fn from_input_proc_args(frames: u32, io_data: *mut sys::AudioBufferList) -> Self {
+            let ptr = (*io_data).mBuffers.as_ptr() as *mut sys::AudioBuffer;
+            let len = (*io_data).mNumberBuffers as usize;
+            let buffers = slice::from_raw_parts_mut(ptr, len);
             NonInterleaved {
                 buffers: buffers,
-                num_buffers: mNumberBuffers as usize,
                 frames: frames as usize,
                 sample_format: PhantomData,
             }
@@ -222,7 +216,7 @@ pub mod data {
 }
 
 pub mod action_flags {
-    use bindings::audio_unit as au;
+    use sys;
 
     bitflags!{
         pub struct ActionFlags: u32 {
@@ -231,20 +225,20 @@ pub mod action_flags {
             /// before the render operation is performed.
             ///
             /// **Available** in OS X v10.0 and later.
-            const PRE_RENDER = au::kAudioUnitRenderAction_PreRender;
+            const PRE_RENDER = sys::kAudioUnitRenderAction_PreRender;
             /// Called on a render notification Proc, which is called either before or after the
             /// render operation of the audio unit. If this flag is set, the proc is being called
             /// after the render operation is completed.
             ///
             /// **Available** in OS X v10.0 and later.
-            const POST_RENDER = au::kAudioUnitRenderAction_PostRender;
+            const POST_RENDER = sys::kAudioUnitRenderAction_PostRender;
             /// This flag can be set in a render input callback (or in the audio unit's render
             /// operation itself) and is used to indicate that the render buffer contains only
             /// silence. It can then be used by the caller as a hint to whether the buffer needs to
             /// be processed or not.
             ///
             /// **Available** in OS X v10.2 and later.
-            const OUTPUT_IS_SILENCE = au::kAudioUnitRenderAction_OutputIsSilence;
+            const OUTPUT_IS_SILENCE = sys::kAudioUnitRenderAction_OutputIsSilence;
             /// This is used with offline audio units (of type 'auol'). It is used when an offline
             /// unit is being preflighted, which is performed prior to when the actual offline
             /// rendering actions are performed. It is used for those cases where the offline
@@ -253,32 +247,32 @@ pub mod action_flags {
             /// normalization).
             ///
             /// **Available** in OS X v10.3 and later.
-            const OFFLINE_PREFLIGHT = au::kAudioOfflineUnitRenderAction_Preflight;
+            const OFFLINE_PREFLIGHT = sys::kAudioOfflineUnitRenderAction_Preflight;
             /// Once an offline unit has been successfully preflighted, it is then put into its
             /// render mode. This flag is set to indicate to the audio unit that it is now in that
             /// state and that it should perform processing on the input data.
             ///
             /// **Available** in OS X v10.3 and later.
-            const OFFLINE_RENDER = au::kAudioOfflineUnitRenderAction_Render;
+            const OFFLINE_RENDER = sys::kAudioOfflineUnitRenderAction_Render;
             /// This flag is set when an offline unit has completed either its preflight or
             /// performed render operation.
             ///
             /// **Available** in OS X v10.3 and later.
-            const OFFLINE_COMPLETE = au::kAudioOfflineUnitRenderAction_Complete;
+            const OFFLINE_COMPLETE = sys::kAudioOfflineUnitRenderAction_Complete;
             /// If this flag is set on the post-render call an error was returned by the audio
             /// unit's render operation. In this case, the error can be retrieved through the
             /// `lastRenderError` property and the audio data in `ioData` handed to the post-render
             /// notification will be invalid.
             ///
             /// **Available** in OS X v10.5 and later.
-            const POST_RENDER_ERROR = au::kAudioUnitRenderAction_PostRenderError;
+            const POST_RENDER_ERROR = sys::kAudioUnitRenderAction_PostRenderError;
             /// If this flag is set, then checks that are done on the arguments provided to render
             /// are not performed. This can be useful to use to save computation time in situations
             /// where you are sure you are providing the correct arguments and structures to the
             /// various render calls.
             ///
             /// **Available** in OS X v10.7 and later.
-            const DO_NOT_CHECK_RENDER_ARGS = au::kAudioUnitRenderAction_DoNotCheckRenderArgs;
+            const DO_NOT_CHECK_RENDER_ARGS = sys::kAudioUnitRenderAction_DoNotCheckRenderArgs;
         }
     }
 
@@ -290,7 +284,7 @@ pub mod action_flags {
     /// For example: if there is no audio to process, we can insert the `OUTPUT_IS_SILENCE` flag to
     /// indicate to the audio unit that the buffer does not need to be processed.
     pub struct Handle {
-        ptr: *mut au::AudioUnitRenderActionFlags,
+        ptr: *mut sys::AudioUnitRenderActionFlags,
     }
 
     impl Handle {
@@ -351,7 +345,7 @@ pub mod action_flags {
         }
 
         /// Wrap the given pointer with a `Handle`.
-        pub fn from_ptr(ptr: *mut au::AudioUnitRenderActionFlags) -> Self {
+        pub fn from_ptr(ptr: *mut sys::AudioUnitRenderActionFlags) -> Self {
             Handle { ptr: ptr }
         }
 
@@ -362,14 +356,14 @@ pub mod action_flags {
     impl ::std::fmt::Display for ActionFlags {
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
             write!(f, "{:?}", match self.bits() {
-                au::kAudioUnitRenderAction_PreRender => "PRE_RENDER",
-                au::kAudioUnitRenderAction_PostRender => "POST_RENDER",
-                au::kAudioUnitRenderAction_OutputIsSilence => "OUTPUT_IS_SILENCE",
-                au::kAudioOfflineUnitRenderAction_Preflight => "OFFLINE_PREFLIGHT",
-                au::kAudioOfflineUnitRenderAction_Render => "OFFLINE_RENDER",
-                au::kAudioOfflineUnitRenderAction_Complete => "OFFLINE_COMPLETE",
-                au::kAudioUnitRenderAction_PostRenderError => "POST_RENDER_ERROR",
-                au::kAudioUnitRenderAction_DoNotCheckRenderArgs => "DO_NOT_CHECK_RENDER_ARGS",
+                sys::kAudioUnitRenderAction_PreRender => "PRE_RENDER",
+                sys::kAudioUnitRenderAction_PostRender => "POST_RENDER",
+                sys::kAudioUnitRenderAction_OutputIsSilence => "OUTPUT_IS_SILENCE",
+                sys::kAudioOfflineUnitRenderAction_Preflight => "OFFLINE_PREFLIGHT",
+                sys::kAudioOfflineUnitRenderAction_Render => "OFFLINE_RENDER",
+                sys::kAudioOfflineUnitRenderAction_Complete => "OFFLINE_COMPLETE",
+                sys::kAudioUnitRenderAction_PostRenderError => "POST_RENDER_ERROR",
+                sys::kAudioUnitRenderAction_DoNotCheckRenderArgs => "DO_NOT_CHECK_RENDER_ARGS",
                 _ => "<Unknown ActionFlags>",
             })
         }
@@ -398,11 +392,11 @@ impl AudioUnit {
         //
         // This allows us to take advantage of rust's type system and provide format-specific
         // `Args` types which can be checked at compile time.
-        let input_proc_fn = move |io_action_flags: *mut au::AudioUnitRenderActionFlags,
-                                  in_time_stamp: *const au::AudioTimeStamp,
-                                  in_bus_number: au::UInt32,
-                                  in_number_frames: au::UInt32,
-                                  io_data: *mut au::AudioBufferList| -> au::OSStatus
+        let input_proc_fn = move |io_action_flags: *mut sys::AudioUnitRenderActionFlags,
+                                  in_time_stamp: *const sys::AudioTimeStamp,
+                                  in_bus_number: sys::UInt32,
+                                  in_number_frames: sys::UInt32,
+                                  io_data: *mut sys::AudioBufferList| -> sys::OSStatus
         {
             let args = unsafe {
                 let data = D::from_input_proc_args(in_number_frames, io_data);
@@ -417,7 +411,7 @@ impl AudioUnit {
             };
 
             match f(args) {
-                Ok(()) => 0 as au::OSStatus,
+                Ok(()) => 0 as sys::OSStatus,
                 Err(()) => error::Error::Unspecified.to_os_status(),
             }
         };
@@ -430,14 +424,14 @@ impl AudioUnit {
         // here so that it can be used as the C render callback via a void pointer.
         // We do however store the *mut so that we can convert back to a Box<InputProcFnWrapper>
         // within our AudioUnit's Drop implementation (otherwise it would leak).
-        let input_proc_fn_wrapper_ptr = Box::into_raw(input_proc_fn_wrapper) as *mut libc::c_void;
+        let input_proc_fn_wrapper_ptr = Box::into_raw(input_proc_fn_wrapper) as *mut c_void;
 
-        let render_callback = au::AURenderCallbackStruct {
+        let render_callback = sys::AURenderCallbackStruct {
             inputProc: Some(input_proc),
             inputProcRefCon: input_proc_fn_wrapper_ptr,
         };
 
-        try!(self.set_property(au::kAudioUnitProperty_SetRenderCallback,
+        try!(self.set_property(sys::kAudioUnitProperty_SetRenderCallback,
                                Scope::Input,
                                Element::Output,
                                Some(&render_callback)));
@@ -462,12 +456,12 @@ impl AudioUnit {
 
 
 /// Callback procedure that will be called each time our audio_unit requests audio.
-extern "C" fn input_proc(in_ref_con: *mut libc::c_void,
-                         io_action_flags: *mut au::AudioUnitRenderActionFlags,
-                         in_time_stamp: *const au::AudioTimeStamp,
-                         in_bus_number: au::UInt32,
-                         in_number_frames: au::UInt32,
-                         io_data: *mut au::AudioBufferList) -> au::OSStatus
+extern "C" fn input_proc(in_ref_con: *mut c_void,
+                         io_action_flags: *mut sys::AudioUnitRenderActionFlags,
+                         in_time_stamp: *const sys::AudioTimeStamp,
+                         in_bus_number: sys::UInt32,
+                         in_number_frames: sys::UInt32,
+                         io_data: *mut sys::AudioBufferList) -> sys::OSStatus
 {
     let wrapper = in_ref_con as *mut InputProcFnWrapper;
     unsafe {

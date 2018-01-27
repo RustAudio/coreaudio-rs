@@ -3,8 +3,7 @@
 //! See the Core Audio Data Types Reference
 //! [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/Audio_Data_Format_Identifiers) for more info.
 
-
-use libc;
+use std::os::raw::c_uint;
 
 /// A type-safe representation of both the `AudioFormatId` and their associated flags.
 #[derive(Copy, Clone, Debug)]
@@ -175,7 +174,7 @@ pub enum AudioFormat {
 impl AudioFormat {
 
     /// Convert from the FFI C format and flags to a typesafe Rust enum representation.
-    pub fn from_format_and_flag(format: libc::c_uint, flag: Option<u32>) -> Option<AudioFormat> {
+    pub fn from_format_and_flag(format: c_uint, flag: Option<u32>) -> Option<AudioFormat> {
         match (format, flag) {
             (1819304813, Some(i)) => Some(AudioFormat::LinearPCM(LinearPcmFlags::from_bits_truncate(i))),
             (1633889587, _)       => Some(AudioFormat::AC3),
@@ -218,7 +217,7 @@ impl AudioFormat {
     }
 
     /// Convert from the Rust enum to the C format and flag.
-    pub fn to_format_and_flag(&self) -> (libc::c_uint, Option<u32>) {
+    pub fn to_format_and_flag(&self) -> (c_uint, Option<u32>) {
         match *self {
             AudioFormat::LinearPCM(flag)      => (1819304813, Some(flag.bits())),
             AudioFormat::AC3                  => (1633889587, None),

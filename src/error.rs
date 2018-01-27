@@ -1,13 +1,13 @@
 //! This module is an attempt at rustifying the OSStatus result.
 
-use bindings::audio_unit::OSStatus;
 pub use self::audio::Error as AudioError;
 pub use self::audio_codec::Error as AudioCodecError;
 pub use self::audio_format::Error as AudioFormatError;
 pub use self::audio_unit::Error as AudioUnitError;
+use sys::OSStatus;
 
 pub mod audio {
-    use bindings::audio_unit::OSStatus;
+    use sys::OSStatus;
 
     #[derive(Copy, Clone, Debug)]
     pub enum Error {
@@ -68,7 +68,7 @@ pub mod audio {
 
 
 pub mod audio_codec {
-    use bindings::audio_unit::OSStatus;
+    use sys::OSStatus;
 
     #[derive(Copy, Clone, Debug)]
     pub enum Error {
@@ -129,7 +129,7 @@ pub mod audio_codec {
 
 
 pub mod audio_format {
-    use bindings::audio_unit::OSStatus;
+    use sys::OSStatus;
 
     // TODO: Finish implementing these values.
     #[derive(Copy, Clone, Debug)]
@@ -182,7 +182,7 @@ pub mod audio_format {
 
 
 pub mod audio_unit {
-    use bindings::audio_unit::OSStatus;
+    use sys::OSStatus;
 
     #[derive(Copy, Clone, Debug)]
     pub enum Error {

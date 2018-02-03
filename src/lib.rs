@@ -13,5 +13,6 @@ pub extern crate coreaudio_sys as sys;
 
 pub use error::Error;
 
+#[cfg(feature = "audio_unit")]
 pub mod audio_unit;
 pub mod error;

@@ -1,5 +1,7 @@
 use error::{self, Error};
+use std::mem;
 use std::os::raw::c_void;
+use std::slice;
 use super::{AudioUnit, Element, Scope};
 use sys;
 
@@ -24,6 +26,7 @@ pub struct InputProcFnWrapper {
 }
 
 /// Arguments given to the render callback function.
+#[derive(Debug)]
 pub struct Args<D> {
     /// A type wrapping the the buffer that matches the expected audio format.
     pub data: D,
@@ -60,6 +63,7 @@ pub mod data {
     }
 
     /// A raw pointer to the audio data so that the user may handle it themselves.
+    #[derive(Debug)]
     pub struct Raw {
         pub data: *mut sys::AudioBufferList,
     }
@@ -216,6 +220,7 @@ pub mod data {
 }
 
 pub mod action_flags {
+    use std::fmt;
     use sys;
 
     bitflags!{
@@ -285,6 +290,18 @@ pub mod action_flags {
     /// indicate to the audio unit that the buffer does not need to be processed.
     pub struct Handle {
         ptr: *mut sys::AudioUnitRenderActionFlags,
+    }
+
+    impl fmt::Debug for Handle {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            if self.ptr == ::std::ptr::null_mut() {
+                write!(f, "{:?}", self.ptr)
+            } else {
+                unsafe {
+                    write!(f, "{:?}", *self.ptr)
+                }
+            }
+        }
     }
 
     impl Handle {
@@ -372,15 +389,17 @@ pub mod action_flags {
 
 
 impl AudioUnit {
-
     /// Pass a render callback (aka "Input Procedure") to the **AudioUnit**.
     pub fn set_render_callback<F, D>(&mut self, mut f: F) -> Result<(), Error>
-        where F: FnMut(Args<D>) -> Result<(), ()> + 'static,
-              D: Data,
+    where
+        F: FnMut(Args<D>) -> Result<(), ()> + 'static,
+        D: Data,
     {
         // First, we'll retrieve the stream format so that we can ensure that the given callback
         // format matches the audio unit's format.
-        let stream_format = try!(self.stream_format());
+        let id = sys::kAudioUnitProperty_StreamFormat;
+        let asbd = try!(self.get_property(id, Scope::Output, Element::Output));
+        let stream_format = super::StreamFormat::from_asbd(asbd)?;
 
         // If the stream format does not match, return an error indicating this.
         if !D::does_stream_format_match(&stream_format) {
@@ -431,27 +450,213 @@ impl AudioUnit {
             inputProcRefCon: input_proc_fn_wrapper_ptr,
         };
 
-        try!(self.set_property(sys::kAudioUnitProperty_SetRenderCallback,
-                               Scope::Input,
-                               Element::Output,
-                               Some(&render_callback)));
+        self.set_property(
+            sys::kAudioUnitProperty_SetRenderCallback,
+            Scope::Input,
+            Element::Output,
+            Some(&render_callback),
+        )?;
 
         self.free_render_callback();
-        self.maybe_callback = Some(input_proc_fn_wrapper_ptr as *mut InputProcFnWrapper);
+        self.maybe_render_callback = Some(input_proc_fn_wrapper_ptr as *mut InputProcFnWrapper);
         Ok(())
     }
 
-    /// Retrieves ownership over the render callback and drops it.
-    pub fn free_render_callback(&mut self) {
-        if let Some(callback) = self.maybe_callback.take() {
-            // Here, we transfer ownership of the callback back to the current scope so that it
-            // is dropped and cleaned up. Without this line, we would leak the Boxed callback.
-            let _: Box<InputProcFnWrapper> = unsafe {
-                Box::from_raw(callback as *mut InputProcFnWrapper)
-            };
+    /// Pass an input callback (aka "Input Procedure") to the **AudioUnit**.
+    pub fn set_input_callback<F, D>(&mut self, mut f: F) -> Result<(), Error>
+    where
+        F: FnMut(Args<D>) -> Result<(), ()> + 'static,
+        D: Data,
+    {
+        // First, we'll retrieve the stream format so that we can ensure that the given callback
+        // format matches the audio unit's format.
+        let id = sys::kAudioUnitProperty_StreamFormat;
+        let asbd = self.get_property(id, Scope::Input, Element::Output)?;
+        let stream_format = super::StreamFormat::from_asbd(asbd)?;
+
+        // If the stream format does not match, return an error indicating this.
+        if !D::does_stream_format_match(&stream_format) {
+            return Err(Error::RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat);
         }
+
+        // Pre-allocate a buffer list for input stream.
+        //
+        // First, get the current buffer size for pre-allocating the `AudioBuffer`s.
+        let id = sys::kAudioDevicePropertyBufferFrameSize;
+        let mut buffer_frame_size: u32 = self.get_property(id, Scope::Global, Element::Output)?;
+        let mut data: Vec<u8> = vec![];
+        let sample_bytes = stream_format.sample_format.size_in_bytes();
+        let n_channels = stream_format.channels_per_frame;
+        let data_byte_size = buffer_frame_size * sample_bytes as u32 * n_channels;
+        data.reserve_exact(data_byte_size as usize);
+        let audio_buffer = sys::AudioBuffer {
+            mDataByteSize: data_byte_size,
+            mNumberChannels: n_channels,
+            mData: data.as_mut_ptr() as *mut _,
+        };
+        unsafe {
+            data.set_len(data_byte_size as usize);
+        }
+        // Relieve ownership of the `Vec` until we're ready to drop the `AudioBufferList`.
+        mem::forget(data);
+        let audio_buffer_list = Box::new(sys::AudioBufferList {
+            mNumberBuffers: 1,
+            mBuffers: [audio_buffer],
+        });
+
+        // Relinquish ownership of the audio buffer list. Instead, we'll store a raw pointer and
+        // convert it back into a `Box` when `free_input_callback` is next called.
+        let audio_buffer_list_ptr = Box::into_raw(audio_buffer_list);
+
+        // Here, we call the given input callback function within a closure that matches the
+        // arguments of the required coreaudio "input_proc".
+        //
+        // This allows us to take advantage of rust's type system and provide format-specific
+        // `Args` types which can be checked at compile time.
+        let audio_unit = self.instance;
+        let input_proc_fn = move |io_action_flags: *mut sys::AudioUnitRenderActionFlags,
+                                  in_time_stamp: *const sys::AudioTimeStamp,
+                                  in_bus_number: sys::UInt32,
+                                  in_number_frames: sys::UInt32,
+                                  _io_data: *mut sys::AudioBufferList| -> sys::OSStatus
+        {
+            // If the buffer size has changed, ensure the AudioBuffer is the correct size.
+            if buffer_frame_size != in_number_frames {
+                unsafe {
+                    // Retrieve the up-to-date stream format.
+                    let id = sys::kAudioUnitProperty_StreamFormat;
+                    let asbd = match super::get_property(audio_unit, id, Scope::Input, Element::Output) {
+                        Err(err) => return err.to_os_status(),
+                        Ok(asbd) => asbd,
+                    };
+                    let stream_format = match super::StreamFormat::from_asbd(asbd) {
+                        Err(err) => return err.to_os_status(),
+                        Ok(fmt) => fmt,
+                    };
+                    let sample_bytes = stream_format.sample_format.size_in_bytes();
+                    let n_channels = stream_format.channels_per_frame;
+                    let data_byte_size = in_number_frames as usize
+                        * sample_bytes
+                        * n_channels as usize;
+                    let ptr = (*audio_buffer_list_ptr).mBuffers.as_ptr() as *const sys::AudioBuffer;
+                    let len = (*audio_buffer_list_ptr).mNumberBuffers as usize;
+                    let buffers: &[sys::AudioBuffer] = slice::from_raw_parts(ptr, len);
+                    for &buffer in buffers {
+                        let ptr = buffer.mData as *mut u8;
+                        let len = buffer.mDataByteSize as usize;
+                        let cap = len;
+                        let mut vec = Vec::from_raw_parts(ptr, len, cap);
+                        if len < data_byte_size {
+                            vec.reserve_exact(data_byte_size - len);
+                        } else if len > data_byte_size {
+                            vec.truncate(data_byte_size);
+                        }
+                        mem::forget(vec);
+                    }
+                }
+                buffer_frame_size = in_number_frames;
+            }
+
+            unsafe {
+                let status = sys::AudioUnitRender(
+                    audio_unit,
+                    io_action_flags,
+                    in_time_stamp,
+                    in_bus_number,
+                    in_number_frames,
+                    audio_buffer_list_ptr,
+                );
+                if status != 0 {
+                    return status;
+                }
+            }
+
+            let args = unsafe {
+                let data = D::from_input_proc_args(in_number_frames, audio_buffer_list_ptr);
+                let flags = action_flags::Handle::from_ptr(io_action_flags);
+                Args {
+                    data: data,
+                    time_stamp: *in_time_stamp,
+                    flags: flags,
+                    bus_number: in_bus_number as u32,
+                    num_frames: in_number_frames as usize,
+                }
+            };
+
+            match f(args) {
+                Ok(()) => 0 as sys::OSStatus,
+                Err(()) => error::Error::Unspecified.to_os_status(),
+            }
+        };
+
+        let input_proc_fn_wrapper = Box::new(InputProcFnWrapper {
+            callback: Box::new(input_proc_fn),
+        });
+
+        // Setup input callback. Notice that we relinquish ownership of the Callback
+        // here so that it can be used as the C render callback via a void pointer.
+        // We do however store the *mut so that we can convert back to a Box<InputProcFnWrapper>
+        // within our AudioUnit's Drop implementation (otherwise it would leak).
+        let input_proc_fn_wrapper_ptr = Box::into_raw(input_proc_fn_wrapper) as *mut c_void;
+
+        let render_callback = sys::AURenderCallbackStruct {
+            inputProc: Some(input_proc),
+            inputProcRefCon: input_proc_fn_wrapper_ptr,
+        };
+
+        self.set_property(
+            sys::kAudioOutputUnitProperty_SetInputCallback,
+            Scope::Global,
+            Element::Output,
+            Some(&render_callback),
+        )?;
+
+        let input_callback = super::InputCallback {
+            buffer_list: audio_buffer_list_ptr,
+            callback: input_proc_fn_wrapper_ptr as *mut InputProcFnWrapper,
+        };
+        self.free_input_callback();
+        self.maybe_input_callback = Some(input_callback);
+        Ok(())
     }
 
+    /// Retrieves ownership over the render callback and returns it where it can be re-used or
+    /// safely dropped.
+    pub fn free_render_callback(&mut self) -> Option<Box<InputProcFnWrapper>> {
+        if let Some(callback) = self.maybe_render_callback.take() {
+            // Here, we transfer ownership of the callback back to the current scope so that it
+            // is dropped and cleaned up. Without this line, we would leak the Boxed callback.
+            let callback: Box<InputProcFnWrapper> = unsafe { Box::from_raw(callback) };
+            return Some(callback);
+        }
+        None
+    }
+
+    /// Retrieves ownership over the input callback and returns it where it can be re-used or
+    /// safely dropped.
+    pub fn free_input_callback(&mut self) -> Option<Box<InputProcFnWrapper>> {
+        if let Some(input_callback) = self.maybe_input_callback.take() {
+            let super::InputCallback { buffer_list, callback } = input_callback;
+            unsafe {
+                // Take ownership over the AudioBufferList in order to safely free it.
+                let buffer_list: Box<sys::AudioBufferList> = Box::from_raw(buffer_list);
+                // Free the allocated data from the individual audio buffers.
+                let ptr = buffer_list.mBuffers.as_ptr() as *const sys::AudioBuffer;
+                let len = buffer_list.mNumberBuffers as usize;
+                let buffers: &[sys::AudioBuffer] = slice::from_raw_parts(ptr, len);
+                for &buffer in buffers {
+                    let ptr = buffer.mData as *mut u8;
+                    let len = buffer.mDataByteSize as usize;
+                    let cap = len;
+                    let _ = Vec::from_raw_parts(ptr, len, cap);
+                }
+                // Take ownership over the callback so that it can be freed.
+                let callback: Box<InputProcFnWrapper> = Box::from_raw(callback);
+                return Some(callback);
+            }
+        }
+        None
+    }
 }
 
 

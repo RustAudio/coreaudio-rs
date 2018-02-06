@@ -77,7 +77,14 @@ pub enum Element {
 /// Find the original Audio Unit Programming Guide [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html).
 pub struct AudioUnit {
     instance: sys::AudioUnit,
-    maybe_callback: Option<*mut render_callback::InputProcFnWrapper>
+    maybe_render_callback: Option<*mut render_callback::InputProcFnWrapper>,
+    maybe_input_callback: Option<InputCallback>,
+}
+
+struct InputCallback {
+    // The audio buffer list to which input data is rendered.
+    buffer_list: *mut sys::AudioBufferList,
+    callback: *mut render_callback::InputProcFnWrapper,
 }
 
 
@@ -158,7 +165,8 @@ impl AudioUnit {
             try_os_status!(sys::AudioUnitInitialize(instance));
             Ok(AudioUnit {
                 instance: instance,
-                maybe_callback: None
+                maybe_render_callback: None,
+                maybe_input_callback: None,
             })
         }
     }
@@ -183,17 +191,7 @@ impl AudioUnit {
     pub fn set_property<T>(&mut self, id: u32, scope: Scope, elem: Element, maybe_data: Option<&T>)
         -> Result<(), Error>
     {
-        let (data_ptr, size) = maybe_data.map(|data| {
-            let ptr = data as *const _ as *const c_void;
-            let size = ::std::mem::size_of::<T>() as u32;
-            (ptr, size)
-        }).unwrap_or_else(|| (::std::ptr::null(), 0));
-        let scope = scope as c_uint;
-        let elem = elem as c_uint;
-        unsafe {
-            try_os_status!(sys::AudioUnitSetProperty(self.instance, id, scope, elem, data_ptr, size))
-        }
-        Ok(())
+        set_property(self.instance, id, scope, elem, maybe_data)
     }
 
     /// Gets the value of an **AudioUnit** property.
@@ -207,18 +205,7 @@ impl AudioUnit {
     /// - **scope**: The audio unit scope for the property.
     /// - **elem**: The audio unit element for the property.
     pub fn get_property<T>(&self, id: u32, scope: Scope, elem: Element) -> Result<T, Error> {
-        let scope = scope as c_uint;
-        let elem = elem as c_uint;
-        let mut size = ::std::mem::size_of::<T>() as u32;
-        unsafe {
-            let mut data: T = ::std::mem::uninitialized();
-            let data_ptr = &mut data as *mut _ as *mut c_void;
-            let size_ptr = &mut size as *mut _;
-            try_os_status!(
-                sys::AudioUnitGetProperty(self.instance, id, scope, elem, data_ptr, size_ptr)
-            );
-            Ok(data)
-        }
+        get_property(self.instance, id, scope, elem)
     }
 
     /// Starts an I/O **AudioUnit**, which in turn starts the audio unit processing graph that it is
@@ -267,19 +254,32 @@ impl AudioUnit {
     /// > - Mac input and output: Linear PCM with 32-bit floating point samples.
     /// > - Mac audio units and other audio processing: Noninterleaved linear PCM with 32-bit
     /// floating-point
-    pub fn set_stream_format(&mut self, stream_format: StreamFormat) -> Result<(), Error> {
+    pub fn set_stream_format(
+        &mut self,
+        stream_format: StreamFormat,
+        scope: Scope,
+    ) -> Result<(), Error> {
         let id = sys::kAudioUnitProperty_StreamFormat;
         let asbd = stream_format.to_asbd();
-        self.set_property(id, Scope::Input, Element::Output, Some(&asbd))
+        self.set_property(id, scope, Element::Output, Some(&asbd))
     }
 
     /// Return the current Stream Format for the AudioUnit.
-    pub fn stream_format(&self) -> Result<StreamFormat, Error> {
+    pub fn stream_format(&self, scope: Scope) -> Result<StreamFormat, Error> {
         let id = sys::kAudioUnitProperty_StreamFormat;
-        let asbd = try!(self.get_property(id, Scope::Output, Element::Output));
+        let asbd = try!(self.get_property(id, scope, Element::Output));
         StreamFormat::from_asbd(asbd)
     }
 
+    /// Return the current output Stream Format for the AudioUnit.
+    pub fn output_stream_format(&self) -> Result<StreamFormat, Error> {
+        self.stream_format(Scope::Output)
+    }
+
+    /// Return the current input Stream Format for the AudioUnit.
+    pub fn input_stream_format(&self) -> Result<StreamFormat, Error> {
+        self.stream_format(Scope::Input)
+    }
 }
 
 
@@ -299,6 +299,79 @@ impl Drop for AudioUnit {
             error::Error::from_os_status(sys::AudioUnitUninitialize(self.instance)).ok();
 
             self.free_render_callback();
+            self.free_input_callback();
         }
+    }
+}
+
+
+/// Sets the value for some property of the **AudioUnit**.
+///
+/// To clear an audio unit property value, set the data paramater with `None::<()>`.
+///
+/// Clearing properties only works for those properties that do not have a default value.
+///
+/// For more on "properties" see [the reference](https://developer.apple.com/library/ios/documentation/AudioUnit/Reference/AudioUnitPropertiesReference/index.html#//apple_ref/doc/uid/TP40007288).
+///
+/// **Available** in iOS 2.0 and later.
+///
+/// Parameters
+/// ----------
+///
+/// - **au**: The AudioUnit instance.
+/// - **id**: The identifier of the property.
+/// - **scope**: The audio unit scope for the property.
+/// - **elem**: The audio unit element for the property.
+/// - **maybe_data**: The value that you want to apply to the property.
+pub fn set_property<T>(
+    au: sys::AudioUnit,
+    id: u32,
+    scope: Scope,
+    elem: Element,
+    maybe_data: Option<&T>,
+) -> Result<(), Error>
+{
+    let (data_ptr, size) = maybe_data.map(|data| {
+        let ptr = data as *const _ as *const c_void;
+        let size = ::std::mem::size_of::<T>() as u32;
+        (ptr, size)
+    }).unwrap_or_else(|| (::std::ptr::null(), 0));
+    let scope = scope as c_uint;
+    let elem = elem as c_uint;
+    unsafe {
+        try_os_status!(sys::AudioUnitSetProperty(au, id, scope, elem, data_ptr, size))
+    }
+    Ok(())
+}
+
+/// Gets the value of an **AudioUnit** property.
+///
+/// **Available** in iOS 2.0 and later.
+///
+/// Parameters
+/// ----------
+///
+/// - **au**: The AudioUnit instance.
+/// - **id**: The identifier of the property.
+/// - **scope**: The audio unit scope for the property.
+/// - **elem**: The audio unit element for the property.
+pub fn get_property<T>(
+    au: sys::AudioUnit,
+    id: u32,
+    scope: Scope,
+    elem: Element,
+) -> Result<T, Error>
+{
+    let scope = scope as c_uint;
+    let elem = elem as c_uint;
+    let mut size = ::std::mem::size_of::<T>() as u32;
+    unsafe {
+        let mut data: T = ::std::mem::uninitialized();
+        let data_ptr = &mut data as *mut _ as *mut c_void;
+        let size_ptr = &mut size as *mut _;
+        try_os_status!(
+            sys::AudioUnitGetProperty(au, id, scope, elem, data_ptr, size_ptr)
+        );
+        Ok(data)
     }
 }

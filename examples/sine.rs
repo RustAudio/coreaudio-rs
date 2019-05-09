@@ -31,26 +31,26 @@ fn run() -> Result<(), coreaudio::Error> {
         .map(|phase| (phase * PI * 2.0).sin() as f32 * 0.15);
 
     // Construct an Output audio unit that delivers audio to the default output device.
-    let mut audio_unit = try!(AudioUnit::new(IOType::DefaultOutput));
+    let mut audio_unit = AudioUnit::new(IOType::DefaultOutput)?;
 
-    let stream_format = try!(audio_unit.output_stream_format());
+    let stream_format = audio_unit.output_stream_format(0)?;
     println!("{:#?}", &stream_format);
 
     // For this example, our sine wave expects `f32` data.
-    assert!(SampleFormat::F32 == stream_format.sample_format);
+    assert_eq!(SampleFormat::F32, stream_format.sample_format);
 
     type Args = render_callback::Args<data::NonInterleaved<f32>>;
-    try!(audio_unit.set_render_callback(move |args| {
+    audio_unit.set_render_callback(move |args| {
         let Args { num_frames, mut data, .. } = args;
         for i in 0..num_frames {
             let sample = samples.next().unwrap();
-            for channel in data.channels_mut() {
+            for mut channel in data.channels_mut() {
                 channel[i] = sample;
             }
         }
         Ok(())
-    }));
-    try!(audio_unit.start());
+    }, 0)?;
+    audio_unit.start()?;
 
     std::thread::sleep(std::time::Duration::from_millis(3000));
 

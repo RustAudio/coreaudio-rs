@@ -390,7 +390,7 @@ pub mod action_flags {
 
 impl AudioUnit {
     /// Pass a render callback (aka "Input Procedure") to the **AudioUnit**.
-    pub fn set_render_callback<F, D>(&mut self, mut f: F) -> Result<(), Error>
+    pub fn set_render_callback<F, D>(&mut self, mut f: F, element: Element) -> Result<(), Error>
     where
         F: FnMut(Args<D>) -> Result<(), ()> + 'static,
         D: Data,
@@ -398,7 +398,7 @@ impl AudioUnit {
         // First, we'll retrieve the stream format so that we can ensure that the given callback
         // format matches the audio unit's format.
         let id = sys::kAudioUnitProperty_StreamFormat;
-        let asbd = try!(self.get_property(id, Scope::Output, Element::Output));
+        let asbd = self.get_property(id, Scope::Output, element)?;
         let stream_format = super::StreamFormat::from_asbd(asbd)?;
 
         // If the stream format does not match, return an error indicating this.
@@ -453,12 +453,12 @@ impl AudioUnit {
         self.set_property(
             sys::kAudioUnitProperty_SetRenderCallback,
             Scope::Input,
-            Element::Output,
+            element,
             Some(&render_callback),
         )?;
 
-        self.free_render_callback();
-        self.maybe_render_callback = Some(input_proc_fn_wrapper_ptr as *mut InputProcFnWrapper);
+        self.free_render_callback(element);
+        self.registered_render_callbacks.insert(element, input_proc_fn_wrapper_ptr as *mut InputProcFnWrapper);
         Ok(())
     }
 
@@ -471,7 +471,7 @@ impl AudioUnit {
         // First, we'll retrieve the stream format so that we can ensure that the given callback
         // format matches the audio unit's format.
         let id = sys::kAudioUnitProperty_StreamFormat;
-        let asbd = self.get_property(id, Scope::Input, Element::Input)?;
+        let asbd = self.get_property(id, Scope::Input, 1)?;
         let stream_format = super::StreamFormat::from_asbd(asbd)?;
 
         // If the stream format does not match, return an error indicating this.
@@ -483,7 +483,7 @@ impl AudioUnit {
         //
         // First, get the current buffer size for pre-allocating the `AudioBuffer`s.
         let id = sys::kAudioDevicePropertyBufferFrameSize;
-        let mut buffer_frame_size: u32 = self.get_property(id, Scope::Global, Element::Output)?;
+        let mut buffer_frame_size: u32 = self.get_property(id, Scope::Global, 0)?;  // Always 0 bus for Scope::Global
         let mut data: Vec<u8> = vec![];
         let sample_bytes = stream_format.sample_format.size_in_bytes();
         let n_channels = stream_format.channels_per_frame;
@@ -525,7 +525,7 @@ impl AudioUnit {
                 unsafe {
                     // Retrieve the up-to-date stream format.
                     let id = sys::kAudioUnitProperty_StreamFormat;
-                    let asbd = match super::get_property(audio_unit, id, Scope::Input, Element::Output) {
+                    let asbd = match super::get_property(audio_unit, id, Scope::Input, in_bus_number) {
                         Err(err) => return err.to_os_status(),
                         Ok(asbd) => asbd,
                     };
@@ -607,7 +607,7 @@ impl AudioUnit {
         self.set_property(
             sys::kAudioOutputUnitProperty_SetInputCallback,
             Scope::Global,
-            Element::Output,
+            0,
             Some(&render_callback),
         )?;
 
@@ -622,8 +622,9 @@ impl AudioUnit {
 
     /// Retrieves ownership over the render callback and returns it where it can be re-used or
     /// safely dropped.
-    pub fn free_render_callback(&mut self) -> Option<Box<InputProcFnWrapper>> {
-        if let Some(callback) = self.maybe_render_callback.take() {
+    pub fn free_render_callback(&mut self, element: Element) -> Option<Box<InputProcFnWrapper>> {
+        let maybe_callback = self.registered_render_callbacks.remove(&element);
+        if let Some(callback) = maybe_callback {
             // Here, we transfer ownership of the callback back to the current scope so that it
             // is dropped and cleaned up. Without this line, we would leak the Boxed callback.
             let callback: Box<InputProcFnWrapper> = unsafe { Box::from_raw(callback) };

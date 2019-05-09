@@ -37,6 +37,7 @@ pub use self::types::{
     MixerType,
     MusicDeviceType,
 };
+use std::collections::HashMap;
 
 
 pub mod audio_format;
@@ -62,14 +63,9 @@ pub enum Scope {
     LayerItem = 7,
 }
 
-/// Represents the **Input** and **Output** **Element**s.
-///
-/// These are used when specifying which **Element** we're setting the properties of.
-#[derive(Copy, Clone, Debug)]
-pub enum Element {
-    Output = 0,
-    Input  = 1,
-}
+/// These are used when specifying which **Element** (bus) we're setting the properties of.
+/// [The anatomy of an AudioUnit](https://developer.apple.com/library/archive/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html#//apple_ref/doc/uid/TP40003278-CH12-SW11)
+type Element = u32;
 
 
 /// A rust representation of the sys::AudioUnit, including a pointer to the current rendering callback.
@@ -77,7 +73,7 @@ pub enum Element {
 /// Find the original Audio Unit Programming Guide [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html).
 pub struct AudioUnit {
     instance: sys::AudioUnit,
-    maybe_render_callback: Option<*mut render_callback::InputProcFnWrapper>,
+    registered_render_callbacks: HashMap<u32, *mut render_callback::InputProcFnWrapper>,
     maybe_input_callback: Option<InputCallback>,
 }
 
@@ -165,7 +161,7 @@ impl AudioUnit {
             try_os_status!(sys::AudioUnitInitialize(instance));
             Ok(AudioUnit {
                 instance: instance,
-                maybe_render_callback: None,
+                registered_render_callbacks: HashMap::new(),
                 maybe_input_callback: None,
             })
         }
@@ -229,15 +225,15 @@ impl AudioUnit {
     /// Set the **AudioUnit**'s sample rate.
     ///
     /// **Available** in iOS 2.0 and later.
-    pub fn set_sample_rate(&mut self, sample_rate: f64) -> Result<(), Error> {
+    pub fn set_sample_rate(&mut self, element: u32, sample_rate: f64) -> Result<(), Error> {
         let id = sys::kAudioUnitProperty_SampleRate;
-        self.set_property(id, Scope::Input, Element::Output, Some(&sample_rate))
+        self.set_property(id, Scope::Input, element, Some(&sample_rate))
     }
 
     /// Get the **AudioUnit**'s sample rate.
-    pub fn sample_rate(&self) -> Result<f64, Error> {
+    pub fn sample_rate(&self, element: Element) -> Result<f64, Error> {
         let id = sys::kAudioUnitProperty_SampleRate;
-        self.get_property(id, Scope::Input, Element::Output)
+        self.get_property(id, Scope::Input, element)
     }
 
     /// Sets the current **StreamFormat** for the AudioUnit.
@@ -258,27 +254,28 @@ impl AudioUnit {
         &mut self,
         stream_format: StreamFormat,
         scope: Scope,
+        element: Element,
     ) -> Result<(), Error> {
         let id = sys::kAudioUnitProperty_StreamFormat;
         let asbd = stream_format.to_asbd();
-        self.set_property(id, scope, Element::Output, Some(&asbd))
+        self.set_property(id, scope, element, Some(&asbd))
     }
 
     /// Return the current Stream Format for the AudioUnit.
-    pub fn stream_format(&self, scope: Scope) -> Result<StreamFormat, Error> {
+    pub fn stream_format(&self, scope: Scope, element: Element) -> Result<StreamFormat, Error> {
         let id = sys::kAudioUnitProperty_StreamFormat;
-        let asbd = try!(self.get_property(id, scope, Element::Output));
+        let asbd = self.get_property(id, scope, element)?;
         StreamFormat::from_asbd(asbd)
     }
 
     /// Return the current output Stream Format for the AudioUnit.
-    pub fn output_stream_format(&self) -> Result<StreamFormat, Error> {
-        self.stream_format(Scope::Output)
+    pub fn output_stream_format(&self, element: Element) -> Result<StreamFormat, Error> {
+        self.stream_format(Scope::Output, element)
     }
 
     /// Return the current input Stream Format for the AudioUnit.
-    pub fn input_stream_format(&self) -> Result<StreamFormat, Error> {
-        self.stream_format(Scope::Input)
+    pub fn input_stream_format(&self, element: Element) -> Result<StreamFormat, Error> {
+        self.stream_format(Scope::Input, element)
     }
 }
 
@@ -298,7 +295,13 @@ impl Drop for AudioUnit {
             self.stop().ok();
             error::Error::from_os_status(sys::AudioUnitUninitialize(self.instance)).ok();
 
-            self.free_render_callback();
+            let elements: Vec<u32> = self.registered_render_callbacks
+                .iter()
+                .map(|(k, _v)| { *k })
+                .collect();
+            for e in elements {
+                self.free_render_callback(e);
+            }
             self.free_input_callback();
         }
     }

@@ -12,6 +12,10 @@ homepage = "https://github.com/RustAudio/coreaudio-rs"
 [lib]
 name = "coreaudio"
 
+[[bin]]
+name = "example-sine"
+path = "examples/sine.rs"
+
 [features]
 default = ["audio_toolbox", "audio_unit", "core_audio", "open_al", "core_midi"]
 audio_toolbox = ["coreaudio-sys/audio_toolbox"]

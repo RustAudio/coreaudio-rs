@@ -22,4 +22,4 @@ core_midi = ["coreaudio-sys/core_midi"]
 
 [dependencies]
 bitflags = "1.0"
-coreaudio-sys = { version = "0.2", default-features = false }
+coreaudio-sys = { git = "https://github.com/simlay/coreaudio-sys", branch = "add-ios-support", default-features = false }

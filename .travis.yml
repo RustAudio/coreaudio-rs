@@ -16,10 +16,12 @@ env:
 before_script:
 - rustc --version
 - cargo --version
+- rustup target add aarch64-apple-ios
 script:
 - cargo build --verbose
 - cargo test --verbose
 - cargo doc --verbose
+- cargo build --target aarch64-apple-ios
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&
   [ $TRAVIS_PULL_REQUEST = false ] &&

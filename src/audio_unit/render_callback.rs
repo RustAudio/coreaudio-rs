@@ -14,7 +14,7 @@ pub use self::data::Data;
 ///
 /// This allows the user to provide a custom, more rust-esque callback function type that takes
 /// greater advantage of rust's type safety.
-pub type InputProcFn = FnMut(*mut sys::AudioUnitRenderActionFlags,
+pub type InputProcFn = dyn FnMut(*mut sys::AudioUnitRenderActionFlags,
                              *const sys::AudioTimeStamp,
                              sys::UInt32,
                              sys::UInt32,
@@ -223,7 +223,8 @@ pub mod action_flags {
     use std::fmt;
     use sys;
 
-    bitflags!{
+    #[cfg(target_os = "macos")]
+    bitflags! {
         pub struct ActionFlags: u32 {
             /// Called on a render notification Proc, which is called either before or after the
             /// render operation of the audio unit. If this flag is set, the proc is being called
@@ -278,6 +279,20 @@ pub mod action_flags {
             ///
             /// **Available** in OS X v10.7 and later.
             const DO_NOT_CHECK_RENDER_ARGS = sys::kAudioUnitRenderAction_DoNotCheckRenderArgs;
+        }
+
+    }
+    #[cfg(target_os = "ios")]
+    bitflags! {
+        pub struct ActionFlags: u32 {
+            const PRE_RENDER = sys::AudioUnitRenderActionFlags_kAudioUnitRenderAction_PreRender;
+            const POST_RENDER = sys::AudioUnitRenderActionFlags_kAudioUnitRenderAction_PostRender;
+            const OUTPUT_IS_SILENCE = sys::AudioUnitRenderActionFlags_kAudioUnitRenderAction_OutputIsSilence;
+            const OFFLINE_PREFLIGHT = sys::AudioUnitRenderActionFlags_kAudioOfflineUnitRenderAction_Preflight;
+            const OFFLINE_RENDER = sys::AudioUnitRenderActionFlags_kAudioOfflineUnitRenderAction_Render;
+            const OFFLINE_COMPLETE = sys::AudioUnitRenderActionFlags_kAudioOfflineUnitRenderAction_Complete;
+            const POST_RENDER_ERROR = sys::AudioUnitRenderActionFlags_kAudioUnitRenderAction_PostRenderError;
+            const DO_NOT_CHECK_RENDER_ARGS = sys::AudioUnitRenderActionFlags_kAudioUnitRenderAction_DoNotCheckRenderArgs;
         }
     }
 
@@ -371,6 +386,7 @@ pub mod action_flags {
     unsafe impl Send for Handle {}
 
     impl ::std::fmt::Display for ActionFlags {
+        #[cfg(target_os = "macos")]
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
             write!(f, "{:?}", match self.bits() {
                 sys::kAudioUnitRenderAction_PreRender => "PRE_RENDER",
@@ -382,6 +398,21 @@ pub mod action_flags {
                 sys::kAudioUnitRenderAction_PostRenderError => "POST_RENDER_ERROR",
                 sys::kAudioUnitRenderAction_DoNotCheckRenderArgs => "DO_NOT_CHECK_RENDER_ARGS",
                 _ => "<Unknown ActionFlags>",
+            })
+        }
+        #[cfg(target_os = "ios")]
+        fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            write!(f, "{:?}", match self.bits() {
+                sys::AudioUnitRenderActionFlags_kAudioUnitRenderAction_PreRender => "PRE_RENDER",
+                sys::AudioUnitRenderActionFlags_kAudioUnitRenderAction_PostRender => "POST_RENDER",
+                sys::AudioUnitRenderActionFlags_kAudioUnitRenderAction_OutputIsSilence => "OUTPUT_IS_SILENCE",
+                sys::AudioUnitRenderActionFlags_kAudioOfflineUnitRenderAction_Preflight => "OFFLINE_PREFLIGHT",
+                sys::AudioUnitRenderActionFlags_kAudioOfflineUnitRenderAction_Render => "OFFLINE_RENDER",
+                sys::AudioUnitRenderActionFlags_kAudioOfflineUnitRenderAction_Complete => "OFFLINE_COMPLETE",
+                sys::AudioUnitRenderActionFlags_kAudioUnitRenderAction_PostRenderError => "POST_RENDER_ERROR",
+                sys::AudioUnitRenderActionFlags_kAudioUnitRenderAction_DoNotCheckRenderArgs => "DO_NOT_CHECK_RENDER_ARGS",
+                _ => "<Unknown ActionFlags>",
+
             })
         }
     }
@@ -398,7 +429,7 @@ impl AudioUnit {
         // First, we'll retrieve the stream format so that we can ensure that the given callback
         // format matches the audio unit's format.
         let id = sys::kAudioUnitProperty_StreamFormat;
-        let asbd = try!(self.get_property(id, Scope::Output, Element::Output));
+        let asbd = self.get_property(id, Scope::Output, Element::Output)?;
         let stream_format = super::StreamFormat::from_asbd(asbd)?;
 
         // If the stream format does not match, return an error indicating this.
@@ -482,7 +513,11 @@ impl AudioUnit {
         // Pre-allocate a buffer list for input stream.
         //
         // First, get the current buffer size for pre-allocating the `AudioBuffer`s.
+        #[cfg(target_os = "ios")]
+        let id = sys::kAudioSessionProperty_CurrentHardwareIOBufferDuration;
+        #[cfg(target_os = "macos")]
         let id = sys::kAudioDevicePropertyBufferFrameSize;
+
         let mut buffer_frame_size: u32 = self.get_property(id, Scope::Global, Element::Output)?;
         let mut data: Vec<u8> = vec![];
         let sample_bytes = stream_format.sample_format.size_in_bytes();

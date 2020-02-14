@@ -18,7 +18,7 @@ use sys;
 /// `bytes_per_packet` = size_of::<S>()
 /// `bytes_per_frame` = size_of::<S>()
 /// `frames_per_packet` = 1
-/// `bits_per_channel` = size_of::<S>() * 8
+/// `bits_per_channel` = size_of::<S>() / channels_per_frame * 8
 ///
 /// > A *packet* is a collection of one or more contiguous frames. In linear PCM audio, a packet is
 /// always a single frame.
@@ -114,7 +114,7 @@ impl StreamFormat {
         let bytes_per_frame = sample_format.size_in_bytes() as u32;
         const FRAMES_PER_PACKET: u32 = 1;
         let bytes_per_packet = bytes_per_frame * FRAMES_PER_PACKET;
-        let bits_per_channel = bytes_per_frame * 8;
+        let bits_per_channel = bytes_per_frame / channels_per_frame * 8;
 
         sys::AudioStreamBasicDescription {
             mSampleRate: sample_rate,

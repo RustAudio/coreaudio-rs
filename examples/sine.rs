@@ -41,23 +41,24 @@ fn main() -> Result<(), coreaudio::Error> {
     // Construct an Output audio unit that delivers audio to the default output device.
     let mut audio_unit = AudioUnit::new(IOType::DefaultOutput)?;
 
-    let stream_format = audio_unit.output_stream_format()?;
+    let stream_format = audio_unit.output_stream_format(0)?;
     println!("{:#?}", &stream_format);
 
     // For this example, our sine wave expects `f32` data.
-    assert!(SampleFormat::F32 == stream_format.sample_format);
+    assert_eq!(SampleFormat::F32, stream_format.sample_format);
 
     type Args = render_callback::Args<data::NonInterleaved<f32>>;
     audio_unit.set_render_callback(move |args| {
         let Args { num_frames, mut data, .. } = args;
         for i in 0..num_frames {
             let sample = samples.next().unwrap();
-            for channel in data.channels_mut() {
+            for mut channel in data.channels_mut() {
                 channel[i] = sample;
             }
         }
         Ok(())
-    })?;
+    }, 0)?;
+
     audio_unit.start()?;
 
     std::thread::sleep(std::time::Duration::from_millis(3000));

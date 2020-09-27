@@ -171,6 +171,29 @@ impl AudioUnit {
         }
     }
 
+    /// On successful initialization, the audio formats for input and output are valid
+    /// and the audio unit is ready to render. During initialization, an audio unit
+    /// allocates memory according to the maximum number of audio frames it can produce
+    /// in response to a single render call.
+    ///
+    /// Usually, the state of an audio unit (such as its I/O formats and memory allocations)
+    /// cannot be changed while an audio unit is initialized.
+    pub fn initialize(&mut self) -> Result<(), Error> {
+        unsafe { try_os_status!(sys::AudioUnitInitialize(self.instance)); }
+        Ok(())
+    }
+
+    /// Before you change an initialize audio unit’s processing characteristics,
+    /// such as its input or output audio data format or its sample rate, you must
+    /// first uninitialize it. Calling this function deallocates the audio unit’s resources.
+    ///
+    /// After calling this function, you can reconfigure the audio unit and then call
+    /// AudioUnitInitialize to reinitialize it.
+    pub fn uninitialize(&mut self) -> Result<(), Error> {
+        unsafe { try_os_status!(sys::AudioUnitUninitialize(self.instance)); }
+        Ok(())
+    }
+
     /// Sets the value for some property of the **AudioUnit**.
     ///
     /// To clear an audio unit property value, set the data paramater with `None::<()>`.
@@ -371,6 +394,31 @@ pub fn get_property<T>(
         let size_ptr = &mut size as *mut _;
         try_os_status!(
             sys::AudioUnitGetProperty(au, id, scope, elem, data_ptr, size_ptr)
+        );
+        Ok(data)
+    }
+}
+
+/// Gets the value of a specified audio session property.
+///
+/// **Available** in iOS 2.0 and later.
+///
+/// Parameters
+/// ----------
+///
+/// - **id**: The identifier of the property.
+#[cfg(target_os = "ios")]
+pub fn audio_session_get_property<T>(
+    id: u32,
+) -> Result<T, Error>
+{
+    let mut size = ::std::mem::size_of::<T>() as u32;
+    unsafe {
+        let mut data: T = ::std::mem::uninitialized();
+        let data_ptr = &mut data as *mut _ as *mut c_void;
+        let size_ptr = &mut size as *mut _;
+        try_os_status!(
+            sys::AudioSessionGetProperty(id, size_ptr, data_ptr)
         );
         Ok(data)
     }

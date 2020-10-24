@@ -323,6 +323,8 @@ impl Drop for AudioUnit {
 
             self.free_render_callback();
             self.free_input_callback();
+
+            error::Error::from_os_status(sys::AudioComponentInstanceDispose(self.instance)).ok();
         }
     }
 }

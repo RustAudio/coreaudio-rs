@@ -10,7 +10,6 @@ use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::sys::*;
 
-const SAMPLE_RATE: f64 = 44100.0;
 
 type S = f32; const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 // type S = i32; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I32;
@@ -20,6 +19,12 @@ type S = f32; const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 pub fn run_example() -> Result<(), coreaudio::Error> {
     let mut input_audio_unit = AudioUnit::new(coreaudio::audio_unit::IOType::RemoteIO)?;
     let mut output_audio_unit = AudioUnit::new(coreaudio::audio_unit::IOType::RemoteIO)?;
+
+    // Read device sample rate off the output stream
+    let id = kAudioUnitProperty_StreamFormat;
+    let asbd: AudioStreamBasicDescription =
+        output_audio_unit.get_property(id, Scope::Output, Element::Output)?;
+    let sample_rate = asbd.mSampleRate;
 
     // iOS doesn't let you reconfigure an "initialized" audio unit, so uninitialize them
     input_audio_unit.uninitialize()?;
@@ -34,7 +39,7 @@ pub fn run_example() -> Result<(), coreaudio::Error> {
 
     // Using IS_NON_INTERLEAVED everywhere because data::Interleaved is commented out / not implemented
     let in_stream_format = StreamFormat {
-        sample_rate: SAMPLE_RATE,
+        sample_rate: sample_rate,
         sample_format: SAMPLE_FORMAT,
         flags: format_flag | LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_NON_INTERLEAVED,
         // audio_unit.set_input_callback is hardcoded to 1 buffer, and when using non_interleaved
@@ -43,7 +48,7 @@ pub fn run_example() -> Result<(), coreaudio::Error> {
     };
 
     let out_stream_format = StreamFormat {
-        sample_rate: SAMPLE_RATE,
+        sample_rate: sample_rate,
         sample_format: SAMPLE_FORMAT,
         flags: format_flag | LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_NON_INTERLEAVED,
         // you can change this to 1

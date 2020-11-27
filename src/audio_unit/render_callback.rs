@@ -398,7 +398,7 @@ impl AudioUnit {
         // First, we'll retrieve the stream format so that we can ensure that the given callback
         // format matches the audio unit's format.
         let id = sys::kAudioUnitProperty_StreamFormat;
-        let asbd = try!(self.get_property(id, Scope::Output, Element::Output));
+        let asbd = try!(self.get_property(id, Scope::Input, Element::Output));
         let stream_format = super::StreamFormat::from_asbd(asbd)?;
 
         // If the stream format does not match, return an error indicating this.
@@ -471,7 +471,7 @@ impl AudioUnit {
         // First, we'll retrieve the stream format so that we can ensure that the given callback
         // format matches the audio unit's format.
         let id = sys::kAudioUnitProperty_StreamFormat;
-        let asbd = self.get_property(id, Scope::Input, Element::Input)?;
+        let asbd = self.get_property(id, Scope::Output, Element::Input)?;
         let stream_format = super::StreamFormat::from_asbd(asbd)?;
 
         // If the stream format does not match, return an error indicating this.
@@ -482,8 +482,20 @@ impl AudioUnit {
         // Pre-allocate a buffer list for input stream.
         //
         // First, get the current buffer size for pre-allocating the `AudioBuffer`s.
-        let id = sys::kAudioDevicePropertyBufferFrameSize;
-        let mut buffer_frame_size: u32 = self.get_property(id, Scope::Global, Element::Output)?;
+        #[cfg(target_os = "macos")]
+        let mut buffer_frame_size: u32 = {
+            let id = sys::kAudioDevicePropertyBufferFrameSize;
+            let buffer_frame_size: u32 = self.get_property(id, Scope::Global, Element::Output)?;
+            buffer_frame_size
+        };
+        #[cfg(target_os = "ios")]
+        let mut buffer_frame_size: u32 = {
+            let id = sys::kAudioSessionProperty_CurrentHardwareIOBufferDuration;
+            let seconds: f32 = super::audio_session_get_property(id)?;
+            let id = sys::kAudioSessionProperty_CurrentHardwareSampleRate;
+            let sample_rate: f64 = super::audio_session_get_property(id)?;
+            (sample_rate * seconds as f64).round() as u32
+        };
         let mut data: Vec<u8> = vec![];
         let sample_bytes = stream_format.sample_format.size_in_bytes();
         let n_channels = stream_format.channels_per_frame;
@@ -525,7 +537,7 @@ impl AudioUnit {
                 unsafe {
                     // Retrieve the up-to-date stream format.
                     let id = sys::kAudioUnitProperty_StreamFormat;
-                    let asbd = match super::get_property(audio_unit, id, Scope::Input, Element::Output) {
+                    let asbd = match super::get_property(audio_unit, id, Scope::Output, Element::Input) {
                         Err(err) => return err.to_os_status(),
                         Ok(asbd) => asbd,
                     };

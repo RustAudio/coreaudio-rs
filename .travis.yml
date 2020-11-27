@@ -13,6 +13,8 @@ env:
   - LD_LIBRARY_PATH: /usr/local/lib
   global:
   - secure: URNNlOqxnfwWDC/w4PDTCswqe9ccnkIqDwfQecppfEui4KhpYXfrG9gx3xupWzWMfX+NPEcXtiyWA4CuUYaHbWWINLeLQUk650AFEqaRSiTpeh45Y9nh3dHT4fFDz4OeNfayNBBKL0kx5YwrugoeQggIgnF2KEcIHMF0+BbTtAM=
+install:
+- rustup target add aarch64-apple-ios x86_64-apple-ios
 before_script:
 - rustc --version
 - cargo --version
@@ -20,6 +22,8 @@ script:
 - cargo build --verbose
 - cargo test --verbose
 - cargo doc --verbose
+- cargo build --verbose --target aarch64-apple-ios
+- cargo build --verbose --target x86_64-apple-ios
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&
   [ $TRAVIS_PULL_REQUEST = false ] &&

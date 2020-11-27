@@ -156,10 +156,11 @@ impl AudioUnit {
             }
 
             // Create an instance of the default audio unit using the component.
-            let mut instance: sys::AudioUnit = mem::uninitialized();
+            let mut instance_uninit = mem::MaybeUninit::<sys::AudioUnit>::uninit();
             try_os_status!(
-                sys::AudioComponentInstanceNew(component, &mut instance as *mut sys::AudioUnit)
+                sys::AudioComponentInstanceNew(component, instance_uninit.as_mut_ptr() as *mut sys::AudioUnit)
             );
+            let instance: sys::AudioUnit = instance_uninit.assume_init();
 
             // Initialise the audio unit!
             try_os_status!(sys::AudioUnitInitialize(instance));
@@ -391,12 +392,13 @@ pub fn get_property<T>(
     let elem = elem as c_uint;
     let mut size = ::std::mem::size_of::<T>() as u32;
     unsafe {
-        let mut data: T = ::std::mem::uninitialized();
-        let data_ptr = &mut data as *mut _ as *mut c_void;
+        let mut data_uninit = ::std::mem::MaybeUninit::<T>::uninit();
+        let data_ptr = data_uninit.as_mut_ptr() as *mut _ as *mut c_void;
         let size_ptr = &mut size as *mut _;
         try_os_status!(
             sys::AudioUnitGetProperty(au, id, scope, elem, data_ptr, size_ptr)
         );
+        let data: T = data_uninit.assume_init();
         Ok(data)
     }
 }

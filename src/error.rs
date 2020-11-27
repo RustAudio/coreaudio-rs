@@ -45,13 +45,7 @@ pub mod audio {
 
     impl ::std::fmt::Display for Error {
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-            write!(f, "{:?}", self)
-        }
-    }
-
-    impl ::std::error::Error for Error {
-        fn description(&self) -> &str {
-            match *self {
+            let description = match *self {
                 Error::Unimplemented    => "Unimplemented",
                 Error::FileNotFound     => "File not found",
                 Error::FilePermission   => "File permission",
@@ -60,7 +54,8 @@ pub mod audio {
                 Error::Param            => "Param",
                 Error::MemFull          => "Memory full",
                 Error::Unknown          => "An unknown error occurred",
-            }
+            };
+            write!(f, "{}", description)
         }
     }
 
@@ -106,13 +101,7 @@ pub mod audio_codec {
 
     impl ::std::fmt::Display for Error {
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-            write!(f, "{:?}", self)
-        }
-    }
-
-    impl ::std::error::Error for Error {
-        fn description(&self) -> &str {
-            match *self {
+            let description = match *self {
                 Error::Unspecified          => "Unspecified",
                 Error::UnknownProperty      => "Unknown property",
                 Error::BadPropertySize      => "Bad property size",
@@ -121,7 +110,8 @@ pub mod audio_codec {
                 Error::State                => "State",
                 Error::NotEnoughBufferSpace => "Not enough buffer space",
                 Error::Unknown              => "Unknown error occurred",
-            }
+            };
+            write!(f, "{}", description)
         }
     }
 
@@ -161,13 +151,7 @@ pub mod audio_format {
 
     impl ::std::fmt::Display for Error {
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-            write!(f, "{:?}", self)
-        }
-    }
-
-    impl ::std::error::Error for Error {
-        fn description(&self) -> &str {
-            match *self {
+            let description = match *self {
                 Error::Unspecified           => "An unspecified error",
                 Error::UnsupportedProperty   => "The specified property is not supported",
                 Error::BadPropertySize       => "Bad property size",
@@ -175,7 +159,8 @@ pub mod audio_format {
                 Error::UnsupportedDataFormat => "The specified data format is not supported",
                 Error::UnknownFormat         => "The specified data format is not a known format",
                 Error::Unknown               => "Unknown error occurred",
-            }
+            };
+            write!(f, "{}", description)
         }
     }
 }
@@ -239,13 +224,7 @@ pub mod audio_unit {
 
     impl ::std::fmt::Display for Error {
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-            write!(f, "{:?}", self)
-        }
-    }
-
-    impl ::std::error::Error for Error {
-        fn description(&self) -> &str {
-            match *self {
+            let description = match *self {
                 Error::InvalidProperty          => "Invalid property",
                 Error::InvalidParameter         => "Invalid parameter",
                 Error::InvalidElement           => "Invalid element",
@@ -264,7 +243,8 @@ pub mod audio_unit {
                 Error::InvalidOfflineRender     => "Invalid offline render",
                 Error::Unauthorized             => "Unauthorized",
                 Error::Unknown                  => "Unknown error occurred",
-            }
+            };
+            write!(f, "{}", description)
         }
     }
 
@@ -338,25 +318,18 @@ impl Error {
 
 impl ::std::fmt::Display for Error {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl ::std::error::Error for Error {
-    fn description(&self) -> &str {
         match *self {
-            Error::Unspecified                      => "An unspecified error has occurred",
-            Error::NoMatchingDefaultAudioUnitFound  => "No matching default audio unit found",
+            Error::Unspecified => write!(f, "An unspecified error has occurred"),
+            Error::NoMatchingDefaultAudioUnitFound => write!(f, "No matching default audio unit found"),
             Error::RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat =>
-                "The given render callback buffer format does not match the `AudioUnit` `StreamFormat`",
-            Error::SystemSoundClientMessageTimedOut => "The system sound client message timed out",
-            Error::NoKnownSubtype                   => "The type has no known subtypes",
-            Error::Audio(ref err)                   => err.description(),
-            Error::AudioCodec(ref err)              => err.description(),
-            Error::AudioFormat(ref err)             => err.description(),
-            Error::AudioUnit(ref err)               => err.description(),
-            Error::Unknown(_)                       => "An unknown error unknown to the coreaudio-rs API occurred",
+                write!(f, "The given render callback buffer format does not match the `AudioUnit` `StreamFormat`"),
+            Error::SystemSoundClientMessageTimedOut => write!(f, "The system sound client message timed out"),
+            Error::NoKnownSubtype => write!(f, "The type has no known subtypes"),
+            Error::Audio(ref err) => write!(f, "{}", err),
+            Error::AudioCodec(ref err) => write!(f, "{}", err),
+            Error::AudioFormat(ref err) => write!(f, "{}", err),
+            Error::AudioUnit(ref err) => write!(f, "{}", err),
+            Error::Unknown(_) => write!(f, "An unknown error unknown to the coreaudio-rs API occurred"),
         }
     }
 }
-

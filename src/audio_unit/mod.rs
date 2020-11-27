@@ -89,7 +89,7 @@ struct InputCallback {
 
 
 macro_rules! try_os_status {
-    ($expr:expr) => (try!(Error::from_os_status($expr)))
+    ($expr:expr) => (Error::from_os_status($expr)?)
 }
 
 
@@ -290,7 +290,7 @@ impl AudioUnit {
     /// Return the current Stream Format for the AudioUnit.
     pub fn stream_format(&self, scope: Scope) -> Result<StreamFormat, Error> {
         let id = sys::kAudioUnitProperty_StreamFormat;
-        let asbd = try!(self.get_property(id, scope, Element::Output));
+        let asbd = self.get_property(id, scope, Element::Output)?;
         StreamFormat::from_asbd(asbd)
     }
 

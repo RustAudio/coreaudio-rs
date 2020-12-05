@@ -14,7 +14,7 @@ pub use self::data::Data;
 ///
 /// This allows the user to provide a custom, more rust-esque callback function type that takes
 /// greater advantage of rust's type safety.
-pub type InputProcFn = FnMut(*mut sys::AudioUnitRenderActionFlags,
+pub type InputProcFn = dyn FnMut(*mut sys::AudioUnitRenderActionFlags,
                              *const sys::AudioTimeStamp,
                              sys::UInt32,
                              sys::UInt32,
@@ -398,7 +398,7 @@ impl AudioUnit {
         // First, we'll retrieve the stream format so that we can ensure that the given callback
         // format matches the audio unit's format.
         let id = sys::kAudioUnitProperty_StreamFormat;
-        let asbd = try!(self.get_property(id, Scope::Input, Element::Output));
+        let asbd = self.get_property(id, Scope::Input, Element::Output)?;
         let stream_format = super::StreamFormat::from_asbd(asbd)?;
 
         // If the stream format does not match, return an error indicating this.

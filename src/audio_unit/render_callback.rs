@@ -496,19 +496,15 @@ impl AudioUnit {
             let sample_rate: f64 = super::audio_session_get_property(id)?;
             (sample_rate * seconds as f64).round() as u32
         };
-        let mut data: Vec<u8> = vec![];
         let sample_bytes = stream_format.sample_format.size_in_bytes();
         let n_channels = stream_format.channels_per_frame;
         let data_byte_size = buffer_frame_size * sample_bytes as u32 * n_channels;
-        data.reserve_exact(data_byte_size as usize);
+        let mut data:Vec <u8> = vec![0u8; data_byte_size as usize];
         let audio_buffer = sys::AudioBuffer {
             mDataByteSize: data_byte_size,
             mNumberChannels: n_channels,
             mData: data.as_mut_ptr() as *mut _,
         };
-        unsafe {
-            data.set_len(data_byte_size as usize);
-        }
         // Relieve ownership of the `Vec` until we're ready to drop the `AudioBufferList`.
         mem::forget(data);
         let audio_buffer_list = Box::new(sys::AudioBufferList {

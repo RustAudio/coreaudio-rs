@@ -22,6 +22,25 @@ jobs:
     # - name: cargo test - all features
     #   run: cargo test --all-features --verbose
 
+  ios-build:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install llvm and clang
+      run: brew install llvm
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Add iOS targets
+      run: rustup target add aarch64-apple-ios x86_64-apple-ios
+    - name: Install cargo lipo
+      run: cargo install cargo-lipo
+    - name: Build iphonesimulator feedback example
+      run: cd examples/ios && xcodebuild -scheme coreaudio-ios-example -configuration Debug -derivedDataPath build -sdk iphonesimulator
+
   # Build the docs with all features to make sure docs.rs will work.
   macos-docs:
     runs-on: macOS-latest

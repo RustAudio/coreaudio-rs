@@ -2,8 +2,8 @@
 
 extern crate coreaudio;
 
-use coreaudio::audio_unit::{AudioUnit, IOType, SampleFormat};
 use coreaudio::audio_unit::render_callback::{self, data};
+use coreaudio::audio_unit::{AudioUnit, IOType, SampleFormat};
 use std::f64::consts::PI;
 
 struct SineWaveGenerator {
@@ -49,7 +49,11 @@ fn main() -> Result<(), coreaudio::Error> {
 
     type Args = render_callback::Args<data::NonInterleaved<f32>>;
     audio_unit.set_render_callback(move |args| {
-        let Args { num_frames, mut data, .. } = args;
+        let Args {
+            num_frames,
+            mut data,
+            ..
+        } = args;
         for i in 0..num_frames {
             let sample = samples.next().unwrap();
             for channel in data.channels_mut() {

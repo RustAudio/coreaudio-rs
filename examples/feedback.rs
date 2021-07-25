@@ -14,7 +14,8 @@ use coreaudio::sys::*;
 
 const SAMPLE_RATE: f64 = 44100.0;
 
-type S = f32; const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
+type S = f32;
+const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 // type S = i32; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I32;
 // type S = i16; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I16;
 // type S = i8; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I8;
@@ -25,7 +26,9 @@ fn main() -> Result<(), coreaudio::Error> {
 
     let format_flag = match SAMPLE_FORMAT {
         SampleFormat::F32 => LinearPcmFlags::IS_FLOAT,
-        SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => LinearPcmFlags::IS_SIGNED_INTEGER,
+        SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => {
+            LinearPcmFlags::IS_SIGNED_INTEGER
+        }
     };
 
     // Using IS_NON_INTERLEAVED everywhere because data::Interleaved is commented out / not implemented

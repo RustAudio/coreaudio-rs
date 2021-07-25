@@ -18,33 +18,24 @@
 //! If you can find documentation on these, please feel free to submit an issue or PR with the
 //! fixes!
 
-
 use crate::error::Error;
 use std::mem;
-use std::ptr;
 use std::os::raw::{c_uint, c_void};
+use std::ptr;
 use sys;
 
 pub use self::audio_format::AudioFormat;
-pub use self::sample_format::{SampleFormat, Sample};
+pub use self::sample_format::{Sample, SampleFormat};
 pub use self::stream_format::StreamFormat;
 pub use self::types::{
-    Type,
-    EffectType,
-    FormatConverterType,
-    GeneratorType,
-    IOType,
-    MixerType,
-    MusicDeviceType,
+    EffectType, FormatConverterType, GeneratorType, IOType, MixerType, MusicDeviceType, Type,
 };
-
 
 pub mod audio_format;
 pub mod render_callback;
 pub mod sample_format;
 pub mod stream_format;
 pub mod types;
-
 
 /// The input and output **Scope**s.
 ///
@@ -53,7 +44,7 @@ pub mod types;
 #[derive(Copy, Clone, Debug)]
 pub enum Scope {
     Global = 0,
-    Input  = 1,
+    Input = 1,
     Output = 2,
     Group = 3,
     Part = 4,
@@ -68,9 +59,8 @@ pub enum Scope {
 #[derive(Copy, Clone, Debug)]
 pub enum Element {
     Output = 0,
-    Input  = 1,
+    Input = 1,
 }
-
 
 /// A rust representation of the sys::AudioUnit, including a pointer to the current rendering callback.
 ///
@@ -87,14 +77,13 @@ struct InputCallback {
     callback: *mut render_callback::InputProcFnWrapper,
 }
 
-
 macro_rules! try_os_status {
-    ($expr:expr) => (Error::from_os_status($expr)?)
+    ($expr:expr) => {
+        Error::from_os_status($expr)?
+    };
 }
 
-
 impl AudioUnit {
-
     /// Construct a new AudioUnit with any type that may be automatically converted into
     /// [**Type**](./enum.Type).
     ///
@@ -115,7 +104,8 @@ impl AudioUnit {
     /// Identifier, as this is the only Audio Unit Manufacturer Identifier documented by Apple in
     /// the AudioUnit reference (see [here](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Manufacturer_Identifier)).
     pub fn new<T>(ty: T) -> Result<AudioUnit, Error>
-        where T: Into<Type>,
+    where
+        T: Into<Type>,
     {
         AudioUnit::new_with_flags(ty, 0, 0)
     }
@@ -123,7 +113,8 @@ impl AudioUnit {
     /// The same as [**AudioUnit::new**](./struct.AudioUnit#method.new) but with the given
     /// component flags and mask.
     pub fn new_with_flags<T>(ty: T, flags: u32, mask: u32) -> Result<AudioUnit, Error>
-        where T: Into<Type>,
+    where
+        T: Into<Type>,
     {
         const MANUFACTURER_IDENTIFIER: u32 = sys::kAudioUnitManufacturer_Apple;
         let au_type: Type = ty.into();
@@ -157,9 +148,10 @@ impl AudioUnit {
 
             // Create an instance of the default audio unit using the component.
             let mut instance_uninit = mem::MaybeUninit::<sys::AudioUnit>::uninit();
-            try_os_status!(
-                sys::AudioComponentInstanceNew(component, instance_uninit.as_mut_ptr() as *mut sys::AudioUnit)
-            );
+            try_os_status!(sys::AudioComponentInstanceNew(
+                component,
+                instance_uninit.as_mut_ptr() as *mut sys::AudioUnit
+            ));
             let instance: sys::AudioUnit = instance_uninit.assume_init();
 
             // Initialise the audio unit!
@@ -180,7 +172,9 @@ impl AudioUnit {
     /// Usually, the state of an audio unit (such as its I/O formats and memory allocations)
     /// cannot be changed while an audio unit is initialized.
     pub fn initialize(&mut self) -> Result<(), Error> {
-        unsafe { try_os_status!(sys::AudioUnitInitialize(self.instance)); }
+        unsafe {
+            try_os_status!(sys::AudioUnitInitialize(self.instance));
+        }
         Ok(())
     }
 
@@ -191,7 +185,9 @@ impl AudioUnit {
     /// After calling this function, you can reconfigure the audio unit and then call
     /// AudioUnitInitialize to reinitialize it.
     pub fn uninitialize(&mut self) -> Result<(), Error> {
-        unsafe { try_os_status!(sys::AudioUnitUninitialize(self.instance)); }
+        unsafe {
+            try_os_status!(sys::AudioUnitUninitialize(self.instance));
+        }
         Ok(())
     }
 
@@ -212,9 +208,13 @@ impl AudioUnit {
     /// - **scope**: The audio unit scope for the property.
     /// - **elem**: The audio unit element for the property.
     /// - **maybe_data**: The value that you want to apply to the property.
-    pub fn set_property<T>(&mut self, id: u32, scope: Scope, elem: Element, maybe_data: Option<&T>)
-        -> Result<(), Error>
-    {
+    pub fn set_property<T>(
+        &mut self,
+        id: u32,
+        scope: Scope,
+        elem: Element,
+        maybe_data: Option<&T>,
+    ) -> Result<(), Error> {
         set_property(self.instance, id, scope, elem, maybe_data)
     }
 
@@ -237,7 +237,9 @@ impl AudioUnit {
     ///
     /// **Available** in OS X v10.0 and later.
     pub fn start(&mut self) -> Result<(), Error> {
-        unsafe { try_os_status!(sys::AudioOutputUnitStart(self.instance)); }
+        unsafe {
+            try_os_status!(sys::AudioOutputUnitStart(self.instance));
+        }
         Ok(())
     }
 
@@ -246,7 +248,9 @@ impl AudioUnit {
     ///
     /// **Available** in OS X v10.0 and later.
     pub fn stop(&mut self) -> Result<(), Error> {
-        unsafe { try_os_status!(sys::AudioOutputUnitStop(self.instance)); }
+        unsafe {
+            try_os_status!(sys::AudioOutputUnitStop(self.instance));
+        }
         Ok(())
     }
 
@@ -306,9 +310,7 @@ impl AudioUnit {
     }
 }
 
-
 unsafe impl Send for AudioUnit {}
-
 
 impl Drop for AudioUnit {
     fn drop(&mut self) {
@@ -329,7 +331,6 @@ impl Drop for AudioUnit {
         }
     }
 }
-
 
 /// Sets the value for some property of the **AudioUnit**.
 ///
@@ -355,17 +356,20 @@ pub fn set_property<T>(
     scope: Scope,
     elem: Element,
     maybe_data: Option<&T>,
-) -> Result<(), Error>
-{
-    let (data_ptr, size) = maybe_data.map(|data| {
-        let ptr = data as *const _ as *const c_void;
-        let size = ::std::mem::size_of::<T>() as u32;
-        (ptr, size)
-    }).unwrap_or_else(|| (::std::ptr::null(), 0));
+) -> Result<(), Error> {
+    let (data_ptr, size) = maybe_data
+        .map(|data| {
+            let ptr = data as *const _ as *const c_void;
+            let size = ::std::mem::size_of::<T>() as u32;
+            (ptr, size)
+        })
+        .unwrap_or_else(|| (::std::ptr::null(), 0));
     let scope = scope as c_uint;
     let elem = elem as c_uint;
     unsafe {
-        try_os_status!(sys::AudioUnitSetProperty(au, id, scope, elem, data_ptr, size))
+        try_os_status!(sys::AudioUnitSetProperty(
+            au, id, scope, elem, data_ptr, size
+        ))
     }
     Ok(())
 }
@@ -386,8 +390,7 @@ pub fn get_property<T>(
     id: u32,
     scope: Scope,
     elem: Element,
-) -> Result<T, Error>
-{
+) -> Result<T, Error> {
     let scope = scope as c_uint;
     let elem = elem as c_uint;
     let mut size = ::std::mem::size_of::<T>() as u32;
@@ -395,9 +398,9 @@ pub fn get_property<T>(
         let mut data_uninit = ::std::mem::MaybeUninit::<T>::uninit();
         let data_ptr = data_uninit.as_mut_ptr() as *mut _ as *mut c_void;
         let size_ptr = &mut size as *mut _;
-        try_os_status!(
-            sys::AudioUnitGetProperty(au, id, scope, elem, data_ptr, size_ptr)
-        );
+        try_os_status!(sys::AudioUnitGetProperty(
+            au, id, scope, elem, data_ptr, size_ptr
+        ));
         let data: T = data_uninit.assume_init();
         Ok(data)
     }
@@ -412,18 +415,13 @@ pub fn get_property<T>(
 ///
 /// - **id**: The identifier of the property.
 #[cfg(target_os = "ios")]
-pub fn audio_session_get_property<T>(
-    id: u32,
-) -> Result<T, Error>
-{
+pub fn audio_session_get_property<T>(id: u32) -> Result<T, Error> {
     let mut size = ::std::mem::size_of::<T>() as u32;
     unsafe {
         let mut data: T = ::std::mem::uninitialized();
         let data_ptr = &mut data as *mut _ as *mut c_void;
         let size_ptr = &mut size as *mut _;
-        try_os_status!(
-            sys::AudioSessionGetProperty(id, size_ptr, data_ptr)
-        );
+        try_os_status!(sys::AudioSessionGetProperty(id, size_ptr, data_ptr));
         Ok(data)
     }
 }

@@ -2,7 +2,6 @@
 //!
 //! Oirginal documentation [here](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Types).
 
-
 /// Represents the different kinds of Audio Units that are available.
 ///
 /// Original documentation [here](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Types).
@@ -95,40 +94,36 @@ pub enum Type {
     MidiProcessor,
 }
 
-
 impl Type {
-
     /// Convert the `Type` to its associated `u32` for compatibility with original API.
     pub fn as_u32(&self) -> u32 {
         match *self {
-            Type::IO(_)              => 1635086197,
-            Type::MusicDevice(_)     => 1635085685,
-            Type::MusicEffect        => 1635085670,
+            Type::IO(_) => 1635086197,
+            Type::MusicDevice(_) => 1635085685,
+            Type::MusicEffect => 1635085670,
             Type::FormatConverter(_) => 1635083875,
-            Type::Effect(_)          => 1635083896,
-            Type::Mixer(_)           => 1635085688,
-            Type::Panner             => 1635086446,
-            Type::Generator(_)       => 1635084142,
-            Type::OfflineEffect      => 1635086188,
-            Type::MidiProcessor      => 1635085673,
+            Type::Effect(_) => 1635083896,
+            Type::Mixer(_) => 1635085688,
+            Type::Panner => 1635086446,
+            Type::Generator(_) => 1635084142,
+            Type::OfflineEffect => 1635086188,
+            Type::MidiProcessor => 1635085673,
         }
     }
 
     /// Convert the `Type` to the const `u32` that is associated with its subtype.
     pub fn as_subtype_u32(&self) -> Option<u32> {
         match *self {
-            Type::IO(ty)              => Some(ty as u32),
-            Type::MusicDevice(ty)     => Some(ty as u32),
+            Type::IO(ty) => Some(ty as u32),
+            Type::MusicDevice(ty) => Some(ty as u32),
             Type::FormatConverter(ty) => Some(ty as u32),
-            Type::Effect(ty)          => Some(ty as u32),
-            Type::Mixer(ty)           => Some(ty as u32),
-            Type::Generator(ty)       => Some(ty as u32),
+            Type::Effect(ty) => Some(ty as u32),
+            Type::Mixer(ty) => Some(ty as u32),
+            Type::Generator(ty) => Some(ty as u32),
             _ => None,
         }
     }
-
 }
-
 
 impl From<EffectType> for Type {
     fn from(ty: EffectType) -> Self {
@@ -165,7 +160,6 @@ impl From<IOType> for Type {
         Type::IO(ty)
     }
 }
-
 
 /// Effect (digital signal processing) audio unit subtypes for audio units provided by Apple.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -258,7 +252,6 @@ pub enum EffectType {
     NBandEQ = 1851942257,
 }
 
-
 /// Audio data format converter audio unit subtypes for **AudioUnit**s provided by Apple.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum FormatConverterType {
@@ -303,7 +296,7 @@ pub enum FormatConverterType {
     Merger = 1835364967,
     /// An audio unit that can control playback rate. As the playback rate increases, so does
     /// pitch.
-    /// 
+    ///
     /// This subtype provides a generic view, making it suitable for UI and programmatic context.
     ///
     /// OS X provides realtime and offline audio units of this subtype.
@@ -313,7 +306,6 @@ pub enum FormatConverterType {
     /// **Available** in OS X v10.9 and later.
     AUiPodTimeOther = 1768977519,
 }
-
 
 /// Audio mixing **AudioUnit** subtypes for **AudioUnit**s provided by Apple.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -344,7 +336,7 @@ pub enum MixerType {
     /// The single output bus can be configured with 2, 4, 5, 6, 7 or 8 channels.
     ///
     /// **Available** in OS X v10.3 and later.
-    /// 
+    ///
     /// **Deprecated** in OS X v10.10.
     Mixer3D = 862219640,
     /// An audio unit that can have any number of input and output buses with any number of
@@ -362,7 +354,6 @@ pub enum MixerType {
     /// **Available** in OS X v10.3 and later.
     MatrixMixer = 1836608888,
 }
-
 
 /// Audio units that serve as sound sources.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -382,7 +373,6 @@ pub enum GeneratorType {
     AudioFilePlayer = 1634103404,
 }
 
-
 /// Audio units that can be played as musical instruments via MIDI control.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MusicDeviceType {
@@ -399,7 +389,6 @@ pub enum MusicDeviceType {
     /// **Available** in OS X v10.7 and later.
     Sampler = 1935764848,
 }
-
 
 /// Input/output **AudioUnit** subtypes for **AudioUnit**s provided by Apple.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -454,4 +443,3 @@ pub enum IOType {
     /// **Available** in iOS.
     RemoteIO = 1919512419,
 }
-

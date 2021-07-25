@@ -1,6 +1,5 @@
 use super::audio_format::{self, LinearPcmFlags};
 
-
 /// Dynamic representation of audio data sample format.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SampleFormat {
@@ -11,21 +10,21 @@ pub enum SampleFormat {
 }
 
 impl SampleFormat {
-
     pub fn does_match_flags(&self, flags: audio_format::LinearPcmFlags) -> bool {
         let is_float = flags.contains(LinearPcmFlags::IS_FLOAT);
         let is_signed_integer = flags.contains(LinearPcmFlags::IS_SIGNED_INTEGER);
         match *self {
             SampleFormat::F32 => is_float && !is_signed_integer,
-            SampleFormat::I32 |
-            SampleFormat::I16 |
-            SampleFormat::I8 => is_signed_integer && !is_float,
+            SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => {
+                is_signed_integer && !is_float
+            }
         }
     }
 
-    pub fn from_flags_and_bytes_per_frame(flags: audio_format::LinearPcmFlags,
-                                          bytes_per_frame: u32) -> Option<Self>
-    {
+    pub fn from_flags_and_bytes_per_frame(
+        flags: audio_format::LinearPcmFlags,
+        bytes_per_frame: u32,
+    ) -> Option<Self> {
         Some(if flags.contains(LinearPcmFlags::IS_FLOAT) {
             SampleFormat::F32
         } else {
@@ -48,7 +47,6 @@ impl SampleFormat {
             SampleFormat::I8 => size_of::<i8>(),
         }
     }
-
 }
 
 /// Audio data sample types.

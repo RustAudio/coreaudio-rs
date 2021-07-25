@@ -2,9 +2,9 @@
 //!
 //! Find the original `AudioStreamBasicDescription` reference [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/c/tdef/AudioStreamBasicDescription).
 
-use crate::error::{self, Error};
 use super::audio_format::AudioFormat;
 use super::SampleFormat;
+use crate::error::{self, Error};
 use sys;
 
 /// A representation of the AudioStreamBasicDescription specifically for use with the AudioUnit API.
@@ -51,7 +51,6 @@ pub struct StreamFormat {
 }
 
 impl StreamFormat {
-
     /// Convert an AudioStreamBasicDescription into a StreamFormat.
     ///
     /// Note: `audio_unit::StreamFormat` exclusively uses the `LinearPCM` `AudioFormat`. This is as
@@ -85,10 +84,11 @@ impl StreamFormat {
         };
 
         // Determine the `SampleFormat` to use.
-        let sample_format = match SampleFormat::from_flags_and_bytes_per_frame(flags, mBytesPerFrame) {
-            Some(sample_format) => sample_format,
-            None => return Err(NOT_SUPPORTED),
-        };
+        let sample_format =
+            match SampleFormat::from_flags_and_bytes_per_frame(flags, mBytesPerFrame) {
+                Some(sample_format) => sample_format,
+                None => return Err(NOT_SUPPORTED),
+            };
 
         Ok(StreamFormat {
             sample_rate: mSampleRate,
@@ -109,7 +109,7 @@ impl StreamFormat {
 
         let (format, maybe_flag) = AudioFormat::LinearPCM(flags).as_format_and_flag();
 
-        let flag = maybe_flag.unwrap_or(::std::u32::MAX -2147483647);
+        let flag = maybe_flag.unwrap_or(::std::u32::MAX - 2147483647);
 
         let bytes_per_frame = sample_format.size_in_bytes() as u32;
         const FRAMES_PER_PACKET: u32 = 1;
@@ -128,5 +128,4 @@ impl StreamFormat {
             mReserved: 0,
         }
     }
-
 }

@@ -1,4 +1,4 @@
-use error::{self, Error};
+use crate::error::{self, Error};
 use std::mem;
 use std::os::raw::c_void;
 use std::slice;
@@ -57,7 +57,7 @@ pub mod data {
     /// Audio data wrappers specific to the `AudioUnit`'s `AudioFormat`.
     pub trait Data {
         /// Check whether or not the stream format matches this type of data.
-        fn does_stream_format_match(&StreamFormat) -> bool;
+        fn does_stream_format_match(stream_format: &StreamFormat) -> bool;
         /// We must be able to construct Self from arguments given to the `input_proc`.
         unsafe fn from_input_proc_args(num_frames: u32, io_data: *mut sys::AudioBufferList) -> Self;
     }

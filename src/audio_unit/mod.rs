@@ -19,7 +19,7 @@
 //! fixes!
 
 
-use error::Error;
+use crate::error::Error;
 use std::mem;
 use std::ptr;
 use std::os::raw::{c_uint, c_void};
@@ -313,7 +313,7 @@ unsafe impl Send for AudioUnit {}
 impl Drop for AudioUnit {
     fn drop(&mut self) {
         unsafe {
-            use error;
+            use crate::error;
 
             // We don't want to panic in `drop`, so we'll ignore returned errors.
             //

@@ -5,3 +5,8 @@ A friendly rust interface for [Apple's Core Audio API](https://developer.apple.c
 This crate aims to expose and wrap the functionality of the original C API in a zero-cost, safe, Rust-esque manner.
 
 If you just want direct access to the unsafe bindings, use [coreaudio-sys](https://crates.io/crates/coreaudio-sys).
+
+## About this fork (HEnquist/coreaudio-rs)
+This fork exists to get around the stalled state of the coreaudio-rs crate. If the development at some point resumes in the main repo, the changes in this fork will be submitted as PRs.
+
+All work done on this fork only targets macOS. __The iOS support is likely broken.__

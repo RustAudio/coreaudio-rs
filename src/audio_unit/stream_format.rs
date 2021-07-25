@@ -2,7 +2,7 @@
 //!
 //! Find the original `AudioStreamBasicDescription` reference [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/c/tdef/AudioStreamBasicDescription).
 
-use error::{self, Error};
+use crate::error::{self, Error};
 use super::audio_format::AudioFormat;
 use super::SampleFormat;
 use sys;

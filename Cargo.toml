@@ -1,11 +1,12 @@
 [package]
 name = "coreaudio-rs"
-version = "0.10.0"
+version = "0.11.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>", "yupferris <jake@fusetools.com>"]
 description = "A friendly rust interface for Apple's CoreAudio API."
 keywords = ["core", "audio", "unit", "osx", "ios"]
 readme = "README.md"
 license = "MIT/Apache-2.0"
+edition = '2018'
 repository = "https://github.com/RustAudio/coreaudio-rs.git"
 homepage = "https://github.com/RustAudio/coreaudio-rs"
 

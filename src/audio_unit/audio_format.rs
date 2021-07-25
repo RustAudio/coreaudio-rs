@@ -217,7 +217,7 @@ impl AudioFormat {
     }
 
     /// Convert from the Rust enum to the C format and flag.
-    pub fn to_format_and_flag(&self) -> (c_uint, Option<u32>) {
+    pub fn as_format_and_flag(&self) -> (c_uint, Option<u32>) {
         match *self {
             AudioFormat::LinearPCM(flag)      => (1819304813, Some(flag.bits())),
             AudioFormat::AC3                  => (1633889587, None),

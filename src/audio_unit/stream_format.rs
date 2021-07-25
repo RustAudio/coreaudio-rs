@@ -92,8 +92,8 @@ impl StreamFormat {
 
         Ok(StreamFormat {
             sample_rate: mSampleRate,
-            flags: flags,
-            sample_format: sample_format,
+            flags,
+            sample_format,
             channels_per_frame: mChannelsPerFrame,
         })
     }
@@ -107,7 +107,7 @@ impl StreamFormat {
             channels_per_frame,
         } = self;
 
-        let (format, maybe_flag) = AudioFormat::LinearPCM(flags).to_format_and_flag();
+        let (format, maybe_flag) = AudioFormat::LinearPCM(flags).as_format_and_flag();
 
         let flag = maybe_flag.unwrap_or(::std::u32::MAX -2147483647);
 

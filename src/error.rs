@@ -37,7 +37,7 @@ pub mod audio {
             }
         }
 
-        pub fn to_os_status(&self) -> OSStatus {
+        pub fn as_os_status(&self) -> OSStatus {
             *self as OSStatus
         }
 
@@ -93,7 +93,7 @@ pub mod audio_codec {
             }
         }
 
-        pub fn to_os_status(&self) -> OSStatus {
+        pub fn as_os_status(&self) -> OSStatus {
             *self as OSStatus
         }
 
@@ -143,7 +143,7 @@ pub mod audio_format {
             }
         }
 
-        pub fn to_os_status(&self) -> OSStatus {
+        pub fn as_os_status(&self) -> OSStatus {
             *self as OSStatus
         }
 
@@ -216,7 +216,7 @@ pub mod audio_unit {
             }
         }
 
-        pub fn to_os_status(&self) -> OSStatus {
+        pub fn as_os_status(&self) -> OSStatus {
             *self as OSStatus
         }
 
@@ -301,7 +301,7 @@ impl Error {
     }
 
     /// Convert an Error to an OSStatus.
-    pub fn to_os_status(&self) -> OSStatus {
+    pub fn as_os_status(&self) -> OSStatus {
         match *self {
             Error::Unspecified                                                 => -1500,
             Error::NoMatchingDefaultAudioUnitFound                             => -1500,

@@ -2,6 +2,7 @@ use crate::error::{self, Error};
 use std::mem;
 use std::os::raw::c_void;
 use std::slice;
+use std::cmp::Ordering;
 use super::{AudioUnit, Element, Scope};
 use sys;
 
@@ -59,6 +60,8 @@ pub mod data {
         /// Check whether or not the stream format matches this type of data.
         fn does_stream_format_match(stream_format: &StreamFormat) -> bool;
         /// We must be able to construct Self from arguments given to the `input_proc`.
+        /// # Safety
+        /// TODO document how to use this function safely.
         unsafe fn from_input_proc_args(num_frames: u32, io_data: *mut sys::AudioBufferList) -> Self;
     }
 
@@ -210,7 +213,7 @@ pub mod data {
             let len = (*io_data).mNumberBuffers as usize;
             let buffers = slice::from_raw_parts_mut(ptr, len);
             NonInterleaved {
-                buffers: buffers,
+                buffers,
                 frames: frames as usize,
                 sample_format: PhantomData,
             }
@@ -294,7 +297,7 @@ pub mod action_flags {
 
     impl fmt::Debug for Handle {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            if self.ptr == ::std::ptr::null_mut() {
+            if self.ptr.is_null() {
                 write!(f, "{:?}", self.ptr)
             } else {
                 unsafe {
@@ -363,7 +366,7 @@ pub mod action_flags {
 
         /// Wrap the given pointer with a `Handle`.
         pub fn from_ptr(ptr: *mut sys::AudioUnitRenderActionFlags) -> Self {
-            Handle { ptr: ptr }
+            Handle { ptr }
         }
 
     }
@@ -421,17 +424,17 @@ impl AudioUnit {
                 let data = D::from_input_proc_args(in_number_frames, io_data);
                 let flags = action_flags::Handle::from_ptr(io_action_flags);
                 Args {
-                    data: data,
+                    data,
                     time_stamp: *in_time_stamp,
-                    flags: flags,
+                    flags,
                     bus_number: in_bus_number as u32,
                     num_frames: in_number_frames as usize,
                 }
             };
 
             match f(args) {
-                Ok(()) => 0 as sys::OSStatus,
-                Err(()) => error::Error::Unspecified.to_os_status(),
+                Ok(()) => 0,
+                Err(()) => error::Error::Unspecified.as_os_status(),
             }
         };
 
@@ -534,11 +537,11 @@ impl AudioUnit {
                     // Retrieve the up-to-date stream format.
                     let id = sys::kAudioUnitProperty_StreamFormat;
                     let asbd = match super::get_property(audio_unit, id, Scope::Output, Element::Input) {
-                        Err(err) => return err.to_os_status(),
+                        Err(err) => return err.as_os_status(),
                         Ok(asbd) => asbd,
                     };
                     let stream_format = match super::StreamFormat::from_asbd(asbd) {
-                        Err(err) => return err.to_os_status(),
+                        Err(err) => return err.as_os_status(),
                         Ok(fmt) => fmt,
                     };
                     let sample_bytes = stream_format.sample_format.size_in_bytes();
@@ -554,10 +557,10 @@ impl AudioUnit {
                         let len = buffer.mDataByteSize as usize;
                         let cap = len;
                         let mut vec = Vec::from_raw_parts(ptr, len, cap);
-                        if len < data_byte_size {
-                            vec.reserve_exact(data_byte_size - len);
-                        } else if len > data_byte_size {
-                            vec.truncate(data_byte_size);
+                        match len.cmp(&data_byte_size) {
+                            Ordering::Greater => { vec.truncate(data_byte_size); },
+                            Ordering::Less => { vec.reserve_exact(data_byte_size - len); },
+                            Ordering::Equal => {}
                         }
                         mem::forget(vec);
                     }
@@ -583,17 +586,17 @@ impl AudioUnit {
                 let data = D::from_input_proc_args(in_number_frames, audio_buffer_list_ptr);
                 let flags = action_flags::Handle::from_ptr(io_action_flags);
                 Args {
-                    data: data,
+                    data,
                     time_stamp: *in_time_stamp,
-                    flags: flags,
+                    flags,
                     bus_number: in_bus_number as u32,
                     num_frames: in_number_frames as usize,
                 }
             };
 
             match f(args) {
-                Ok(()) => 0 as sys::OSStatus,
-                Err(()) => error::Error::Unspecified.to_os_status(),
+                Ok(()) => 0,
+                Err(()) => error::Error::Unspecified.as_os_status(),
             }
         };
 

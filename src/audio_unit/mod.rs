@@ -127,14 +127,14 @@ impl AudioUnit {
     {
         const MANUFACTURER_IDENTIFIER: u32 = sys::kAudioUnitManufacturer_Apple;
         let au_type: Type = ty.into();
-        let sub_type_u32 = match au_type.to_subtype_u32() {
+        let sub_type_u32 = match au_type.as_subtype_u32() {
             Some(u) => u,
             None => return Err(Error::NoKnownSubtype),
         };
 
         // A description of the audio unit we desire.
         let desc = sys::AudioComponentDescription {
-            componentType: au_type.to_u32() as c_uint,
+            componentType: au_type.as_u32() as c_uint,
             componentSubType: sub_type_u32 as c_uint,
             componentManufacturer: MANUFACTURER_IDENTIFIER,
             componentFlags: flags,
@@ -165,7 +165,7 @@ impl AudioUnit {
             // Initialise the audio unit!
             try_os_status!(sys::AudioUnitInitialize(instance));
             Ok(AudioUnit {
-                instance: instance,
+                instance,
                 maybe_render_callback: None,
                 maybe_input_callback: None,
             })

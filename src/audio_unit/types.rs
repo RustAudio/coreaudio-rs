@@ -99,7 +99,7 @@ pub enum Type {
 impl Type {
 
     /// Convert the `Type` to its associated `u32` for compatibility with original API.
-    pub fn to_u32(&self) -> u32 {
+    pub fn as_u32(&self) -> u32 {
         match *self {
             Type::IO(_)              => 1635086197,
             Type::MusicDevice(_)     => 1635085685,
@@ -115,7 +115,7 @@ impl Type {
     }
 
     /// Convert the `Type` to the const `u32` that is associated with its subtype.
-    pub fn to_subtype_u32(&self) -> Option<u32> {
+    pub fn as_subtype_u32(&self) -> Option<u32> {
         match *self {
             Type::IO(ty)              => Some(ty as u32),
             Type::MusicDevice(ty)     => Some(ty as u32),

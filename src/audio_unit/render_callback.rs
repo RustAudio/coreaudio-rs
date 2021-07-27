@@ -51,6 +51,7 @@ pub struct Args<D> {
 pub mod data {
     use super::super::Sample;
     use super::super::StreamFormat;
+    use crate::audio_unit::audio_format::LinearPcmFlags;
     use std::marker::PhantomData;
     use std::slice;
     use sys;
@@ -84,50 +85,19 @@ pub mod data {
         }
     }
 
+
     // TODO: When testing with the `HalOutput` audio unit it seemed not to allow interleaved data.
     // Even though the `IS_NON_INTERLEAVED` flag was not set, the audio unit continues to deliver
     // the audio as non-interleaved samples anyway. Investigate this, as it might not even be
     // possible to use this type with audio units!
     //
-    // /// An interleaved linear PCM buffer with samples of type `S`.
-    // pub struct Interleaved<'a, S> {
-    //     pub buffer: &'a mut [S],
-    //     pub channels: usize,
-    // }
-
-    // // Implementation for an interleaved linear PCM audio format.
-    // impl<'a, S> Data for Interleaved<'a, S>
-    //     where S: Sample,
-    // {
-    //     fn does_stream_format_match(format: &StreamFormat) -> bool {
-    //         !format.flags.contains(linear_pcm_flags::IS_NON_INTERLEAVED) &&
-    //             S::sample_format().does_match_flags(format.flags)
-    //     }
-
-    //     #[allow(non_snake_case)]
-    //     unsafe fn from_input_proc_args(frames: u32, io_data: *mut sys::AudioBufferList) -> Self {
-    //         // We're expecting a single interleaved buffer which will be the first in the array.
-    //         let sys::AudioBuffer { mNumberChannels, mDataByteSize, mData } = (*io_data).mBuffers[0];
-
-    //         // Ensure that the size of the data matches the size of the sample format
-    //         // multiplied by the number of frames.
-    //         //
-    //         // TODO: Return an Err instead of `panic`ing.
-    //         let buffer_len = frames as usize * mNumberChannels as usize;
-    //         let expected_size = ::std::mem::size_of::<S>() * buffer_len;
-    //         assert!(mDataByteSize as usize == expected_size);
-
-    //         let buffer: &mut [S] = {
-    //             let buffer_ptr = mData as *mut S;
-    //             slice::from_raw_parts_mut(buffer_ptr, buffer_len)
-    //         };
-
-    //         Interleaved {
-    //             buffer: buffer,
-    //             channels: mNumberChannels as usize,
-    //         }
-    //     }
-    // }
+    /// An interleaved linear PCM buffer with samples of type `S`.
+    pub struct Interleaved<S: 'static> {
+        /// The list of audio buffers.
+        pub buffer: &'static mut [S],
+        pub channels: usize,
+        sample_format: PhantomData<S>,
+    }
 
     /// A wrapper around the pointer to the `mBuffers` array.
     pub struct NonInterleaved<S> {
@@ -138,14 +108,14 @@ pub mod data {
         sample_format: PhantomData<S>,
     }
 
-    /// An iterator produced by a `NoneInterleaved`, yielding a reference to each channel.
+    /// An iterator produced by a `NonInterleaved`, yielding a reference to each channel.
     pub struct Channels<'a, S: 'a> {
         buffers: slice::Iter<'a, sys::AudioBuffer>,
         frames: usize,
         sample_format: PhantomData<S>,
     }
 
-    /// An iterator produced by a `NoneInterleaved`, yielding a mutable reference to each channel.
+    /// An iterator produced by a `NonInterleaved`, yielding a mutable reference to each channel.
     pub struct ChannelsMut<'a, S: 'a> {
         buffers: slice::IterMut<'a, sys::AudioBuffer>,
         frames: usize,
@@ -215,11 +185,9 @@ pub mod data {
     where
         S: Sample,
     {
-        fn does_stream_format_match(format: &StreamFormat) -> bool {
-            // TODO: This is never set, even though the default ABSD on OS X is non-interleaved!
-            // Should really investigate why this is.
-            // format.flags.contains(linear_pcm_flags::IS_NON_INTERLEAVED) &&
-            S::sample_format().does_match_flags(format.flags)
+        fn does_stream_format_match(stream_format: &StreamFormat) -> bool {
+            stream_format.flags.contains(LinearPcmFlags::IS_NON_INTERLEAVED) &&
+              S::sample_format().does_match_flags(stream_format.flags)
         }
 
         #[allow(non_snake_case)]
@@ -230,6 +198,42 @@ pub mod data {
             NonInterleaved {
                 buffers,
                 frames: frames as usize,
+                sample_format: PhantomData,
+            }
+        }
+    }
+
+    // Implementation for an interleaved linear PCM audio format.
+    impl<S> Data for Interleaved<S>
+        where S: Sample,
+    {
+        fn does_stream_format_match(stream_format: &StreamFormat) -> bool {
+            !stream_format.flags.contains(LinearPcmFlags::IS_NON_INTERLEAVED) &&
+              S::sample_format().does_match_flags(stream_format.flags)
+        }
+
+        #[allow(non_snake_case)]
+        unsafe fn from_input_proc_args(frames: u32, io_data: *mut sys::AudioBufferList) -> Self {
+
+            // // We're expecting a single interleaved buffer which will be the first in the array.
+            let sys::AudioBuffer { mNumberChannels, mDataByteSize, mData } = (*io_data).mBuffers[0];
+            // println!("{}, {}",mNumberChannels, mDataByteSize);
+            // // Ensure that the size of the data matches the size of the sample format
+            // // multiplied by the number of frames.
+            // //
+            // // TODO: Return an Err instead of `panic`ing.
+            let buffer_len = frames as usize * mNumberChannels as usize;
+            let expected_size = ::std::mem::size_of::<S>() * buffer_len;
+            assert!(mDataByteSize as usize == expected_size);
+
+            let buffer: &mut [S] = {
+                let buffer_ptr = mData as *mut S;
+                slice::from_raw_parts_mut(buffer_ptr, buffer_len)
+            };
+
+            Interleaved {
+                buffer,
+                channels: mNumberChannels as usize,
                 sample_format: PhantomData,
             }
         }
@@ -513,7 +517,7 @@ impl AudioUnit {
             (sample_rate * seconds as f64).round() as u32
         };
         let sample_bytes = stream_format.sample_format.size_in_bytes();
-        let n_channels = stream_format.channels_per_frame;
+        let n_channels = stream_format.channels;
         let data_byte_size = buffer_frame_size * sample_bytes as u32 * n_channels;
         let mut data = vec![0u8; data_byte_size as usize];
         let audio_buffer = sys::AudioBuffer {
@@ -559,7 +563,7 @@ impl AudioUnit {
                         Ok(fmt) => fmt,
                     };
                     let sample_bytes = stream_format.sample_format.size_in_bytes();
-                    let n_channels = stream_format.channels_per_frame;
+                    let n_channels = stream_format.channels;
                     let data_byte_size =
                         in_number_frames as usize * sample_bytes * n_channels as usize;
                     let ptr = (*audio_buffer_list_ptr).mBuffers.as_ptr() as *const sys::AudioBuffer;

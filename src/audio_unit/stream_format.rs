@@ -3,6 +3,7 @@
 //! Find the original `AudioStreamBasicDescription` reference [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/c/tdef/AudioStreamBasicDescription).
 
 use super::audio_format::AudioFormat;
+use super::audio_format::LinearPcmFlags;
 use super::SampleFormat;
 use crate::error::{self, Error};
 use sys;
@@ -47,7 +48,7 @@ pub struct StreamFormat {
     /// interfaces from Audio Converter Services (TODO: look into exposing this).
     pub sample_format: SampleFormat,
     pub flags: super::audio_format::LinearPcmFlags,
-    pub channels_per_frame: u32,
+    pub channels: u32,
 }
 
 impl StreamFormat {
@@ -72,6 +73,7 @@ impl StreamFormat {
             mSampleRate,
             mFormatID,
             mFormatFlags,
+            mBitsPerChannel,
             mBytesPerFrame,
             mChannelsPerFrame,
             ..
@@ -90,11 +92,18 @@ impl StreamFormat {
                 None => return Err(NOT_SUPPORTED),
             };
 
+        let non_interleaved = flags.contains(LinearPcmFlags::IS_NON_INTERLEAVED);
+        let channels = if non_interleaved {
+            mChannelsPerFrame
+        }
+        else {
+            mBytesPerFrame * (mBitsPerChannel/8)
+        };
         Ok(StreamFormat {
             sample_rate: mSampleRate,
             flags,
             sample_format,
-            channels_per_frame: mChannelsPerFrame,
+            channels,
         })
     }
 
@@ -104,17 +113,31 @@ impl StreamFormat {
             sample_rate,
             flags,
             sample_format,
-            channels_per_frame,
+            channels,
         } = self;
 
         let (format, maybe_flag) = AudioFormat::LinearPCM(flags).as_format_and_flag();
 
         let flag = maybe_flag.unwrap_or(::std::u32::MAX - 2147483647);
 
-        let bytes_per_frame = sample_format.size_in_bytes() as u32;
+        let non_interleaved = flags.contains(LinearPcmFlags::IS_NON_INTERLEAVED);
+        let bytes_per_frame = if non_interleaved {
+            sample_format.size_in_bytes() as u32
+        }
+        else {
+            sample_format.size_in_bytes() as u32 * channels
+        };
+        //let bytes_per_frame = sample_format.size_in_bytes() as u32;
         const FRAMES_PER_PACKET: u32 = 1;
         let bytes_per_packet = bytes_per_frame * FRAMES_PER_PACKET;
-        let bits_per_channel = bytes_per_frame / channels_per_frame * 8;
+        //let bits_per_channel = bytes_per_frame / channels * 8;
+        let bits_per_channel = if non_interleaved {
+            bytes_per_frame * 8
+        }
+        else {
+            bytes_per_frame / channels * 8
+        };
+        //let bits_per_channel = bytes_per_frame * 8;
 
         sys::AudioStreamBasicDescription {
             mSampleRate: sample_rate,
@@ -123,7 +146,7 @@ impl StreamFormat {
             mBytesPerPacket: bytes_per_packet,
             mFramesPerPacket: FRAMES_PER_PACKET,
             mBytesPerFrame: bytes_per_frame,
-            mChannelsPerFrame: channels_per_frame,
+            mChannelsPerFrame: channels,
             mBitsPerChannel: bits_per_channel,
             mReserved: 0,
         }

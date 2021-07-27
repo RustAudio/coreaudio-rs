@@ -46,7 +46,7 @@ fn main() -> Result<(), coreaudio::Error> {
         sample_format: SAMPLE_FORMAT,
         flags: format_flag | LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_NON_INTERLEAVED,
         // you can change this to 1
-        channels_per_frame: 2,
+        channels_per_frame: 1,
     };
 
     println!("input={:#?}", &in_stream_format);

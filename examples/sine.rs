@@ -41,7 +41,7 @@ fn main() -> Result<(), coreaudio::Error> {
     // Construct an Output audio unit that delivers audio to the default output device.
     let mut audio_unit = AudioUnit::new(IOType::DefaultOutput)?;
 
-    let stream_format = audio_unit.output_stream_format()?;
+    let stream_format = audio_unit.input_stream_format()?;
     println!("{:#?}", &stream_format);
 
     // For this example, our sine wave expects `f32` data.

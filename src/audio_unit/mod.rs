@@ -19,18 +19,23 @@
 //! fixes!
 
 use crate::error::Error;
+use std::ffi::CStr;
 use std::mem;
+use std::os::raw::c_char;
 use std::os::raw::{c_uint, c_void};
 use std::ptr;
 use std::ptr::null;
-use sys;
 
+use core_foundation_sys::string::{CFStringGetCString, CFStringGetCStringPtr, CFStringRef};
+use sys;
 use sys::{
-    kAudioHardwareNoError, kAudioHardwarePropertyDefaultOutputDevice, kAudioHardwarePropertyDefaultInputDevice,
-    kAudioObjectPropertyElementMaster, kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
+    kAudioDevicePropertyDeviceNameCFString, kAudioDevicePropertyScopeOutput, kAudioHardwareNoError,
+    kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice,
+    kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMaster,
+    kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
     kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
-    AudioDeviceID, AudioObjectGetPropertyData,
-    AudioObjectPropertyAddress,
+    kCFStringEncodingUTF8, AudioDeviceID, AudioObjectGetPropertyData,
+    AudioObjectGetPropertyDataSize, AudioObjectPropertyAddress,
 };
 
 pub use self::audio_format::AudioFormat;
@@ -439,8 +444,7 @@ pub fn audio_session_get_property<T>(id: u32) -> Result<T, Error> {
 pub fn get_default_device_id(input: bool) -> Option<AudioDeviceID> {
     let selector = if input {
         kAudioHardwarePropertyDefaultInputDevice
-    }
-    else {
+    } else {
         kAudioHardwarePropertyDefaultOutputDevice
     };
     let property_address = AudioObjectPropertyAddress {
@@ -503,4 +507,111 @@ pub fn audio_unit_from_device_id(
     )?;
 
     Ok(audio_unit)
+}
+
+/// Helper to list all audio device ids on the system.
+pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
+    let property_address = AudioObjectPropertyAddress {
+        mSelector: kAudioHardwarePropertyDevices,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMaster,
+    };
+
+    macro_rules! try_status_or_return {
+        ($status:expr) => {
+            if $status != kAudioHardwareNoError as i32 {
+                return Err(Error::Unknown($status));
+            }
+        };
+    }
+
+    let data_size = 0u32;
+    let status = unsafe {
+        AudioObjectGetPropertyDataSize(
+            kAudioObjectSystemObject,
+            &property_address as *const _,
+            0,
+            null(),
+            &data_size as *const _ as *mut _,
+        )
+    };
+    try_status_or_return!(status);
+
+    let device_count = data_size / mem::size_of::<AudioDeviceID>() as u32;
+    let mut audio_devices = vec![];
+    audio_devices.reserve_exact(device_count as usize);
+
+    let status = unsafe {
+        AudioObjectGetPropertyData(
+            kAudioObjectSystemObject,
+            &property_address as *const _,
+            0,
+            null(),
+            &data_size as *const _ as *mut _,
+            audio_devices.as_mut_ptr() as *mut _,
+        )
+    };
+    try_status_or_return!(status);
+
+    unsafe { audio_devices.set_len(device_count as usize) };
+
+    Ok(audio_devices)
+}
+
+/// Get the device name for the device id.
+pub fn get_device_name(device_id: AudioDeviceID) -> Result<String, Error> {
+    let property_address = AudioObjectPropertyAddress {
+        mSelector: kAudioDevicePropertyDeviceNameCFString,
+        mScope: kAudioDevicePropertyScopeOutput,
+        mElement: kAudioObjectPropertyElementMaster,
+    };
+
+    macro_rules! try_status_or_return {
+        ($status:expr) => {
+            if $status != kAudioHardwareNoError as i32 {
+                return Err(Error::Unknown($status));
+            }
+        };
+    }
+
+    let device_name: CFStringRef = null();
+    let data_size = mem::size_of::<CFStringRef>();
+    let c_str = unsafe {
+        let status = AudioObjectGetPropertyData(
+            device_id,
+            &property_address as *const _,
+            0,
+            null(),
+            &data_size as *const _ as *mut _,
+            &device_name as *const _ as *mut _,
+        );
+        try_status_or_return!(status);
+
+        let c_string: *const c_char = CFStringGetCStringPtr(device_name, kCFStringEncodingUTF8);
+        if c_string.is_null() {
+            let status = AudioObjectGetPropertyData(
+                device_id,
+                &property_address as *const _,
+                0,
+                null(),
+                &data_size as *const _ as *mut _,
+                &device_name as *const _ as *mut _,
+            );
+            try_status_or_return!(status);
+            let mut buf: [i8; 255] = [0; 255];
+            let result = CFStringGetCString(
+                device_name,
+                buf.as_mut_ptr(),
+                buf.len() as _,
+                kCFStringEncodingUTF8,
+            );
+            if result == 0 {
+                return Err(Error::Unknown(result as i32));
+            }
+            let name: &CStr = CStr::from_ptr(buf.as_ptr());
+            return Ok(name.to_str().unwrap().to_owned());
+        }
+        CStr::from_ptr(c_string as *mut _)
+    };
+    Ok(c_str.to_string_lossy().into_owned())
 }

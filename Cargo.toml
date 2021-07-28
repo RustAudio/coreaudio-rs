@@ -24,6 +24,7 @@ core_midi = ["coreaudio-sys/core_midi"]
 [dependencies]
 bitflags = "1.0"
 coreaudio-sys = { version = "0.2", default-features = false }
+core-foundation-sys = "0.6.2"
 
 [package.metadata.docs.rs]
 all-features = true

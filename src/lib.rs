@@ -10,6 +10,7 @@
 
 #[macro_use]
 extern crate bitflags;
+extern crate core_foundation_sys;
 pub extern crate coreaudio_sys as sys;
 
 pub use error::Error;

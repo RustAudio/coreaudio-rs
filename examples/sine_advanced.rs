@@ -4,8 +4,8 @@ extern crate coreaudio;
 
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
+use coreaudio::audio_unit::{audio_unit_from_device_id, get_default_device_id};
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
-use coreaudio::audio_unit::{get_default_device_id, audio_unit_from_device_id};
 use coreaudio::sys::kAudioUnitProperty_StreamFormat;
 use std::f64::consts::PI;
 
@@ -44,8 +44,6 @@ impl Iterator for SineWaveGenerator {
         Some(output)
     }
 }
-
-
 
 fn main() -> Result<(), coreaudio::Error> {
     let frequency_hz_l = 1000.;

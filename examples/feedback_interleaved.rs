@@ -7,8 +7,8 @@ use std::sync::{Arc, Mutex};
 
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
+use coreaudio::audio_unit::{audio_unit_from_device_id, get_default_device_id, get_device_name};
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
-use coreaudio::audio_unit::{get_default_device_id, audio_unit_from_device_id};
 use coreaudio::sys::*;
 
 const SAMPLE_RATE: f64 = 44100.0;
@@ -20,8 +20,18 @@ const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 // type S = i8; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I8;
 
 fn main() -> Result<(), coreaudio::Error> {
-    let mut input_audio_unit = audio_unit_from_device_id(get_default_device_id(true).unwrap(), true)?;
-    let mut output_audio_unit = audio_unit_from_device_id(get_default_device_id(false).unwrap(), false)?;
+    let input_device_id = get_default_device_id(true).unwrap();
+    let output_device_id = get_default_device_id(false).unwrap();
+    println!(
+        "Input device: {}",
+        get_device_name(input_device_id).unwrap()
+    );
+    println!(
+        "Output device: {}",
+        get_device_name(output_device_id).unwrap()
+    );
+    let mut input_audio_unit = audio_unit_from_device_id(input_device_id, true)?;
+    let mut output_audio_unit = audio_unit_from_device_id(output_device_id, false)?;
 
     let format_flag = match SAMPLE_FORMAT {
         SampleFormat::F32 => LinearPcmFlags::IS_FLOAT,
@@ -75,9 +85,7 @@ fn main() -> Result<(), coreaudio::Error> {
 
     input_audio_unit.set_input_callback(move |args| {
         let Args {
-            num_frames,
-            data,
-            ..
+            num_frames, data, ..
         } = args;
         println!("input cb {} frames", num_frames);
         let buffer_left = producer_left.lock().unwrap();
@@ -95,9 +103,7 @@ fn main() -> Result<(), coreaudio::Error> {
 
     output_audio_unit.set_render_callback(move |args: Args| {
         let Args {
-            num_frames,
-            data,
-            ..
+            num_frames, data, ..
         } = args;
         println!("output cb {} frames", num_frames);
         let buffer_left = consumer_left.lock().unwrap();
@@ -120,6 +126,3 @@ fn main() -> Result<(), coreaudio::Error> {
 
     Ok(())
 }
-
-
-

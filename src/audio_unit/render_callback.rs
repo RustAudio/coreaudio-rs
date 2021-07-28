@@ -86,15 +86,18 @@ pub mod data {
         }
     }
 
-    // TODO: When testing with the `HalOutput` audio unit it seemed not to allow interleaved data.
-    // Even though the `IS_NON_INTERLEAVED` flag was not set, the audio unit continues to deliver
-    // the audio as non-interleaved samples anyway. Investigate this, as it might not even be
-    // possible to use this type with audio units!
-    //
     /// An interleaved linear PCM buffer with samples of type `S`.
     pub struct Interleaved<S: 'static> {
-        /// The list of audio buffers.
+        /// The audio buffer.
         pub buffer: &'static mut [S],
+        pub channels: usize,
+        sample_format: PhantomData<S>,
+    }
+
+    /// An interleaved linear PCM buffer with samples stored as plain bytes.
+    pub struct InterleavedBytes<S: 'static> {
+        /// The audio buffer.
+        pub buffer: &'static mut [u8],
         pub channels: usize,
         sample_format: PhantomData<S>,
     }
@@ -240,6 +243,48 @@ pub mod data {
             };
 
             Interleaved {
+                buffer,
+                channels: mNumberChannels as usize,
+                sample_format: PhantomData,
+            }
+        }
+    }
+
+    // Implementation for an interleaved linear PCM audio format using plain bytes.
+    impl<S> Data for InterleavedBytes<S>
+    where
+        S: Sample,
+    {
+        fn does_stream_format_match(stream_format: &StreamFormat) -> bool {
+            !stream_format
+                .flags
+                .contains(LinearPcmFlags::IS_NON_INTERLEAVED)
+                && S::sample_format().does_match_flags(stream_format.flags)
+        }
+
+        #[allow(non_snake_case)]
+        unsafe fn from_input_proc_args(frames: u32, io_data: *mut sys::AudioBufferList) -> Self {
+            // // We're expecting a single interleaved buffer which will be the first in the array.
+            let sys::AudioBuffer {
+                mNumberChannels,
+                mDataByteSize,
+                mData,
+            } = (*io_data).mBuffers[0];
+            // println!("{}, {}",mNumberChannels, mDataByteSize);
+            // // Ensure that the size of the data matches the size of the sample format
+            // // multiplied by the number of frames.
+            // //
+            // // TODO: Return an Err instead of `panic`ing.
+            let buffer_len = frames as usize * mNumberChannels as usize;
+            let expected_size = ::std::mem::size_of::<S>() * buffer_len;
+            assert!(mDataByteSize as usize == expected_size);
+
+            let buffer: &mut [u8] = {
+                let buffer_ptr = mData as *mut u8;
+                slice::from_raw_parts_mut(buffer_ptr, mDataByteSize as usize)
+            };
+
+            InterleavedBytes {
                 buffer,
                 channels: mNumberChannels as usize,
                 sample_format: PhantomData,

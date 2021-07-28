@@ -22,7 +22,16 @@ use crate::error::Error;
 use std::mem;
 use std::os::raw::{c_uint, c_void};
 use std::ptr;
+use std::ptr::null;
 use sys;
+
+use sys::{
+    kAudioHardwareNoError, kAudioHardwarePropertyDefaultOutputDevice, kAudioHardwarePropertyDefaultInputDevice,
+    kAudioObjectPropertyElementMaster, kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
+    kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
+    AudioDeviceID, AudioObjectGetPropertyData,
+    AudioObjectPropertyAddress,
+};
 
 pub use self::audio_format::AudioFormat;
 pub use self::sample_format::{Sample, SampleFormat};
@@ -424,4 +433,74 @@ pub fn audio_session_get_property<T>(id: u32) -> Result<T, Error> {
         try_os_status!(sys::AudioSessionGetProperty(id, size_ptr, data_ptr));
         Ok(data)
     }
+}
+
+/// Helper function to get the device id of the default input or output device
+pub fn get_default_device_id(input: bool) -> Option<AudioDeviceID> {
+    let selector = if input {
+        kAudioHardwarePropertyDefaultInputDevice
+    }
+    else {
+        kAudioHardwarePropertyDefaultOutputDevice
+    };
+    let property_address = AudioObjectPropertyAddress {
+        mSelector: selector,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMaster,
+    };
+
+    let audio_device_id: AudioDeviceID = 0;
+    let data_size = mem::size_of::<AudioDeviceID>();
+    let status = unsafe {
+        AudioObjectGetPropertyData(
+            kAudioObjectSystemObject,
+            &property_address as *const _,
+            0,
+            null(),
+            &data_size as *const _ as *mut _,
+            &audio_device_id as *const _ as *mut _,
+        )
+    };
+    if status != kAudioHardwareNoError as i32 {
+        return None;
+    }
+
+    Some(audio_device_id)
+}
+
+/// Create an AudioUnit instance from a device id.
+pub fn audio_unit_from_device_id(
+    device_id: AudioDeviceID,
+    input: bool,
+) -> Result<AudioUnit, Error> {
+    let mut audio_unit = AudioUnit::new(IOType::HalOutput)?;
+
+    if input {
+        // Enable input processing.
+        let enable_input = 1u32;
+        audio_unit.set_property(
+            kAudioOutputUnitProperty_EnableIO,
+            Scope::Input,
+            Element::Input,
+            Some(&enable_input),
+        )?;
+
+        // Disable output processing.
+        let disable_output = 0u32;
+        audio_unit.set_property(
+            kAudioOutputUnitProperty_EnableIO,
+            Scope::Output,
+            Element::Output,
+            Some(&disable_output),
+        )?;
+    }
+
+    audio_unit.set_property(
+        kAudioOutputUnitProperty_CurrentDevice,
+        Scope::Global,
+        Element::Output,
+        Some(&device_id),
+    )?;
+
+    Ok(audio_unit)
 }

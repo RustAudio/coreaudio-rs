@@ -31,21 +31,17 @@ fn main() -> Result<(), coreaudio::Error> {
         }
     };
 
-    // Using IS_NON_INTERLEAVED everywhere because data::Interleaved is commented out / not implemented
     let in_stream_format = StreamFormat {
         sample_rate: SAMPLE_RATE,
         sample_format: SAMPLE_FORMAT,
-        flags: format_flag | LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_NON_INTERLEAVED,
-        // audio_unit.set_input_callback is hardcoded to 1 buffer, and when using non_interleaved
-        // we are forced to 1 channel
-        channels: 1,
+        flags: format_flag | LinearPcmFlags::IS_PACKED,
+        channels: 2,
     };
 
     let out_stream_format = StreamFormat {
         sample_rate: SAMPLE_RATE,
         sample_format: SAMPLE_FORMAT,
-        flags: format_flag | LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_NON_INTERLEAVED,
-        // you can change this to 1
+        flags: format_flag | LinearPcmFlags::IS_PACKED,
         channels: 2,
     };
 
@@ -76,7 +72,7 @@ fn main() -> Result<(), coreaudio::Error> {
         }
     }
 
-    type Args = render_callback::Args<data::NonInterleaved<S>>;
+    type Args = render_callback::Args<data::Interleaved<S>>;
 
     input_audio_unit.set_input_callback(move |args| {
         let Args {
@@ -89,9 +85,9 @@ fn main() -> Result<(), coreaudio::Error> {
         let buffer_right = producer_right.lock().unwrap();
         let mut buffers = vec![buffer_left, buffer_right];
         for i in 0..num_frames {
-            for (ch, channel) in data.channels_mut().enumerate() {
-                let value: S = channel[i];
-                buffers[ch].push_back(value);
+            for channel in 0..2 {
+                let value: S = data.buffer[2 * i + channel];
+                buffers[channel].push_back(value);
             }
         }
         Ok(())
@@ -112,9 +108,9 @@ fn main() -> Result<(), coreaudio::Error> {
             // Default other channels to copy value from first channel as a fallback
             let zero: S = 0 as S;
             let f: S = *buffers[0].front().unwrap_or(&zero);
-            for (ch, channel) in data.channels_mut().enumerate() {
-                let sample: S = buffers[ch].pop_front().unwrap_or(f);
-                channel[i] = sample;
+            for channel in 0..2 {
+                let sample: S = buffers[channel].pop_front().unwrap_or(f);
+                data.buffer[2 * i + channel] = sample;
             }
         }
         Ok(())

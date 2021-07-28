@@ -73,7 +73,6 @@ impl StreamFormat {
             mSampleRate,
             mFormatID,
             mFormatFlags,
-            mBitsPerChannel,
             mBytesPerFrame,
             mChannelsPerFrame,
             ..
@@ -91,14 +90,7 @@ impl StreamFormat {
                 Some(sample_format) => sample_format,
                 None => return Err(NOT_SUPPORTED),
             };
-
-        let non_interleaved = flags.contains(LinearPcmFlags::IS_NON_INTERLEAVED);
-        let channels = if non_interleaved {
-            mChannelsPerFrame
-        }
-        else {
-            mBytesPerFrame * (mBitsPerChannel/8)
-        };
+        let channels = mChannelsPerFrame;
         Ok(StreamFormat {
             sample_rate: mSampleRate,
             flags,
@@ -123,8 +115,7 @@ impl StreamFormat {
         let non_interleaved = flags.contains(LinearPcmFlags::IS_NON_INTERLEAVED);
         let bytes_per_frame = if non_interleaved {
             sample_format.size_in_bytes() as u32
-        }
-        else {
+        } else {
             sample_format.size_in_bytes() as u32 * channels
         };
         //let bytes_per_frame = sample_format.size_in_bytes() as u32;
@@ -133,8 +124,7 @@ impl StreamFormat {
         //let bits_per_channel = bytes_per_frame / channels * 8;
         let bits_per_channel = if non_interleaved {
             bytes_per_frame * 8
-        }
-        else {
+        } else {
             bytes_per_frame / channels * 8
         };
         //let bits_per_channel = bytes_per_frame * 8;

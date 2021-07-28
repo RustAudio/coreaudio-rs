@@ -2,21 +2,15 @@
 
 extern crate coreaudio;
 
+use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::{AudioUnit, Element, SampleFormat, Scope, StreamFormat};
-use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::sys::{
-    AudioDeviceID,
-    AudioObjectGetPropertyData,
+    kAudioHardwareNoError, kAudioHardwarePropertyDefaultOutputDevice,
+    kAudioObjectPropertyElementMaster, kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
+    kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
+    kAudioUnitProperty_StreamFormat, AudioDeviceID, AudioObjectGetPropertyData,
     AudioObjectPropertyAddress,
-    kAudioHardwarePropertyDefaultOutputDevice,
-    kAudioObjectPropertyScopeGlobal,
-    kAudioObjectPropertyElementMaster,
-    kAudioHardwareNoError, 
-    kAudioUnitProperty_StreamFormat,  
-    kAudioOutputUnitProperty_CurrentDevice,
-    kAudioOutputUnitProperty_EnableIO,
-    kAudioObjectSystemObject
 };
 use std::f64::consts::PI;
 use std::mem;
@@ -31,7 +25,6 @@ const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 const SAMPLE_RATE: f64 = 48000.0;
 
 const INTERLEAVED: bool = true;
-
 
 struct SineWaveGenerator {
     time: f64,
@@ -161,8 +154,6 @@ fn main() -> Result<(), coreaudio::Error> {
     let asbd = stream_format.to_asbd();
     audio_unit.set_property(id, Scope::Input, Element::Output, Some(&asbd))?;
 
-    
-
     // For this example, our sine wave expects `f32` data.
     assert!(SampleFormat::F32 == stream_format.sample_format);
 
@@ -171,21 +162,18 @@ fn main() -> Result<(), coreaudio::Error> {
         type Args = render_callback::Args<data::Interleaved<f32>>;
         audio_unit.set_render_callback(move |args| {
             let Args {
-                num_frames,
-                data,
-                ..
+                num_frames, data, ..
             } = args;
             println!("frames: {}", num_frames);
             for i in 0..num_frames {
                 let sample_l = samples_l.next().unwrap();
                 let sample_r = samples_r.next().unwrap();
-                data.buffer[2*i] = sample_l;
-                data.buffer[2*i+1] = sample_r;
+                data.buffer[2 * i] = sample_l;
+                data.buffer[2 * i + 1] = sample_r;
             }
             Ok(())
         })?;
-    }
-    else {
+    } else {
         println!("Register non-interleaved callback");
         type Args = render_callback::Args<data::NonInterleaved<f32>>;
         audio_unit.set_render_callback(move |args| {
@@ -197,7 +185,7 @@ fn main() -> Result<(), coreaudio::Error> {
             for i in 0..num_frames {
                 let sample_l = samples_l.next().unwrap();
                 let sample_r = samples_r.next().unwrap();
-                let mut channels=data.channels_mut();
+                let mut channels = data.channels_mut();
                 let left = channels.next().unwrap();
                 left[i] = sample_l;
                 let right = channels.next().unwrap();

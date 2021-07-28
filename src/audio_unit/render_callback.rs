@@ -1,3 +1,4 @@
+use super::audio_format::LinearPcmFlags;
 use super::{AudioUnit, Element, Scope};
 use crate::error::{self, Error};
 use std::cmp::Ordering;
@@ -84,7 +85,6 @@ pub mod data {
             Raw { data: io_data }
         }
     }
-
 
     // TODO: When testing with the `HalOutput` audio unit it seemed not to allow interleaved data.
     // Even though the `IS_NON_INTERLEAVED` flag was not set, the audio unit continues to deliver
@@ -186,8 +186,10 @@ pub mod data {
         S: Sample,
     {
         fn does_stream_format_match(stream_format: &StreamFormat) -> bool {
-            stream_format.flags.contains(LinearPcmFlags::IS_NON_INTERLEAVED) &&
-              S::sample_format().does_match_flags(stream_format.flags)
+            stream_format
+                .flags
+                .contains(LinearPcmFlags::IS_NON_INTERLEAVED)
+                && S::sample_format().does_match_flags(stream_format.flags)
         }
 
         #[allow(non_snake_case)]
@@ -205,18 +207,24 @@ pub mod data {
 
     // Implementation for an interleaved linear PCM audio format.
     impl<S> Data for Interleaved<S>
-        where S: Sample,
+    where
+        S: Sample,
     {
         fn does_stream_format_match(stream_format: &StreamFormat) -> bool {
-            !stream_format.flags.contains(LinearPcmFlags::IS_NON_INTERLEAVED) &&
-              S::sample_format().does_match_flags(stream_format.flags)
+            !stream_format
+                .flags
+                .contains(LinearPcmFlags::IS_NON_INTERLEAVED)
+                && S::sample_format().does_match_flags(stream_format.flags)
         }
 
         #[allow(non_snake_case)]
         unsafe fn from_input_proc_args(frames: u32, io_data: *mut sys::AudioBufferList) -> Self {
-
             // // We're expecting a single interleaved buffer which will be the first in the array.
-            let sys::AudioBuffer { mNumberChannels, mDataByteSize, mData } = (*io_data).mBuffers[0];
+            let sys::AudioBuffer {
+                mNumberChannels,
+                mDataByteSize,
+                mData,
+            } = (*io_data).mBuffers[0];
             // println!("{}, {}",mNumberChannels, mDataByteSize);
             // // Ensure that the size of the data matches the size of the sample format
             // // multiplied by the number of frames.
@@ -499,6 +507,11 @@ impl AudioUnit {
             return Err(Error::RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat);
         }
 
+        // Interleaved or non-interleaved?
+        let non_interleaved = stream_format
+            .flags
+            .contains(LinearPcmFlags::IS_NON_INTERLEAVED);
+
         // Pre-allocate a buffer list for input stream.
         //
         // First, get the current buffer size for pre-allocating the `AudioBuffer`s.
@@ -518,6 +531,10 @@ impl AudioUnit {
         };
         let sample_bytes = stream_format.sample_format.size_in_bytes();
         let n_channels = stream_format.channels;
+        if non_interleaved && n_channels > 1 {
+            return Err(Error::NonInterleavedInputOnlySupportsMono);
+        }
+
         let data_byte_size = buffer_frame_size * sample_bytes as u32 * n_channels;
         let mut data = vec![0u8; data_byte_size as usize];
         let audio_buffer = sys::AudioBuffer {
@@ -527,6 +544,7 @@ impl AudioUnit {
         };
         // Relieve ownership of the `Vec` until we're ready to drop the `AudioBufferList`.
         mem::forget(data);
+
         let audio_buffer_list = Box::new(sys::AudioBufferList {
             mNumberBuffers: 1,
             mBuffers: [audio_buffer],
@@ -568,6 +586,7 @@ impl AudioUnit {
                         in_number_frames as usize * sample_bytes * n_channels as usize;
                     let ptr = (*audio_buffer_list_ptr).mBuffers.as_ptr() as *const sys::AudioBuffer;
                     let len = (*audio_buffer_list_ptr).mNumberBuffers as usize;
+
                     let buffers: &[sys::AudioBuffer] = slice::from_raw_parts(ptr, len);
                     for &buffer in buffers {
                         let ptr = buffer.mData as *mut u8;

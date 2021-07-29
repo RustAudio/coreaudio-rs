@@ -25,6 +25,9 @@ use std::os::raw::c_char;
 use std::os::raw::{c_uint, c_void};
 use std::ptr;
 use std::ptr::null;
+use std::slice;
+use std::thread;
+use std::time::Duration;
 
 use core_foundation_sys::string::{CFStringGetCString, CFStringGetCStringPtr, CFStringRef};
 use sys;
@@ -34,8 +37,13 @@ use sys::{
     kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMaster,
     kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
     kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
-    kCFStringEncodingUTF8, AudioDeviceID, AudioObjectGetPropertyData,
+    kAudioDevicePropertyNominalSampleRate, kAudioDevicePropertyAvailableNominalSampleRates,
+    kCFStringEncodingUTF8, AudioDeviceID, AudioObjectID, AudioObjectGetPropertyData,
+    AudioValueRange,
     AudioObjectGetPropertyDataSize, AudioObjectPropertyAddress,
+    AudioObjectRemovePropertyListener, AudioObjectSetPropertyData,
+    AudioObjectAddPropertyListener,
+    OSStatus,
 };
 
 pub use self::audio_format::AudioFormat;
@@ -614,4 +622,149 @@ pub fn get_device_name(device_id: AudioDeviceID) -> Result<String, Error> {
         CStr::from_ptr(c_string as *mut _)
     };
     Ok(c_str.to_string_lossy().into_owned())
+}
+
+/// Change the sample rate of a device.
+/// Copied from CPAL.
+pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result<(), Error> {
+    // The scope and element for working with a device's input stream.
+    //let scope = Scope::Output;
+    //let element = Element::Input;
+
+    // Check whether or not we need to change the device sample rate to suit the one specified for the stream.
+    unsafe {
+        // Get the current sample rate.
+        let mut property_address = AudioObjectPropertyAddress {
+            mSelector: kAudioDevicePropertyNominalSampleRate,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMaster,
+        };
+        let sample_rate: f64 = 0.0;
+        let data_size = mem::size_of::<f64>() as u32;
+        let status = AudioObjectGetPropertyData(
+            device_id,
+            &property_address as *const _,
+            0,
+            null(),
+            &data_size as *const _ as *mut _,
+            &sample_rate as *const _ as *mut _,
+        );
+        Error::from_os_status(status)?;
+
+        // If the requested sample rate is different to the device sample rate, update the device.
+        if sample_rate as u32 != new_rate as u32 {
+
+            // Get available sample rate ranges.
+            property_address.mSelector = kAudioDevicePropertyAvailableNominalSampleRates;
+            let data_size = 0u32;
+            let status = AudioObjectGetPropertyDataSize(
+                device_id,
+                &property_address as *const _,
+                0,
+                null(),
+                &data_size as *const _ as *mut _,
+            );
+            Error::from_os_status(status)?;
+            let n_ranges = data_size as usize / mem::size_of::<AudioValueRange>();
+            let mut ranges: Vec<u8> = vec![];
+            ranges.reserve_exact(data_size as usize);
+            let status = AudioObjectGetPropertyData(
+                device_id,
+                &property_address as *const _,
+                0,
+                null(),
+                &data_size as *const _ as *mut _,
+                ranges.as_mut_ptr() as *mut _,
+            );
+            Error::from_os_status(status)?;
+            let ranges: *mut AudioValueRange = ranges.as_mut_ptr() as *mut _;
+            let ranges: &'static [AudioValueRange] = slice::from_raw_parts(ranges, n_ranges);
+
+            // Now that we have the available ranges, pick the one matching the desired rate.
+            let new_rate_integer = new_rate as u32;
+            let maybe_index = ranges.iter().position(|r| {
+                r.mMinimum as u32 == new_rate_integer && r.mMaximum as u32 == new_rate_integer
+            });
+            let range_index = match maybe_index {
+                None => return Err(Error::UnsupportedSampleRate),
+                Some(i) => i,
+            };
+
+            // Update the property selector to specify the nominal sample rate.
+            property_address.mSelector = kAudioDevicePropertyNominalSampleRate;
+
+            // Setting the sample rate of a device is an asynchronous process in coreaudio.
+            //
+            // Thus, we are required to set a `listener` so that we may be notified when the
+            // change occurs.
+            unsafe extern "C" fn rate_listener(
+                device_id: AudioObjectID,
+                _n_addresses: u32,
+                _properties: *const AudioObjectPropertyAddress,
+                rate_ptr: *mut ::std::os::raw::c_void,
+            ) -> OSStatus {
+                let rate_ptr: *const f64 = rate_ptr as *const _;
+                let data_size = mem::size_of::<f64>();
+                let property_address = AudioObjectPropertyAddress {
+                    mSelector: kAudioDevicePropertyNominalSampleRate,
+                    mScope: kAudioObjectPropertyScopeGlobal,
+                    mElement: kAudioObjectPropertyElementMaster,
+                };
+                AudioObjectGetPropertyData(
+                    device_id,
+                    &property_address as *const _,
+                    0,
+                    null(),
+                    &data_size as *const _ as *mut _,
+                    rate_ptr as *const _ as *mut _,
+                )
+            }
+
+            // Add our sample rate change listener callback.
+            let reported_rate: f64 = 0.0;
+            let status = AudioObjectAddPropertyListener(
+                device_id,
+                &property_address as *const _,
+                Some(rate_listener),
+                &reported_rate as *const _ as *mut _,
+            );
+            Error::from_os_status(status)?;
+
+            // Finally, set the sample rate.
+            let status = AudioObjectSetPropertyData(
+                device_id,
+                &property_address as *const _,
+                0,
+                null(),
+                data_size,
+                &ranges[range_index] as *const _ as *const _,
+            );
+            Error::from_os_status(status)?;
+
+            // Wait for the reported_rate to change.
+            //
+            // This should not take longer than a few ms, but we timeout after 1 sec just in case.
+            //
+            // WARNING: a reference to reported_rate is unsafely captured above,
+            // and the loop below assumes it can change - but compiler does not know that!
+            //
+            let timer = ::std::time::Instant::now();
+            while new_rate != reported_rate {
+                if timer.elapsed() > Duration::from_secs(1) {
+                    return Err(Error::UnsupportedSampleRate);
+                }
+                thread::sleep(Duration::from_millis(5));
+            }
+
+            // Remove the `rate_listener` callback.
+            let status = AudioObjectRemovePropertyListener(
+                device_id,
+                &property_address as *const _,
+                Some(rate_listener),
+                &reported_rate as *const _ as *mut _,
+            );
+            Error::from_os_status(status)?;
+        };
+        Ok(())
+    }
 }

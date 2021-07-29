@@ -4,7 +4,7 @@ extern crate coreaudio;
 
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
-use coreaudio::audio_unit::{audio_unit_from_device_id, get_default_device_id};
+use coreaudio::audio_unit::{audio_unit_from_device_id, get_default_device_id, set_device_sample_rate};
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
 use coreaudio::sys::kAudioUnitProperty_StreamFormat;
 use std::f64::consts::PI;
@@ -53,7 +53,8 @@ fn main() -> Result<(), coreaudio::Error> {
     let mut samples_r = SineWaveGenerator::new(frequency_hz_r, volume);
 
     // Construct an Output audio unit that delivers audio to the default output device.
-    let mut audio_unit = audio_unit_from_device_id(get_default_device_id(false).unwrap(), false)?;
+    let audio_unit_id = get_default_device_id(false).unwrap();
+    let mut audio_unit = audio_unit_from_device_id(audio_unit_id, false)?;
 
     let mut format_flag = match SAMPLE_FORMAT {
         SampleFormat::F32 => LinearPcmFlags::IS_FLOAT,
@@ -77,6 +78,8 @@ fn main() -> Result<(), coreaudio::Error> {
     println!("stream format={:#?}", &stream_format);
     println!("asbd={:#?}", &stream_format.to_asbd());
 
+    println!("set device sample rate");
+    set_device_sample_rate(audio_unit_id, SAMPLE_RATE)?;
     println!("set audio unit properties");
     let id = kAudioUnitProperty_StreamFormat;
     let asbd = stream_format.to_asbd();
@@ -124,7 +127,7 @@ fn main() -> Result<(), coreaudio::Error> {
     }
     audio_unit.start()?;
 
-    std::thread::sleep(std::time::Duration::from_millis(1000));
+    std::thread::sleep(std::time::Duration::from_millis(5000));
 
     Ok(())
 }

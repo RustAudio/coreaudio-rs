@@ -75,6 +75,7 @@ impl StreamFormat {
             mFormatFlags,
             mBytesPerFrame,
             mChannelsPerFrame,
+            mBitsPerChannel,
             ..
         } = asbd;
 
@@ -86,7 +87,7 @@ impl StreamFormat {
 
         // Determine the `SampleFormat` to use.
         let sample_format =
-            match SampleFormat::from_flags_and_bytes_per_frame(flags, mBytesPerFrame) {
+            match SampleFormat::from_flags_and_bits_per_sample(flags, mBitsPerChannel) {
                 Some(sample_format) => sample_format,
                 None => return Err(NOT_SUPPORTED),
             };

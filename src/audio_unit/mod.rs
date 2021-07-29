@@ -35,14 +35,17 @@ use sys::{
     kAudioDevicePropertyDeviceNameCFString, kAudioDevicePropertyScopeOutput, kAudioHardwareNoError,
     kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice,
     kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMaster,
-    kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
+    kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyScopeOutput, kAudioObjectPropertyScopeInput, 
+    kAudioObjectSystemObject, kAudioStreamPropertyAvailablePhysicalFormats,
     kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
     kAudioDevicePropertyNominalSampleRate, kAudioDevicePropertyAvailableNominalSampleRates,
+    kAudioStreamPropertyPhysicalFormat,
     kCFStringEncodingUTF8, AudioDeviceID, AudioObjectID, AudioObjectGetPropertyData,
     AudioValueRange,
     AudioObjectGetPropertyDataSize, AudioObjectPropertyAddress,
     AudioObjectRemovePropertyListener, AudioObjectSetPropertyData,
     AudioObjectAddPropertyListener,
+    AudioStreamBasicDescription,
     OSStatus,
 };
 
@@ -627,10 +630,6 @@ pub fn get_device_name(device_id: AudioDeviceID) -> Result<String, Error> {
 /// Change the sample rate of a device.
 /// Copied from CPAL.
 pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result<(), Error> {
-    // The scope and element for working with a device's input stream.
-    //let scope = Scope::Output;
-    //let element = Element::Input;
-
     // Check whether or not we need to change the device sample rate to suit the one specified for the stream.
     unsafe {
         // Get the current sample rate.
@@ -768,3 +767,132 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
         Ok(())
     }
 }
+
+/// Change the sample rate and format of a device.
+pub fn set_device_sample_format(device_id: AudioDeviceID, new_asbd: AudioStreamBasicDescription) -> Result<(), Error> {
+    // Check whether or not we need to change the device sample format and rate.
+    unsafe {
+        // Get the current sample rate.
+        let mut property_address = AudioObjectPropertyAddress {
+            mSelector: kAudioStreamPropertyPhysicalFormat,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            //mScope: kAudioDevicePropertyScopeInput,
+            //mScope: kAudioObjectPropertyScopeOutput,
+            //mScope: kAudioDevicePropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMaster,
+        };
+        let mut maybe_asbd: mem::MaybeUninit<AudioStreamBasicDescription> = mem::MaybeUninit::zeroed();
+        let data_size = mem::size_of::<AudioStreamBasicDescription>() as u32;
+        let status = AudioObjectGetPropertyData(
+            device_id,
+            &property_address as *const _,
+            0,
+            null(),
+            &data_size as *const _ as *mut _,
+            &maybe_asbd as *const _ as *mut _,
+        );
+        Error::from_os_status(status)?;
+        let asbd = maybe_asbd.assume_init();
+        println!("---- Current format ----");
+        println!("{:#?}", asbd);
+        println!("{:#?}", StreamFormat::from_asbd(asbd).unwrap());
+
+        // If the requested sample rate and/or format is different to the device sample rate, update the device.
+        if !asbds_are_equal(&asbd, &new_asbd) {
+            /*
+            // Get available sample rate ranges.
+            property_address.mSelector = kAudioStreamPropertyAvailablePhysicalFormats;
+            let data_size = 0u32;
+            let status = AudioObjectGetPropertyDataSize(
+                device_id,
+                &property_address as *const _,
+                0,
+                null(),
+                &data_size as *const _ as *mut _,
+            );
+            Error::from_os_status(status)?;
+            let n_formats = data_size as usize / mem::size_of::<AudioStreamBasicDescription>();
+            let mut formats: Vec<u8> = vec![];
+            formats.reserve_exact(data_size as usize);
+            let status = AudioObjectGetPropertyData(
+                device_id,
+                &property_address as *const _,
+                0,
+                null(),
+                &data_size as *const _ as *mut _,
+                formats.as_mut_ptr() as *mut _,
+            );
+            Error::from_os_status(status)?;
+            let formats: *mut AudioStreamBasicDescription = formats.as_mut_ptr() as *mut _;
+            let formats: &'static [AudioStreamBasicDescription] = slice::from_raw_parts(formats, n_formats);
+            println!("---- All supported formats ----");
+            for asbd in formats.iter() {
+                
+                if let Ok(sf) = StreamFormat::from_asbd(*asbd) {
+                    println!("{:#?}", asbd);
+                    println!("{:#?}", sf);
+                }
+                
+            }
+            */
+
+            let mut property_address = AudioObjectPropertyAddress {
+                mSelector: kAudioStreamPropertyPhysicalFormat,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMaster,
+            };
+
+            let reported_asbd: mem::MaybeUninit<AudioStreamBasicDescription> = mem::MaybeUninit::zeroed();
+            let mut reported_asbd = reported_asbd.assume_init();
+
+            let status = AudioObjectSetPropertyData(
+                device_id,
+                &property_address as *const _,
+                0,
+                null(),
+                data_size,
+                &new_asbd as *const _ as *const _,
+            );
+            Error::from_os_status(status)?;
+
+            // Wait for the reported format to change.
+            //
+            // This should not take longer than a few ms, but we timeout after 1 sec just in case.
+            println!("{:#?}", reported_asbd);
+            let timer = ::std::time::Instant::now();
+            loop {
+                let status = AudioObjectGetPropertyData(
+                    device_id,
+                    &property_address as *const _,
+                    0,
+                    null(),
+                    &data_size as *const _ as *mut _,
+                    &reported_asbd as *const _ as *mut _,
+                );
+                Error::from_os_status(status)?;
+                if asbds_are_equal(&reported_asbd, &new_asbd) {
+                    break;
+                }
+                println!("spinning");
+                thread::sleep(Duration::from_millis(5));
+                if timer.elapsed() > Duration::from_secs(1) {
+                    return Err(Error::UnsupportedSampleRate);
+                }
+            }
+            println!("{:#?}", reported_asbd);
+        }
+        Ok(())
+    }
+}
+
+fn asbds_are_equal(left: &AudioStreamBasicDescription, right: &AudioStreamBasicDescription) -> bool {
+    left.mSampleRate as u32 == right.mSampleRate as u32
+    && left.mFormatID == right.mFormatID
+    && left.mFormatFlags == right.mFormatFlags
+    && left.mBytesPerPacket == right.mBytesPerPacket
+    && left.mFramesPerPacket == right.mFramesPerPacket
+    && left.mBytesPerFrame == right.mBytesPerFrame
+    && left.mChannelsPerFrame == right.mChannelsPerFrame
+    && left.mBitsPerChannel == right.mBitsPerChannel
+}
+

@@ -21,21 +21,32 @@ impl SampleFormat {
         }
     }
 
-    pub fn from_flags_and_bytes_per_frame(
+    pub fn from_flags_and_bits_per_sample(
         flags: audio_format::LinearPcmFlags,
-        bytes_per_frame: u32,
+        bits_per_sample: u32,
     ) -> Option<Self> {
-        Some(if flags.contains(LinearPcmFlags::IS_FLOAT) {
-            SampleFormat::F32
-        } else {
-            // TODO: Check whether or not we need to consider unsigned ints and `IS_PACKED`.
-            match bytes_per_frame {
-                1 => SampleFormat::I8,
-                2 => SampleFormat::I16,
-                4 => SampleFormat::I32,
+        // All the currently supported formats are packed.
+        if !flags.contains(LinearPcmFlags::IS_PACKED) {
+            return None
+        }
+        let sample_format = if flags.contains(LinearPcmFlags::IS_FLOAT) {
+            match bits_per_sample {
+                32 => SampleFormat::F32,
                 _ => return None,
             }
-        })
+        } else if flags.contains(LinearPcmFlags::IS_SIGNED_INTEGER) {
+            match bits_per_sample {
+                8 => SampleFormat::I8,
+                16 => SampleFormat::I16,
+                32 => SampleFormat::I32,
+                _ => return None,
+            }
+        }
+        else {
+            // TODO: Check whether or not we need to consider other formats, like unsigned ints.
+            return None
+        };
+        Some(sample_format)
     }
 
     pub fn size_in_bytes(&self) -> usize {

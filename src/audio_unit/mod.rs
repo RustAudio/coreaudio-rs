@@ -32,21 +32,18 @@ use std::time::Duration;
 use core_foundation_sys::string::{CFStringGetCString, CFStringGetCStringPtr, CFStringRef};
 use sys;
 use sys::{
-    kAudioDevicePropertyDeviceNameCFString, kAudioDevicePropertyScopeOutput, kAudioHardwareNoError,
+    kAudioDevicePropertyAvailableNominalSampleRates, kAudioDevicePropertyDeviceNameCFString,
+    kAudioDevicePropertyNominalSampleRate, kAudioDevicePropertyScopeOutput, kAudioHardwareNoError,
     kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice,
     kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMaster,
-    kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyScopeOutput, kAudioObjectPropertyScopeInput, 
-    kAudioObjectSystemObject, kAudioStreamPropertyAvailablePhysicalFormats,
+    kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyScopeInput,
+    kAudioObjectPropertyScopeOutput, kAudioObjectSystemObject,
     kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
-    kAudioDevicePropertyNominalSampleRate, kAudioDevicePropertyAvailableNominalSampleRates,
-    kAudioStreamPropertyPhysicalFormat,
-    kCFStringEncodingUTF8, AudioDeviceID, AudioObjectID, AudioObjectGetPropertyData,
-    AudioValueRange,
-    AudioObjectGetPropertyDataSize, AudioObjectPropertyAddress,
-    AudioObjectRemovePropertyListener, AudioObjectSetPropertyData,
-    AudioObjectAddPropertyListener,
-    AudioStreamBasicDescription,
-    OSStatus,
+    kAudioStreamPropertyAvailablePhysicalFormats, kAudioStreamPropertyPhysicalFormat,
+    kCFStringEncodingUTF8, AudioDeviceID, AudioObjectAddPropertyListener,
+    AudioObjectGetPropertyData, AudioObjectGetPropertyDataSize, AudioObjectID,
+    AudioObjectPropertyAddress, AudioObjectRemovePropertyListener, AudioObjectSetPropertyData,
+    AudioStreamBasicDescription, AudioValueRange, OSStatus,
 };
 
 pub use self::audio_format::AudioFormat;
@@ -652,7 +649,6 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
 
         // If the requested sample rate is different to the device sample rate, update the device.
         if sample_rate as u32 != new_rate as u32 {
-
             // Get available sample rate ranges.
             property_address.mSelector = kAudioDevicePropertyAvailableNominalSampleRates;
             let data_size = 0u32;
@@ -769,7 +765,10 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
 }
 
 /// Change the sample rate and format of a device.
-pub fn set_device_sample_format(device_id: AudioDeviceID, new_asbd: AudioStreamBasicDescription) -> Result<(), Error> {
+pub fn set_device_sample_format(
+    device_id: AudioDeviceID,
+    new_asbd: AudioStreamBasicDescription,
+) -> Result<(), Error> {
     // Check whether or not we need to change the device sample format and rate.
     unsafe {
         // Get the current sample rate.
@@ -781,7 +780,8 @@ pub fn set_device_sample_format(device_id: AudioDeviceID, new_asbd: AudioStreamB
             //mScope: kAudioDevicePropertyScopeOutput,
             mElement: kAudioObjectPropertyElementMaster,
         };
-        let mut maybe_asbd: mem::MaybeUninit<AudioStreamBasicDescription> = mem::MaybeUninit::zeroed();
+        let mut maybe_asbd: mem::MaybeUninit<AudioStreamBasicDescription> =
+            mem::MaybeUninit::zeroed();
         let data_size = mem::size_of::<AudioStreamBasicDescription>() as u32;
         let status = AudioObjectGetPropertyData(
             device_id,
@@ -827,12 +827,12 @@ pub fn set_device_sample_format(device_id: AudioDeviceID, new_asbd: AudioStreamB
             let formats: &'static [AudioStreamBasicDescription] = slice::from_raw_parts(formats, n_formats);
             println!("---- All supported formats ----");
             for asbd in formats.iter() {
-                
+
                 if let Ok(sf) = StreamFormat::from_asbd(*asbd) {
                     println!("{:#?}", asbd);
                     println!("{:#?}", sf);
                 }
-                
+
             }
             */
 
@@ -842,7 +842,8 @@ pub fn set_device_sample_format(device_id: AudioDeviceID, new_asbd: AudioStreamB
                 mElement: kAudioObjectPropertyElementMaster,
             };
 
-            let reported_asbd: mem::MaybeUninit<AudioStreamBasicDescription> = mem::MaybeUninit::zeroed();
+            let reported_asbd: mem::MaybeUninit<AudioStreamBasicDescription> =
+                mem::MaybeUninit::zeroed();
             let mut reported_asbd = reported_asbd.assume_init();
 
             let status = AudioObjectSetPropertyData(
@@ -885,14 +886,16 @@ pub fn set_device_sample_format(device_id: AudioDeviceID, new_asbd: AudioStreamB
     }
 }
 
-fn asbds_are_equal(left: &AudioStreamBasicDescription, right: &AudioStreamBasicDescription) -> bool {
+fn asbds_are_equal(
+    left: &AudioStreamBasicDescription,
+    right: &AudioStreamBasicDescription,
+) -> bool {
     left.mSampleRate as u32 == right.mSampleRate as u32
-    && left.mFormatID == right.mFormatID
-    && left.mFormatFlags == right.mFormatFlags
-    && left.mBytesPerPacket == right.mBytesPerPacket
-    && left.mFramesPerPacket == right.mFramesPerPacket
-    && left.mBytesPerFrame == right.mBytesPerFrame
-    && left.mChannelsPerFrame == right.mChannelsPerFrame
-    && left.mBitsPerChannel == right.mBitsPerChannel
+        && left.mFormatID == right.mFormatID
+        && left.mFormatFlags == right.mFormatFlags
+        && left.mBytesPerPacket == right.mBytesPerPacket
+        && left.mFramesPerPacket == right.mFramesPerPacket
+        && left.mBytesPerFrame == right.mBytesPerFrame
+        && left.mChannelsPerFrame == right.mChannelsPerFrame
+        && left.mBitsPerChannel == right.mBitsPerChannel
 }
-

@@ -4,7 +4,10 @@ extern crate coreaudio;
 
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
-use coreaudio::audio_unit::{audio_unit_from_device_id, get_default_device_id, set_device_sample_rate, set_device_sample_format};
+use coreaudio::audio_unit::{
+    audio_unit_from_device_id, get_default_device_id, set_device_sample_format,
+    set_device_sample_rate,
+};
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
 use coreaudio::sys::kAudioUnitProperty_StreamFormat;
 use std::f64::consts::PI;
@@ -80,7 +83,6 @@ fn main() -> Result<(), coreaudio::Error> {
 
     println!("set device sample rate");
     //set_device_sample_rate(audio_unit_id, SAMPLE_RATE)?;
-
 
     println!("set hardware format to i16");
     let hw_format_flag = LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_SIGNED_INTEGER;

@@ -27,7 +27,7 @@ impl SampleFormat {
     ) -> Option<Self> {
         // All the currently supported formats are packed.
         if !flags.contains(LinearPcmFlags::IS_PACKED) {
-            return None
+            return None;
         }
         let sample_format = if flags.contains(LinearPcmFlags::IS_FLOAT) {
             match bits_per_sample {
@@ -41,10 +41,9 @@ impl SampleFormat {
                 32 => SampleFormat::I32,
                 _ => return None,
             }
-        }
-        else {
+        } else {
             // TODO: Check whether or not we need to consider other formats, like unsigned ints.
-            return None
+            return None;
         };
         Some(sample_format)
     }

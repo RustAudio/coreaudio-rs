@@ -73,7 +73,7 @@ impl StreamFormat {
             mSampleRate,
             mFormatID,
             mFormatFlags,
-            mBytesPerFrame,
+            mBytesPerFrame: _,
             mChannelsPerFrame,
             mBitsPerChannel,
             ..

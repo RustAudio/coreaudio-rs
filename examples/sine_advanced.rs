@@ -81,7 +81,7 @@ fn main() -> Result<(), coreaudio::Error> {
     println!("stream format={:#?}", &stream_format);
     println!("asbd={:#?}", &stream_format.to_asbd());
 
-    // set the sample rate. This isn't actually needed since the sample rate 
+    // set the sample rate. This isn't actually needed since the sample rate
     // will anyway be changed when setting the sample format later.
     println!("set device sample rate");
     set_device_sample_rate(audio_unit_id, SAMPLE_RATE)?;
@@ -96,7 +96,7 @@ fn main() -> Result<(), coreaudio::Error> {
     };
 
     // Note that using a StreamFormat here is convenient, but it only supports a few sample formats.
-    // Setting the format to for example 24 bit integers requires using an ASBD. 
+    // Setting the format to for example 24 bit integers requires using an ASBD.
     set_device_sample_format(audio_unit_id, hw_stream_format.to_asbd())?;
 
     println!("write audio unit StreamFormat property");

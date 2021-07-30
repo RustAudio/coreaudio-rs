@@ -19,6 +19,7 @@
 //! fixes!
 
 use crate::error::Error;
+use std::collections::VecDeque;
 use std::ffi::CStr;
 use std::mem;
 use std::os::raw::c_char;
@@ -26,10 +27,9 @@ use std::os::raw::{c_uint, c_void};
 use std::ptr;
 use std::ptr::null;
 use std::slice;
+use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
-use std::collections::VecDeque;
-use std::sync::Mutex;
 
 use core_foundation_sys::string::{CFStringGetCString, CFStringGetCStringPtr, CFStringRef};
 use sys;
@@ -692,7 +692,7 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
 
             // Add a listener to know when the sample rate changes.
             // Since the listener implements Drop, we don't need to manually unregister this later.
-            let mut listener = RateListener::new(device_id)?; 
+            let mut listener = RateListener::new(device_id)?;
             listener.register()?;
 
             // Finally, set the sample rate.
@@ -813,7 +813,6 @@ pub fn set_device_sample_format(
     }
 }
 
-
 /// Helper to check if two ASBDs are equal.
 fn asbds_are_equal(
     left: &AudioStreamBasicDescription,
@@ -886,7 +885,9 @@ pub struct RateListener {
     pub queue: Mutex<VecDeque<f64>>,
     device_id: AudioDeviceID,
     property_address: AudioObjectPropertyAddress,
-    rate_listener: Option<unsafe extern "C" fn(u32, u32, *const AudioObjectPropertyAddress, *mut c_void) -> i32>,
+    rate_listener: Option<
+        unsafe extern "C" fn(u32, u32, *const AudioObjectPropertyAddress, *mut c_void) -> i32,
+    >,
 }
 
 impl Drop for RateListener {
@@ -914,7 +915,7 @@ impl RateListener {
         })
     }
 
-    /// Register this listener to receive notifications. 
+    /// Register this listener to receive notifications.
     pub fn register(&mut self) -> Result<(), Error> {
         unsafe extern "C" fn rate_listener(
             device_id: AudioObjectID,
@@ -983,7 +984,12 @@ impl RateListener {
     /// Copy all received values to a Vec. The latest value is the last element.
     /// The internal buffer is preserved.
     pub fn copy_values(&self) -> Vec<f64> {
-        self.queue.lock().unwrap().iter().copied().collect::<Vec<f64>>()
+        self.queue
+            .lock()
+            .unwrap()
+            .iter()
+            .copied()
+            .collect::<Vec<f64>>()
     }
 
     /// Get all received values as a Vec. The latest value is the last element.

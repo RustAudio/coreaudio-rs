@@ -6,7 +6,7 @@ use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::{
     audio_unit_from_device_id, get_default_device_id, set_device_sample_format,
-    set_device_sample_rate,
+    set_device_sample_rate, RateListener,
 };
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
 use coreaudio::sys::kAudioUnitProperty_StreamFormat;
@@ -81,10 +81,12 @@ fn main() -> Result<(), coreaudio::Error> {
     println!("stream format={:#?}", &stream_format);
     println!("asbd={:#?}", &stream_format.to_asbd());
 
+    // set the sample rate. This isn't actually needed since the sample rate 
+    // will anyway be changed when setting the sample format later.
     println!("set device sample rate");
-    //set_device_sample_rate(audio_unit_id, SAMPLE_RATE)?;
+    set_device_sample_rate(audio_unit_id, SAMPLE_RATE)?;
 
-    println!("set hardware format to i16");
+    println!("setting hardware format to i16");
     let hw_format_flag = LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_SIGNED_INTEGER;
     let hw_stream_format = StreamFormat {
         sample_rate: SAMPLE_RATE,
@@ -92,15 +94,22 @@ fn main() -> Result<(), coreaudio::Error> {
         flags: hw_format_flag,
         channels: 2,
     };
+
+    // Note that using a StreamFormat here is convenient, but it only supports a few sample formats.
+    // Setting the format to for example 24 bit integers requires using an ASBD. 
     set_device_sample_format(audio_unit_id, hw_stream_format.to_asbd())?;
 
-    println!("set audio unit properties");
+    println!("write audio unit StreamFormat property");
     let id = kAudioUnitProperty_StreamFormat;
     let asbd = stream_format.to_asbd();
     audio_unit.set_property(id, Scope::Input, Element::Output, Some(&asbd))?;
 
     // For this example, our sine wave expects `f32` data.
     assert!(SampleFormat::F32 == stream_format.sample_format);
+
+    // Register a rate listener
+    let mut listener = RateListener::new(audio_unit_id)?;
+    listener.register()?;
 
     if INTERLEAVED {
         println!("Register interleaved callback");
@@ -141,7 +150,10 @@ fn main() -> Result<(), coreaudio::Error> {
     }
     audio_unit.start()?;
 
-    std::thread::sleep(std::time::Duration::from_millis(5000));
-
+    for _ in 0..100 {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        // print all sample change events
+        println!("rate events: {:?}", listener.copy_values());
+    }
     Ok(())
 }

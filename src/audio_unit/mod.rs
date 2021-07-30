@@ -28,6 +28,8 @@ use std::ptr::null;
 use std::slice;
 use std::thread;
 use std::time::Duration;
+use std::collections::VecDeque;
+use std::sync::Mutex;
 
 use core_foundation_sys::string::{CFStringGetCString, CFStringGetCStringPtr, CFStringRef};
 use sys;
@@ -625,7 +627,7 @@ pub fn get_device_name(device_id: AudioDeviceID) -> Result<String, Error> {
 }
 
 /// Change the sample rate of a device.
-/// Copied from CPAL.
+/// Adapted from CPAL.
 pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result<(), Error> {
     // Check whether or not we need to change the device sample rate to suit the one specified for the stream.
     unsafe {
@@ -688,42 +690,10 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
             // Update the property selector to specify the nominal sample rate.
             property_address.mSelector = kAudioDevicePropertyNominalSampleRate;
 
-            // Setting the sample rate of a device is an asynchronous process in coreaudio.
-            //
-            // Thus, we are required to set a `listener` so that we may be notified when the
-            // change occurs.
-            unsafe extern "C" fn rate_listener(
-                device_id: AudioObjectID,
-                _n_addresses: u32,
-                _properties: *const AudioObjectPropertyAddress,
-                rate_ptr: *mut ::std::os::raw::c_void,
-            ) -> OSStatus {
-                let rate_ptr: *const f64 = rate_ptr as *const _;
-                let data_size = mem::size_of::<f64>();
-                let property_address = AudioObjectPropertyAddress {
-                    mSelector: kAudioDevicePropertyNominalSampleRate,
-                    mScope: kAudioObjectPropertyScopeGlobal,
-                    mElement: kAudioObjectPropertyElementMaster,
-                };
-                AudioObjectGetPropertyData(
-                    device_id,
-                    &property_address as *const _,
-                    0,
-                    null(),
-                    &data_size as *const _ as *mut _,
-                    rate_ptr as *const _ as *mut _,
-                )
-            }
-
-            // Add our sample rate change listener callback.
-            let reported_rate: f64 = 0.0;
-            let status = AudioObjectAddPropertyListener(
-                device_id,
-                &property_address as *const _,
-                Some(rate_listener),
-                &reported_rate as *const _ as *mut _,
-            );
-            Error::from_os_status(status)?;
+            // Add a listener to know when the sample rate changes.
+            // Since the listener implements Drop, we don't need to manually unregister this later.
+            let mut listener = RateListener::new(device_id)?; 
+            listener.register()?;
 
             // Finally, set the sample rate.
             let status = AudioObjectSetPropertyData(
@@ -739,26 +709,21 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
             // Wait for the reported_rate to change.
             //
             // This should not take longer than a few ms, but we timeout after 1 sec just in case.
-            //
-            // WARNING: a reference to reported_rate is unsafely captured above,
-            // and the loop below assumes it can change - but compiler does not know that!
-            //
             let timer = ::std::time::Instant::now();
-            while new_rate != reported_rate {
+            loop {
+                if listener.get_nbr_values() > 0 {
+                    if let Some(reported_rate) = listener.copy_values().last() {
+                        if new_rate as usize == *reported_rate as usize {
+                            println!("rate was updated!");
+                            break;
+                        }
+                    }
+                }
                 if timer.elapsed() > Duration::from_secs(1) {
                     return Err(Error::UnsupportedSampleRate);
                 }
                 thread::sleep(Duration::from_millis(5));
             }
-
-            // Remove the `rate_listener` callback.
-            let status = AudioObjectRemovePropertyListener(
-                device_id,
-                &property_address as *const _,
-                Some(rate_listener),
-                &reported_rate as *const _ as *mut _,
-            );
-            Error::from_os_status(status)?;
         };
         Ok(())
     }
@@ -848,6 +813,8 @@ pub fn set_device_sample_format(
     }
 }
 
+
+/// Helper to check if two ASBDs are equal.
 fn asbds_are_equal(
     left: &AudioStreamBasicDescription,
     right: &AudioStreamBasicDescription,
@@ -911,4 +878,117 @@ pub fn get_supported_stream_formats(
     }
     */
     Ok(formats)
+}
+
+/// Changing the sample rate is an asynchonous process.
+/// Use a RateListener to get notified when the rate is changed.
+pub struct RateListener {
+    pub queue: Mutex<VecDeque<f64>>,
+    device_id: AudioDeviceID,
+    property_address: AudioObjectPropertyAddress,
+    rate_listener: Option<unsafe extern "C" fn(u32, u32, *const AudioObjectPropertyAddress, *mut c_void) -> i32>,
+}
+
+impl Drop for RateListener {
+    fn drop(&mut self) {
+        println!("Dropping RateListener!");
+        let _ = self.unregister();
+    }
+}
+
+impl RateListener {
+    /// Create a new RateListener for the given AudioDeviceID.
+    pub fn new(device_id: AudioDeviceID) -> Result<RateListener, Error> {
+        // Add our sample rate change listener callback.
+        let property_address = AudioObjectPropertyAddress {
+            mSelector: kAudioDevicePropertyNominalSampleRate,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMaster,
+        };
+        let queue = Mutex::new(VecDeque::new());
+        Ok(RateListener {
+            queue,
+            device_id,
+            property_address,
+            rate_listener: None,
+        })
+    }
+
+    /// Register this listener to receive notifications. 
+    pub fn register(&mut self) -> Result<(), Error> {
+        unsafe extern "C" fn rate_listener(
+            device_id: AudioObjectID,
+            _n_addresses: u32,
+            _properties: *const AudioObjectPropertyAddress,
+            self_ptr: *mut ::std::os::raw::c_void,
+        ) -> OSStatus {
+            let self_ptr: &mut RateListener = &mut *(self_ptr as *mut RateListener);
+            let rate: f64 = 0.0;
+            let data_size = mem::size_of::<f64>();
+            let property_address = AudioObjectPropertyAddress {
+                mSelector: kAudioDevicePropertyNominalSampleRate,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMaster,
+            };
+            let result = AudioObjectGetPropertyData(
+                device_id,
+                &property_address as *const _,
+                0,
+                null(),
+                &data_size as *const _ as *mut _,
+                &rate as *const _ as *mut _,
+            );
+            let mut queue = self_ptr.queue.lock().unwrap();
+            queue.push_back(rate);
+            result
+        }
+
+        // Add our sample rate change listener callback.
+        let status = unsafe {
+            AudioObjectAddPropertyListener(
+                self.device_id,
+                &self.property_address as *const _,
+                Some(rate_listener),
+                self as *const _ as *mut _,
+            )
+        };
+        Error::from_os_status(status)?;
+        self.rate_listener = Some(rate_listener);
+        Ok(())
+    }
+
+    /// Unregister this listener to stop receiving notifications
+    pub fn unregister(&mut self) -> Result<(), Error> {
+        // Add our sample rate change listener callback.
+        if self.rate_listener.is_some() {
+            let status = unsafe {
+                AudioObjectRemovePropertyListener(
+                    self.device_id,
+                    &self.property_address as *const _,
+                    self.rate_listener,
+                    self as *const _ as *mut _,
+                )
+            };
+            Error::from_os_status(status)?;
+            self.rate_listener = None;
+        }
+        Ok(())
+    }
+
+    /// Get the number of sample rate values received (equals the number of change events).
+    pub fn get_nbr_values(&self) -> usize {
+        self.queue.lock().unwrap().len()
+    }
+
+    /// Copy all received values to a Vec. The latest value is the last element.
+    /// The internal buffer is preserved.
+    pub fn copy_values(&self) -> Vec<f64> {
+        self.queue.lock().unwrap().iter().copied().collect::<Vec<f64>>()
+    }
+
+    /// Get all received values as a Vec. The latest value is the last element.
+    /// This clears the internal buffer.
+    pub fn drain_values(&mut self) -> Vec<f64> {
+        self.queue.lock().unwrap().drain(..).collect::<Vec<f64>>()
+    }
 }

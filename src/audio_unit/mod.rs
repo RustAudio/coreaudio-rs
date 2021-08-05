@@ -28,6 +28,7 @@ use std::ptr;
 use std::ptr::null;
 use std::slice;
 use std::sync::Mutex;
+use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use std::time::Duration;
 
@@ -692,7 +693,8 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
 
             // Add a listener to know when the sample rate changes.
             // Since the listener implements Drop, we don't need to manually unregister this later.
-            let mut listener = RateListener::new(device_id)?;
+            let (sender, receiver) = channel();
+            let mut listener = RateListener::new(device_id, Some(sender))?;
             listener.register()?;
 
             // Finally, set the sample rate.
@@ -711,6 +713,15 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
             // This should not take longer than a few ms, but we timeout after 1 sec just in case.
             let timer = ::std::time::Instant::now();
             loop {
+                println!("waiting for rate change");
+                if let Ok(reported_rate) = receiver.recv_timeout(Duration::from_millis(100)) {
+                    println!("got rate change event");
+                    if new_rate as usize == reported_rate as usize {
+                        println!("rate was updated!");
+                        break;
+                    }
+                }
+                /*
                 if listener.get_nbr_values() > 0 {
                     if let Some(reported_rate) = listener.copy_values().last() {
                         if new_rate as usize == *reported_rate as usize {
@@ -719,10 +730,11 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
                         }
                     }
                 }
+                */
                 if timer.elapsed() > Duration::from_secs(1) {
                     return Err(Error::UnsupportedSampleRate);
                 }
-                thread::sleep(Duration::from_millis(5));
+                //thread::sleep(Duration::from_millis(5));
             }
         };
         Ok(())
@@ -759,7 +771,7 @@ pub fn set_device_sample_format(
         let asbd = maybe_asbd.assume_init();
         println!("---- Current format ----");
         println!("{:#?}", asbd);
-        println!("{:#?}", StreamFormat::from_asbd(asbd).unwrap());
+        //println!("{:#?}", StreamFormat::from_asbd(asbd).unwrap());
 
         // If the requested sample rate and/or format is different to the device sample rate, update the device.
         if !asbds_are_equal(&asbd, &new_asbd) {
@@ -883,6 +895,7 @@ pub fn get_supported_stream_formats(
 /// Use a RateListener to get notified when the rate is changed.
 pub struct RateListener {
     pub queue: Mutex<VecDeque<f64>>,
+    sync_channel: Option<Sender<f64>>,
     device_id: AudioDeviceID,
     property_address: AudioObjectPropertyAddress,
     rate_listener: Option<
@@ -899,7 +912,7 @@ impl Drop for RateListener {
 
 impl RateListener {
     /// Create a new RateListener for the given AudioDeviceID.
-    pub fn new(device_id: AudioDeviceID) -> Result<RateListener, Error> {
+    pub fn new(device_id: AudioDeviceID, sync_channel: Option<Sender<f64>>) -> Result<RateListener, Error> {
         // Add our sample rate change listener callback.
         let property_address = AudioObjectPropertyAddress {
             mSelector: kAudioDevicePropertyNominalSampleRate,
@@ -909,6 +922,7 @@ impl RateListener {
         let queue = Mutex::new(VecDeque::new());
         Ok(RateListener {
             queue,
+            sync_channel,
             device_id,
             property_address,
             rate_listener: None,
@@ -939,8 +953,13 @@ impl RateListener {
                 &data_size as *const _ as *mut _,
                 &rate as *const _ as *mut _,
             );
-            let mut queue = self_ptr.queue.lock().unwrap();
-            queue.push_back(rate);
+            if let Some(sender) = &self_ptr.sync_channel {
+                sender.send(rate).unwrap();
+            }
+            else {
+                let mut queue = self_ptr.queue.lock().unwrap();
+                queue.push_back(rate);
+            }
             result
         }
 

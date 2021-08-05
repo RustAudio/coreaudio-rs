@@ -108,7 +108,7 @@ fn main() -> Result<(), coreaudio::Error> {
     assert!(SampleFormat::F32 == stream_format.sample_format);
 
     // Register a rate listener
-    let mut listener = RateListener::new(audio_unit_id)?;
+    let mut listener = RateListener::new(audio_unit_id, None)?;
     listener.register()?;
 
     if INTERLEAVED {

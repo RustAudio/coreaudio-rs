@@ -27,8 +27,8 @@ use std::os::raw::{c_uint, c_void};
 use std::ptr;
 use std::ptr::null;
 use std::slice;
-use std::sync::Mutex;
 use std::sync::mpsc::{channel, Sender};
+use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 
@@ -912,7 +912,12 @@ impl Drop for RateListener {
 
 impl RateListener {
     /// Create a new RateListener for the given AudioDeviceID.
-    pub fn new(device_id: AudioDeviceID, sync_channel: Option<Sender<f64>>) -> Result<RateListener, Error> {
+    /// If a sync Sender is provided, then events will be pushed to that channel.
+    /// If not, they will be stored in an internal queue that will need to be polled.
+    pub fn new(
+        device_id: AudioDeviceID,
+        sync_channel: Option<Sender<f64>>,
+    ) -> Result<RateListener, Error> {
         // Add our sample rate change listener callback.
         let property_address = AudioObjectPropertyAddress {
             mSelector: kAudioDevicePropertyNominalSampleRate,
@@ -955,8 +960,7 @@ impl RateListener {
             );
             if let Some(sender) = &self_ptr.sync_channel {
                 sender.send(rate).unwrap();
-            }
-            else {
+            } else {
                 let mut queue = self_ptr.queue.lock().unwrap();
                 queue.push_back(rate);
             }

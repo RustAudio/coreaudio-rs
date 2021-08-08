@@ -44,7 +44,7 @@ pub fn run_example() -> Result<(), coreaudio::Error> {
         flags: format_flag | LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_NON_INTERLEAVED,
         // audio_unit.set_input_callback is hardcoded to 1 buffer, and when using non_interleaved
         // we are forced to 1 channel
-        channels_per_frame: 1,
+        channels: 1,
     };
 
     let out_stream_format = StreamFormat {
@@ -52,7 +52,7 @@ pub fn run_example() -> Result<(), coreaudio::Error> {
         sample_format: SAMPLE_FORMAT,
         flags: format_flag | LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_NON_INTERLEAVED,
         // you can change this to 1
-        channels_per_frame: 2,
+        channels: 2,
     };
 
     println!("input={:#?}", &in_stream_format);

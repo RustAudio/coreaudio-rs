@@ -424,10 +424,11 @@ pub fn get_property<T>(
 pub fn audio_session_get_property<T>(id: u32) -> Result<T, Error> {
     let mut size = ::std::mem::size_of::<T>() as u32;
     unsafe {
-        let mut data: T = ::std::mem::uninitialized();
-        let data_ptr = &mut data as *mut _ as *mut c_void;
+        let mut data_uninit = ::std::mem::MaybeUninit::<T>::uninit();
+        let data_ptr = data_uninit.as_mut_ptr() as *mut _ as *mut c_void;
         let size_ptr = &mut size as *mut _;
         try_os_status!(sys::AudioSessionGetProperty(id, size_ptr, data_ptr));
+        let data: T = data_uninit.assume_init();
         Ok(data)
     }
 }

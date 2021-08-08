@@ -5,13 +5,13 @@ extern crate coreaudio;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
-use coreaudio::audio_unit::{AudioUnit, Element, SampleFormat, Scope, StreamFormat};
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
+use coreaudio::audio_unit::{AudioUnit, Element, SampleFormat, Scope, StreamFormat};
 use coreaudio::sys::*;
 
-
-type S = f32; const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
+type S = f32;
+const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 // type S = i32; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I32;
 // type S = i16; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I16;
 // type S = i8; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I8;
@@ -34,7 +34,9 @@ pub fn run_example() -> Result<(), coreaudio::Error> {
 
     let format_flag = match SAMPLE_FORMAT {
         SampleFormat::F32 => LinearPcmFlags::IS_FLOAT,
-        SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => LinearPcmFlags::IS_SIGNED_INTEGER,
+        SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => {
+            LinearPcmFlags::IS_SIGNED_INTEGER
+        }
     };
 
     // Using IS_NON_INTERLEAVED everywhere because data::Interleaved is commented out / not implemented
@@ -61,8 +63,18 @@ pub fn run_example() -> Result<(), coreaudio::Error> {
     println!("output_asbd={:#?}", &out_stream_format.to_asbd());
 
     let id = kAudioUnitProperty_StreamFormat;
-    input_audio_unit.set_property(id, Scope::Output, Element::Input, Some(&in_stream_format.to_asbd()))?;
-    output_audio_unit.set_property(id, Scope::Input, Element::Output, Some(&out_stream_format.to_asbd()))?;
+    input_audio_unit.set_property(
+        id,
+        Scope::Output,
+        Element::Input,
+        Some(&in_stream_format.to_asbd()),
+    )?;
+    output_audio_unit.set_property(
+        id,
+        Scope::Input,
+        Element::Output,
+        Some(&out_stream_format.to_asbd()),
+    )?;
 
     let buffer_left = Arc::new(Mutex::new(VecDeque::<S>::new()));
     let producer_left = buffer_left.clone();

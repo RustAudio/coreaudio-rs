@@ -1,3 +1,4 @@
+/// This is a collection of helper functions for performing common tasks on macOS.
 use crate::error::Error;
 use std::collections::VecDeque;
 use std::ffi::CStr;
@@ -28,7 +29,7 @@ use sys::{
 use crate::audio_unit::{AudioUnit, Element, IOType, Scope};
 
 /// Helper function to get the device id of the default input or output device
-#[cfg(target_os = "macos")]
+/// Only implemented for macOS, not iOS.
 pub fn get_default_device_id(input: bool) -> Option<AudioDeviceID> {
     let selector = if input {
         kAudioHardwarePropertyDefaultInputDevice
@@ -61,7 +62,7 @@ pub fn get_default_device_id(input: bool) -> Option<AudioDeviceID> {
 }
 
 /// Create an AudioUnit instance from a device id.
-#[cfg(target_os = "macos")]
+/// Only implemented for macOS, not iOS.
 pub fn audio_unit_from_device_id(
     device_id: AudioDeviceID,
     input: bool,
@@ -99,7 +100,7 @@ pub fn audio_unit_from_device_id(
 }
 
 /// Helper to list all audio device ids on the system.
-#[cfg(target_os = "macos")]
+/// Only implemented for macOS, not iOS.
 pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioHardwarePropertyDevices,
@@ -149,7 +150,7 @@ pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
 }
 
 /// Get the device name for the device id.
-#[cfg(target_os = "macos")]
+/// Only implemented for macOS, not iOS.
 pub fn get_device_name(device_id: AudioDeviceID) -> Result<String, Error> {
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioDevicePropertyDeviceNameCFString,
@@ -209,7 +210,7 @@ pub fn get_device_name(device_id: AudioDeviceID) -> Result<String, Error> {
 
 /// Change the sample rate of a device.
 /// Adapted from CPAL.
-#[cfg(target_os = "macos")]
+/// Only implemented for macOS, not iOS.
 pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result<(), Error> {
     // Check whether or not we need to change the device sample rate to suit the one specified for the stream.
     unsafe {
@@ -323,7 +324,7 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
 }
 
 /// Change the sample rate and format of a device.
-#[cfg(target_os = "macos")]
+/// Only implemented for macOS, not iOS.
 pub fn set_device_sample_format(
     device_id: AudioDeviceID,
     new_asbd: AudioStreamBasicDescription,
@@ -423,7 +424,7 @@ fn asbds_are_equal(
 }
 
 /// Get a vector with all supported formats as AudioBasicStreamDescriptions.
-#[cfg(target_os = "macos")]
+/// Only implemented for macOS, not iOS.
 pub fn get_supported_stream_formats(
     device_id: AudioDeviceID,
 ) -> Result<Vec<AudioStreamBasicDescription>, Error> {
@@ -476,7 +477,7 @@ pub fn get_supported_stream_formats(
 
 /// Changing the sample rate is an asynchonous process.
 /// Use a RateListener to get notified when the rate is changed.
-#[cfg(target_os = "macos")]
+/// Only implemented for macOS, not iOS.
 pub struct RateListener {
     pub queue: Mutex<VecDeque<f64>>,
     sync_channel: Option<Sender<f64>>,
@@ -487,7 +488,6 @@ pub struct RateListener {
     >,
 }
 
-#[cfg(target_os = "macos")]
 impl Drop for RateListener {
     fn drop(&mut self) {
         println!("Dropping RateListener!");
@@ -495,7 +495,6 @@ impl Drop for RateListener {
     }
 }
 
-#[cfg(target_os = "macos")]
 impl RateListener {
     /// Create a new RateListener for the given AudioDeviceID.
     /// If a sync Sender is provided, then events will be pushed to that channel.

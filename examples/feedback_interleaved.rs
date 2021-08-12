@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::{audio_unit_from_device_id, get_default_device_id, get_device_name};
-use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
+use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat, RateListener};
 use coreaudio::sys::*;
 
 const SAMPLE_RATE: f64 = 44100.0;
@@ -73,6 +73,14 @@ fn main() -> Result<(), coreaudio::Error> {
     let producer_right = buffer_right.clone();
     let consumer_right = buffer_right.clone();
 
+    // Register a rate listener for playback
+    let mut listener_pb = RateListener::new(output_device_id, None)?;
+    listener_pb.register()?;
+    
+    // Register a rate listener for capture
+    let mut listener_cap = RateListener::new(input_device_id, None)?;
+    listener_cap.register()?;
+
     // seed roughly 1 second of data to create a delay in the feedback loop for easier testing
     for buffer in vec![buffer_left, buffer_right] {
         let mut buffer = buffer.lock().unwrap();
@@ -121,8 +129,14 @@ fn main() -> Result<(), coreaudio::Error> {
         Ok(())
     })?;
     output_audio_unit.start()?;
-
-    std::thread::sleep(std::time::Duration::from_millis(100000));
-
+    for _ in 0..1000 {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        if listener_cap.get_nbr_values() > 0 {
+            println!("capture rate change: {:?}", listener_cap.drain_values());
+        }
+        if listener_pb.get_nbr_values() > 0 {
+            println!("playback rate change: {:?}", listener_pb.drain_values());
+        }
+    }
     Ok(())
 }

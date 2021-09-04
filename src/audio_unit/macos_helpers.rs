@@ -61,6 +61,19 @@ pub fn get_default_device_id(input: bool) -> Option<AudioDeviceID> {
     Some(audio_device_id)
 }
 
+/// Helper function to get the device id of from a device name.
+/// Only implemented for macOS, not iOS.
+pub fn get_device_id_from_name(name: &str) -> Option<AudioDeviceID> {
+    if let Ok(all_ids) = get_audio_device_ids() {
+        return all_ids
+            .iter()
+            .find(|id| get_device_name(**id).unwrap_or("".to_string()) == name)
+            .map(|id| *id);
+    } else {
+        return None;
+    }
+}
+
 /// Create an AudioUnit instance from a device id.
 /// Only implemented for macOS, not iOS.
 pub fn audio_unit_from_device_id(

@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use std::ptr::null;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Mutex;
 use std::time::Duration;
@@ -12,12 +13,12 @@ use std::{mem, slice, thread};
 use core_foundation_sys::string::{CFStringGetCString, CFStringGetCStringPtr, CFStringRef};
 use sys;
 use sys::{
-    kAudioDevicePropertyAvailableNominalSampleRates, kAudioDevicePropertyDeviceNameCFString,
-    kAudioDevicePropertyNominalSampleRate, kAudioDevicePropertyScopeOutput, kAudioHardwareNoError,
+    kAudioDevicePropertyAvailableNominalSampleRates, kAudioDevicePropertyDeviceIsAlive,
+    kAudioDevicePropertyDeviceNameCFString, kAudioDevicePropertyNominalSampleRate,
+    kAudioDevicePropertyScopeOutput, kAudioHardwareNoError,
     kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice,
     kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMaster,
-    kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyScopeInput,
-    kAudioObjectPropertyScopeOutput, kAudioObjectSystemObject,
+    kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
     kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
     kAudioStreamPropertyAvailablePhysicalFormats, kAudioStreamPropertyPhysicalFormat,
     kCFStringEncodingUTF8, AudioDeviceID, AudioObjectAddPropertyListener,
@@ -67,11 +68,10 @@ pub fn get_device_id_from_name(name: &str) -> Option<AudioDeviceID> {
     if let Ok(all_ids) = get_audio_device_ids() {
         return all_ids
             .iter()
-            .find(|id| get_device_name(**id).unwrap_or("".to_string()) == name)
-            .map(|id| *id);
-    } else {
-        return None;
+            .find(|id| get_device_name(**id).unwrap_or_else(|_| "".to_string()) == name)
+            .copied();
     }
+    None
 }
 
 /// Create an AudioUnit instance from a device id.
@@ -305,31 +305,17 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
 
             // Wait for the reported_rate to change.
             //
-            // This should not take longer than a few ms, but we timeout after 1 sec just in case.
+            // This sometimes takes up to half a second, timeout after 2 sec to have a little margin.
             let timer = ::std::time::Instant::now();
             loop {
-                println!("waiting for rate change");
                 if let Ok(reported_rate) = receiver.recv_timeout(Duration::from_millis(100)) {
-                    println!("got rate change event");
                     if new_rate as usize == reported_rate as usize {
-                        println!("rate was updated!");
                         break;
                     }
                 }
-                /*
-                if listener.get_nbr_values() > 0 {
-                    if let Some(reported_rate) = listener.copy_values().last() {
-                        if new_rate as usize == *reported_rate as usize {
-                            println!("rate was updated!");
-                            break;
-                        }
-                    }
-                }
-                */
-                if timer.elapsed() > Duration::from_secs(1) {
+                if timer.elapsed() > Duration::from_secs(2) {
                     return Err(Error::UnsupportedSampleRate);
                 }
-                //thread::sleep(Duration::from_millis(5));
             }
         };
         Ok(())
@@ -348,9 +334,6 @@ pub fn set_device_sample_format(
         let property_address = AudioObjectPropertyAddress {
             mSelector: kAudioStreamPropertyPhysicalFormat,
             mScope: kAudioObjectPropertyScopeGlobal,
-            //mScope: kAudioDevicePropertyScopeInput,
-            //mScope: kAudioObjectPropertyScopeOutput,
-            //mScope: kAudioDevicePropertyScopeOutput,
             mElement: kAudioObjectPropertyElementMaster,
         };
         let maybe_asbd: mem::MaybeUninit<AudioStreamBasicDescription> = mem::MaybeUninit::zeroed();
@@ -365,9 +348,6 @@ pub fn set_device_sample_format(
         );
         Error::from_os_status(status)?;
         let asbd = maybe_asbd.assume_init();
-        println!("---- Current format ----");
-        println!("{:#?}", asbd);
-        //println!("{:#?}", StreamFormat::from_asbd(asbd).unwrap());
 
         // If the requested sample rate and/or format is different to the device sample rate, update the device.
         if !asbds_are_equal(&asbd, &new_asbd) {
@@ -394,7 +374,6 @@ pub fn set_device_sample_format(
             // Wait for the reported format to change.
             //
             // This should not take longer than a few ms, but we timeout after 1 sec just in case.
-            println!("{:#?}", reported_asbd);
             let timer = ::std::time::Instant::now();
             loop {
                 let status = AudioObjectGetPropertyData(
@@ -409,13 +388,11 @@ pub fn set_device_sample_format(
                 if asbds_are_equal(&reported_asbd, &new_asbd) {
                     break;
                 }
-                println!("spinning");
                 thread::sleep(Duration::from_millis(5));
                 if timer.elapsed() > Duration::from_secs(1) {
                     return Err(Error::UnsupportedSampleRate);
                 }
             }
-            println!("{:#?}", reported_asbd);
         }
         Ok(())
     }
@@ -503,7 +480,6 @@ pub struct RateListener {
 
 impl Drop for RateListener {
     fn drop(&mut self) {
-        println!("Dropping RateListener!");
         let _ = self.unregister();
     }
 }
@@ -617,5 +593,107 @@ impl RateListener {
     /// This clears the internal buffer.
     pub fn drain_values(&mut self) -> Vec<f64> {
         self.queue.lock().unwrap().drain(..).collect::<Vec<f64>>()
+    }
+}
+
+/// Use an AliveListener to get notified when a device is disconnected.
+/// Only implemented for macOS, not iOS.
+pub struct AliveListener {
+    alive: AtomicBool,
+    device_id: AudioDeviceID,
+    property_address: AudioObjectPropertyAddress,
+    alive_listener: Option<
+        unsafe extern "C" fn(u32, u32, *const AudioObjectPropertyAddress, *mut c_void) -> i32,
+    >,
+}
+
+impl Drop for AliveListener {
+    fn drop(&mut self) {
+        let _ = self.unregister();
+    }
+}
+
+impl AliveListener {
+    /// Create a new ErrorListener for the given AudioDeviceID.
+    /// If a sync Sender is provided, then events will be pushed to that channel.
+    /// If not, they will be stored in an internal queue that will need to be polled.
+    pub fn new(device_id: AudioDeviceID) -> Result<AliveListener, Error> {
+        // Add our error listener callback.
+        let property_address = AudioObjectPropertyAddress {
+            mSelector: kAudioDevicePropertyDeviceIsAlive,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMaster,
+        };
+        Ok(AliveListener {
+            alive: AtomicBool::new(true),
+            device_id,
+            property_address,
+            alive_listener: None,
+        })
+    }
+
+    /// Register this listener to receive notifications.
+    pub fn register(&mut self) -> Result<(), Error> {
+        unsafe extern "C" fn alive_listener(
+            device_id: AudioObjectID,
+            _n_addresses: u32,
+            _properties: *const AudioObjectPropertyAddress,
+            self_ptr: *mut ::std::os::raw::c_void,
+        ) -> OSStatus {
+            let self_ptr: &mut AliveListener = &mut *(self_ptr as *mut AliveListener);
+            let alive: u32 = 0;
+            let data_size = mem::size_of::<u32>();
+            let property_address = AudioObjectPropertyAddress {
+                mSelector: kAudioDevicePropertyDeviceIsAlive,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMaster,
+            };
+            let result = AudioObjectGetPropertyData(
+                device_id,
+                &property_address as *const _,
+                0,
+                null(),
+                &data_size as *const _ as *mut _,
+                &alive as *const _ as *mut _,
+            );
+            self_ptr.alive.store(alive > 0, Ordering::Relaxed);
+            result
+        }
+
+        // Add our listener callback.
+        let status = unsafe {
+            AudioObjectAddPropertyListener(
+                self.device_id,
+                &self.property_address as *const _,
+                Some(alive_listener),
+                self as *const _ as *mut _,
+            )
+        };
+        Error::from_os_status(status)?;
+        self.alive_listener = Some(alive_listener);
+        Ok(())
+    }
+
+    /// Unregister this listener to stop receiving notifications
+    pub fn unregister(&mut self) -> Result<(), Error> {
+        // Add our sample rate change listener callback.
+        if self.alive_listener.is_some() {
+            let status = unsafe {
+                AudioObjectRemovePropertyListener(
+                    self.device_id,
+                    &self.property_address as *const _,
+                    self.alive_listener,
+                    self as *const _ as *mut _,
+                )
+            };
+            Error::from_os_status(status)?;
+            self.alive_listener = None;
+        }
+        Ok(())
+    }
+
+    /// Get the number of sample rate values received (equals the number of change events).
+    pub fn is_alive(&self) -> bool {
+        self.alive.load(Ordering::Relaxed)
     }
 }

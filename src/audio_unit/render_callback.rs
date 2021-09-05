@@ -228,7 +228,6 @@ pub mod data {
                 mDataByteSize,
                 mData,
             } = (*io_data).mBuffers[0];
-            // println!("{}, {}",mNumberChannels, mDataByteSize);
             // // Ensure that the size of the data matches the size of the sample format
             // // multiplied by the number of frames.
             // //
@@ -270,7 +269,6 @@ pub mod data {
                 mDataByteSize,
                 mData,
             } = (*io_data).mBuffers[0];
-            // println!("{}, {}",mNumberChannels, mDataByteSize);
             // // Ensure that the size of the data matches the size of the sample format
             // // multiplied by the number of frames.
             // //

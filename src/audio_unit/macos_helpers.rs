@@ -4,7 +4,6 @@ use std::collections::VecDeque;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use std::ptr::null;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Mutex;
 use std::time::Duration;
@@ -289,7 +288,7 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
             // Add a listener to know when the sample rate changes.
             // Since the listener implements Drop, we don't need to manually unregister this later.
             let (sender, receiver) = channel();
-            let mut listener = RateListener::new(device_id, Some(sender))?;
+            let mut listener = RateListener::new(device_id, Some(sender));
             listener.register()?;
 
             // Finally, set the sample rate.
@@ -491,7 +490,7 @@ impl RateListener {
     pub fn new(
         device_id: AudioDeviceID,
         sync_channel: Option<Sender<f64>>,
-    ) -> Result<RateListener, Error> {
+    ) -> RateListener {
         // Add our sample rate change listener callback.
         let property_address = AudioObjectPropertyAddress {
             mSelector: kAudioDevicePropertyNominalSampleRate,
@@ -499,13 +498,13 @@ impl RateListener {
             mElement: kAudioObjectPropertyElementMaster,
         };
         let queue = Mutex::new(VecDeque::new());
-        Ok(RateListener {
+        RateListener {
             queue,
             sync_channel,
             device_id,
             property_address,
             rate_listener: None,
-        })
+        }
     }
 
     /// Register this listener to receive notifications.
@@ -599,7 +598,7 @@ impl RateListener {
 /// Use an AliveListener to get notified when a device is disconnected.
 /// Only implemented for macOS, not iOS.
 pub struct AliveListener {
-    alive: AtomicBool,
+    alive: Mutex<bool>,
     device_id: AudioDeviceID,
     property_address: AudioObjectPropertyAddress,
     alive_listener: Option<
@@ -617,19 +616,19 @@ impl AliveListener {
     /// Create a new ErrorListener for the given AudioDeviceID.
     /// If a sync Sender is provided, then events will be pushed to that channel.
     /// If not, they will be stored in an internal queue that will need to be polled.
-    pub fn new(device_id: AudioDeviceID) -> Result<AliveListener, Error> {
+    pub fn new(device_id: AudioDeviceID) -> AliveListener {
         // Add our error listener callback.
         let property_address = AudioObjectPropertyAddress {
             mSelector: kAudioDevicePropertyDeviceIsAlive,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMaster,
         };
-        Ok(AliveListener {
-            alive: AtomicBool::new(true),
+        AliveListener {
+            alive: Mutex::new(true),
             device_id,
             property_address,
             alive_listener: None,
-        })
+        }
     }
 
     /// Register this listener to receive notifications.
@@ -656,7 +655,10 @@ impl AliveListener {
                 &data_size as *const _ as *mut _,
                 &alive as *const _ as *mut _,
             );
-            self_ptr.alive.store(alive > 0, Ordering::Relaxed);
+            println!("store alive {}", alive);
+            let mut shared_alive = self_ptr.alive.lock().unwrap();
+            *shared_alive = alive > 0;
+            println!("stored");
             result
         }
 
@@ -692,8 +694,10 @@ impl AliveListener {
         Ok(())
     }
 
-    /// Get the number of sample rate values received (equals the number of change events).
+    /// Check if the device is still alive.
     pub fn is_alive(&self) -> bool {
-        self.alive.load(Ordering::Relaxed)
+        let alive = self.alive.lock().unwrap();
+        println!("read alive {}", alive);
+        *alive
     }
 }

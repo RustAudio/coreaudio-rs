@@ -74,11 +74,11 @@ fn main() -> Result<(), coreaudio::Error> {
     let consumer_right = buffer_right.clone();
 
     // Register a rate listener for playback
-    let mut listener_pb = RateListener::new(output_device_id, None)?;
+    let mut listener_pb = RateListener::new(output_device_id, None);
     listener_pb.register()?;
 
     // Register a rate listener for capture
-    let mut listener_cap = RateListener::new(input_device_id, None)?;
+    let mut listener_cap = RateListener::new(input_device_id, None);
     listener_cap.register()?;
 
     // seed roughly 1 second of data to create a delay in the feedback loop for easier testing

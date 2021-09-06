@@ -6,6 +6,7 @@ use std::os::raw::{c_char, c_void};
 use std::ptr::null;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use std::{mem, slice, thread};
 
@@ -556,7 +557,6 @@ impl RateListener {
 
     /// Unregister this listener to stop receiving notifications
     pub fn unregister(&mut self) -> Result<(), Error> {
-        // Add our sample rate change listener callback.
         if self.rate_listener.is_some() {
             let status = unsafe {
                 AudioObjectRemovePropertyListener(
@@ -595,10 +595,10 @@ impl RateListener {
     }
 }
 
-/// Use an AliveListener to get notified when a device is disconnected.
+/// An AliveListener is used to get notified when a device is disconnected.
 /// Only implemented for macOS, not iOS.
 pub struct AliveListener {
-    alive: Mutex<bool>,
+    alive: Box<AtomicBool>,
     device_id: AudioDeviceID,
     property_address: AudioObjectPropertyAddress,
     alive_listener: Option<
@@ -613,18 +613,16 @@ impl Drop for AliveListener {
 }
 
 impl AliveListener {
-    /// Create a new ErrorListener for the given AudioDeviceID.
-    /// If a sync Sender is provided, then events will be pushed to that channel.
-    /// If not, they will be stored in an internal queue that will need to be polled.
+    /// Create a new AliveListener for the given AudioDeviceID.
     pub fn new(device_id: AudioDeviceID) -> AliveListener {
-        // Add our error listener callback.
+        // Add our listener callback.
         let property_address = AudioObjectPropertyAddress {
             mSelector: kAudioDevicePropertyDeviceIsAlive,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMaster,
         };
         AliveListener {
-            alive: Mutex::new(true),
+            alive: Box::new(AtomicBool::new(true)),
             device_id,
             property_address,
             alive_listener: None,
@@ -655,10 +653,7 @@ impl AliveListener {
                 &data_size as *const _ as *mut _,
                 &alive as *const _ as *mut _,
             );
-            println!("store alive {}", alive);
-            let mut shared_alive = self_ptr.alive.lock().unwrap();
-            *shared_alive = alive > 0;
-            println!("stored");
+            self_ptr.alive.store(alive > 0, Ordering::Relaxed);
             result
         }
 
@@ -678,7 +673,6 @@ impl AliveListener {
 
     /// Unregister this listener to stop receiving notifications
     pub fn unregister(&mut self) -> Result<(), Error> {
-        // Add our sample rate change listener callback.
         if self.alive_listener.is_some() {
             let status = unsafe {
                 AudioObjectRemovePropertyListener(
@@ -696,8 +690,6 @@ impl AliveListener {
 
     /// Check if the device is still alive.
     pub fn is_alive(&self) -> bool {
-        let alive = self.alive.lock().unwrap();
-        println!("read alive {}", alive);
-        *alive
+        self.alive.load(Ordering::Relaxed)
     }
 }

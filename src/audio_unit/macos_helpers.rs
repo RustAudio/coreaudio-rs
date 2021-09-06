@@ -4,9 +4,9 @@ use std::collections::VecDeque;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use std::ptr::null;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use std::{mem, slice, thread};
 
@@ -488,10 +488,7 @@ impl RateListener {
     /// Create a new RateListener for the given AudioDeviceID.
     /// If a sync Sender is provided, then events will be pushed to that channel.
     /// If not, they will be stored in an internal queue that will need to be polled.
-    pub fn new(
-        device_id: AudioDeviceID,
-        sync_channel: Option<Sender<f64>>,
-    ) -> RateListener {
+    pub fn new(device_id: AudioDeviceID, sync_channel: Option<Sender<f64>>) -> RateListener {
         // Add our sample rate change listener callback.
         let property_address = AudioObjectPropertyAddress {
             mSelector: kAudioDevicePropertyNominalSampleRate,

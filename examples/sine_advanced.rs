@@ -6,7 +6,7 @@ use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::{
     audio_unit_from_device_id, get_default_device_id, set_device_sample_format,
-    set_device_sample_rate, RateListener,
+    set_device_sample_rate, AliveListener, RateListener,
 };
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
 use coreaudio::sys::kAudioUnitProperty_StreamFormat;
@@ -107,9 +107,11 @@ fn main() -> Result<(), coreaudio::Error> {
     // For this example, our sine wave expects `f32` data.
     assert!(SampleFormat::F32 == stream_format.sample_format);
 
-    // Register a rate listener
-    let mut listener = RateListener::new(audio_unit_id, None);
-    listener.register()?;
+    // Register rate and alive listeners
+    let mut rate_listener = RateListener::new(audio_unit_id, None);
+    rate_listener.register()?;
+    let mut alive_listener = AliveListener::new(audio_unit_id);
+    alive_listener.register()?;
 
     if INTERLEAVED {
         println!("Register interleaved callback");
@@ -153,7 +155,8 @@ fn main() -> Result<(), coreaudio::Error> {
     for _ in 0..100 {
         std::thread::sleep(std::time::Duration::from_millis(100));
         // print all sample change events
-        println!("rate events: {:?}", listener.copy_values());
+        println!("rate events: {:?}", rate_listener.copy_values());
+        println!("alive state: {}", alive_listener.is_alive());
     }
     Ok(())
 }

@@ -650,7 +650,7 @@ impl AliveListener {
                 &data_size as *const _ as *mut _,
                 &alive as *const _ as *mut _,
             );
-            self_ptr.alive.store(alive > 0, Ordering::Relaxed);
+            self_ptr.alive.store(alive > 0, Ordering::SeqCst);
             result
         }
 
@@ -687,6 +687,6 @@ impl AliveListener {
 
     /// Check if the device is still alive.
     pub fn is_alive(&self) -> bool {
-        self.alive.load(Ordering::Relaxed)
+        self.alive.load(Ordering::SeqCst)
     }
 }

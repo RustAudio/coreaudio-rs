@@ -35,9 +35,10 @@ fn main() -> Result<(), coreaudio::Error> {
 
     let format_flag = match SAMPLE_FORMAT {
         SampleFormat::F32 => LinearPcmFlags::IS_FLOAT,
-        SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => {
-            LinearPcmFlags::IS_SIGNED_INTEGER
+        SampleFormat::I32 | SampleFormat::I24_3 | SampleFormat::I16 | SampleFormat::I8 => {
+            LinearPcmFlags::IS_SIGNED_INTEGER | LinearPcmFlags::IS_PACKED
         }
+        SampleFormat::I24_4 => LinearPcmFlags::IS_SIGNED_INTEGER,
     };
 
     let in_stream_format = StreamFormat {

@@ -40,14 +40,16 @@ pub struct StreamFormat {
     pub sample_rate: f64,
     /// The sample format used to represent the audio data.
     ///
-    /// In OS X, Core Audio xpects audio data to be in native-endian, 32-bit floating-point,
+    /// In OS X, Core Audio expects audio data to be in native-endian, 32-bit floating-point,
     /// linear PCM format.
     ///
     /// iOS uses integer and fixed-point audio data. The result is faster calculations and less
     /// battery drain when processing audio. iOS provides a Converter audio unit and inclues the
     /// interfaces from Audio Converter Services (TODO: look into exposing this).
     pub sample_format: SampleFormat,
+    /// The format flags for the given StreamFormat.
     pub flags: super::audio_format::LinearPcmFlags,
+    /// The number of channels.
     pub channels: u32,
 }
 
@@ -64,7 +66,7 @@ impl StreamFormat {
     ///
     /// Returns an `Error` if the `AudioFormat` inferred by the ASBD is not `LinearPCM`.
     ///
-    /// Returns an `Error` if the sample format type kkkkkkkkkkkkkkkkkkkkkk
+    /// Returns an `Error` if the sample format of the asbd cannot be matched to a format supported by SampleFormat.
     #[allow(non_snake_case)]
     pub fn from_asbd(asbd: sys::AudioStreamBasicDescription) -> Result<StreamFormat, Error> {
         const NOT_SUPPORTED: Error = Error::AudioUnit(error::audio_unit::Error::FormatNotSupported);
@@ -123,11 +125,12 @@ impl StreamFormat {
         const FRAMES_PER_PACKET: u32 = 1;
         let bytes_per_packet = bytes_per_frame * FRAMES_PER_PACKET;
         //let bits_per_channel = bytes_per_frame / channels * 8;
-        let bits_per_channel = if non_interleaved {
-            bytes_per_frame * 8
-        } else {
-            bytes_per_frame / channels * 8
-        };
+        //let bits_per_channel = if non_interleaved {
+        //    bytes_per_frame * 8
+        //} else {
+        //    bytes_per_frame / channels * 8
+        //};
+        let bits_per_channel = sample_format.size_in_bits();
         //let bits_per_channel = bytes_per_frame * 8;
 
         sys::AudioStreamBasicDescription {

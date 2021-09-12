@@ -5,8 +5,8 @@ extern crate coreaudio;
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::{
-    audio_unit_from_device_id, get_default_device_id, set_device_sample_format,
-    set_device_sample_rate, AliveListener, RateListener,
+    audio_unit_from_device_id, get_default_device_id, get_supported_physical_stream_formats,
+    set_device_physical_stream_format, set_device_sample_rate, AliveListener, RateListener,
 };
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
 use coreaudio::sys::kAudioUnitProperty_StreamFormat;
@@ -17,7 +17,7 @@ const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 // type S = i16; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I16;
 // type S = i8; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I8;
 
-const SAMPLE_RATE: f64 = 48000.0;
+const SAMPLE_RATE: f64 = 44100.0;
 
 const INTERLEAVED: bool = true;
 
@@ -61,9 +61,10 @@ fn main() -> Result<(), coreaudio::Error> {
 
     let mut format_flag = match SAMPLE_FORMAT {
         SampleFormat::F32 => LinearPcmFlags::IS_FLOAT,
-        SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => {
-            LinearPcmFlags::IS_SIGNED_INTEGER
+        SampleFormat::I32 | SampleFormat::I24_3 | SampleFormat::I16 | SampleFormat::I8 => {
+            LinearPcmFlags::IS_SIGNED_INTEGER | LinearPcmFlags::IS_PACKED
         }
+        SampleFormat::I24_4 => LinearPcmFlags::IS_SIGNED_INTEGER,
     };
 
     if !INTERLEAVED {
@@ -81,23 +82,38 @@ fn main() -> Result<(), coreaudio::Error> {
     println!("stream format={:#?}", &stream_format);
     println!("asbd={:#?}", &stream_format.to_asbd());
 
+    // Lets print all supported formats, disabled for now since it often crashes.
+    //println!("All supported formats");
+    //let formats = get_supported_physical_stream_formats(audio_unit_id)?;
+    //for fmt in formats {
+    //    println!("{:?}", &fmt);
+    //}
+
     // set the sample rate. This isn't actually needed since the sample rate
     // will anyway be changed when setting the sample format later.
-    println!("set device sample rate");
-    set_device_sample_rate(audio_unit_id, SAMPLE_RATE)?;
+    //println!("set device sample rate");
+    //set_device_sample_rate(audio_unit_id, SAMPLE_RATE)?;
 
-    println!("setting hardware format to i16");
-    let hw_format_flag = LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_SIGNED_INTEGER;
+    println!("setting hardware (physical) format");
+
+    // use this for packed formats (most of them)
+    //let hw_format_flag = LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_SIGNED_INTEGER;
+
+    // use for non-packed formats (only I24_4)
+    let hw_format_flag = LinearPcmFlags::IS_SIGNED_INTEGER;
+
     let hw_stream_format = StreamFormat {
         sample_rate: SAMPLE_RATE,
-        sample_format: SampleFormat::I16,
+        sample_format: SampleFormat::I24_4,
         flags: hw_format_flag,
         channels: 2,
     };
 
+    println!("asbd: {:?}", hw_stream_format.to_asbd());
+
     // Note that using a StreamFormat here is convenient, but it only supports a few sample formats.
     // Setting the format to for example 24 bit integers requires using an ASBD.
-    set_device_sample_format(audio_unit_id, hw_stream_format.to_asbd())?;
+    set_device_physical_stream_format(audio_unit_id, hw_stream_format.to_asbd())?;
 
     println!("write audio unit StreamFormat property");
     let id = kAudioUnitProperty_StreamFormat;

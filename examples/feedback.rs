@@ -29,6 +29,9 @@ fn main() -> Result<(), coreaudio::Error> {
         SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => {
             LinearPcmFlags::IS_SIGNED_INTEGER
         }
+        _ => {
+            unimplemented!("Other formats are not implemented for this example.");
+        }
     };
 
     // Using IS_NON_INTERLEAVED everywhere because data::Interleaved is commented out / not implemented

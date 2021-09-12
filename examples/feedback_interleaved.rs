@@ -34,7 +34,7 @@ fn main() -> Result<(), coreaudio::Error> {
     let mut output_audio_unit = audio_unit_from_device_id(output_device_id, false)?;
 
     let format_flag = match SAMPLE_FORMAT {
-        SampleFormat::F32 => LinearPcmFlags::IS_FLOAT,
+        SampleFormat::F32 => LinearPcmFlags::IS_FLOAT | LinearPcmFlags::IS_PACKED,
         SampleFormat::I32 | SampleFormat::I24_3 | SampleFormat::I16 | SampleFormat::I8 => {
             LinearPcmFlags::IS_SIGNED_INTEGER | LinearPcmFlags::IS_PACKED
         }
@@ -44,14 +44,14 @@ fn main() -> Result<(), coreaudio::Error> {
     let in_stream_format = StreamFormat {
         sample_rate: SAMPLE_RATE,
         sample_format: SAMPLE_FORMAT,
-        flags: format_flag | LinearPcmFlags::IS_PACKED,
+        flags: format_flag,
         channels: 2,
     };
 
     let out_stream_format = StreamFormat {
         sample_rate: SAMPLE_RATE,
         sample_format: SAMPLE_FORMAT,
-        flags: format_flag | LinearPcmFlags::IS_PACKED,
+        flags: format_flag,
         channels: 2,
     };
 

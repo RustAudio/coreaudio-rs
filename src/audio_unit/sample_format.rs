@@ -11,9 +11,9 @@ pub enum SampleFormat {
     I24_3,
     /// 24-bit signed integer, stored in 4 bytes where one is padding.
     I24_4,
-    // 16-bit signed integer.
+    /// 16-bit signed integer.
     I16,
-    // 8-bit signed integer.
+    /// 8-bit signed integer.
     I8,
 }
 

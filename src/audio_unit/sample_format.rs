@@ -7,10 +7,8 @@ pub enum SampleFormat {
     F32,
     /// 32-bit signed integer.
     I32,
-    /// 24-bit signed integer, packed in 3 bytes.
-    I24_3,
-    /// 24-bit signed integer, stored in 4 bytes where one is padding.
-    I24_4,
+    /// 24-bit signed integer. Can be packed or not depending on the flags.
+    I24,
     /// 16-bit signed integer.
     I16,
     /// 8-bit signed integer.
@@ -25,10 +23,10 @@ impl SampleFormat {
         let is_packed = flags.contains(LinearPcmFlags::IS_PACKED);
         match *self {
             SampleFormat::F32 => is_float && !is_signed_integer && is_packed,
-            SampleFormat::I32 | SampleFormat::I24_3 | SampleFormat::I16 | SampleFormat::I8 => {
+            SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => {
                 is_signed_integer && !is_float && is_packed
             }
-            SampleFormat::I24_4 => is_signed_integer && !is_float && !is_packed,
+            SampleFormat::I24 => is_signed_integer && !is_float,
         }
     }
 
@@ -47,8 +45,7 @@ impl SampleFormat {
             match (bits_per_sample, packed) {
                 (8, true) => SampleFormat::I8,
                 (16, true) => SampleFormat::I16,
-                (24, true) => SampleFormat::I24_3,
-                (24, false) => SampleFormat::I24_4,
+                (24, _) => SampleFormat::I24,
                 (32, true) => SampleFormat::I32,
                 _ => return None,
             }
@@ -59,14 +56,13 @@ impl SampleFormat {
         Some(sample_format)
     }
 
-    /// Return the size of one sample in bytes.
+    /// Return the size of one sample in bytes, assuming that the format is packed.
     pub fn size_in_bytes(&self) -> usize {
         use std::mem::size_of;
         match *self {
             SampleFormat::F32 => size_of::<f32>(),
             SampleFormat::I32 => size_of::<i32>(),
-            SampleFormat::I24_3 => 3 * size_of::<u8>(),
-            SampleFormat::I24_4 => 4 * size_of::<u8>(),
+            SampleFormat::I24 => 3 * size_of::<u8>(),
             SampleFormat::I16 => size_of::<i16>(),
             SampleFormat::I8 => size_of::<i8>(),
         }
@@ -77,8 +73,7 @@ impl SampleFormat {
         match *self {
             SampleFormat::F32 => 32,
             SampleFormat::I32 => 32,
-            SampleFormat::I24_3 => 24,
-            SampleFormat::I24_4 => 24,
+            SampleFormat::I24 => 24,
             SampleFormat::I16 => 16,
             SampleFormat::I8 => 8,
         }

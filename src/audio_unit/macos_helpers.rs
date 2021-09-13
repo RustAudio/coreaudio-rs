@@ -24,13 +24,13 @@ use sys::{
     kCFStringEncodingUTF8, AudioDeviceID, AudioObjectAddPropertyListener,
     AudioObjectGetPropertyData, AudioObjectGetPropertyDataSize, AudioObjectID,
     AudioObjectPropertyAddress, AudioObjectRemovePropertyListener, AudioObjectSetPropertyData,
-    AudioStreamBasicDescription, AudioValueRange, OSStatus, AudioStreamRangedDescription,
+    AudioStreamBasicDescription, AudioStreamRangedDescription, AudioValueRange, OSStatus,
 };
 
 use crate::audio_unit::audio_format::{AudioFormat, LinearPcmFlags};
-use crate::audio_unit::{AudioUnit, Element, IOType, Scope};
-use crate::audio_unit::stream_format::StreamFormat;
 use crate::audio_unit::sample_format::SampleFormat;
+use crate::audio_unit::stream_format::StreamFormat;
+use crate::audio_unit::{AudioUnit, Element, IOType, Scope};
 
 /// Helper function to get the device id of the default input or output device
 /// Only implemented for macOS, not iOS.
@@ -332,29 +332,39 @@ pub fn find_matching_physical_format(
         let wanted_samplerate = stream_format.sample_rate as usize;
         let wanted_bits = stream_format.sample_format.size_in_bits();
         let wanted_float = stream_format.sample_format == SampleFormat::F32;
+        let wanted_channels = stream_format.channels;
         for fmt in all_formats {
             let minrate = fmt.mSampleRateRange.mMinimum as usize;
             let maxrate = fmt.mSampleRateRange.mMaximum as usize;
             let rate = fmt.mFormat.mSampleRate as usize;
-            if let Some(AudioFormat::LinearPCM(flags)) = AudioFormat::from_format_and_flag(fmt.mFormat.mFormatID, Some(fmt.mFormat.mFormatFlags)) {
+            let channels = fmt.mFormat.mChannelsPerFrame;
+            if let Some(AudioFormat::LinearPCM(flags)) = AudioFormat::from_format_and_flag(
+                fmt.mFormat.mFormatID,
+                Some(fmt.mFormat.mFormatFlags),
+            ) {
                 let floats = flags.contains(LinearPcmFlags::IS_FLOAT);
-                let ints = flags.contains(LinearPcmFlags::IS_SIGNED_INTEGER); 
-                if  wanted_float != floats || wanted_float == ints {
+                let ints = flags.contains(LinearPcmFlags::IS_SIGNED_INTEGER);
+                if wanted_float != floats || wanted_float == ints {
                     // Wrong number type
                     continue;
-                } 
+                }
                 if wanted_bits != fmt.mFormat.mBitsPerChannel {
                     // Wrong number of bits
                     continue;
                 }
-                if rate == wanted_samplerate || (wanted_samplerate >= minrate && wanted_samplerate <= maxrate) {
+                if wanted_channels > channels {
+                    // Too few channels
+                    continue;
+                }
+                if rate == wanted_samplerate
+                    || (wanted_samplerate >= minrate && wanted_samplerate <= maxrate)
+                {
                     return Some(fmt.mFormat);
                 }
-
             }
         }
     }
-    return None
+    return None;
 }
 
 /// Change the physical stream format (sample rate and format) of a device.

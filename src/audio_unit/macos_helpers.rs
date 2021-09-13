@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Mutex;
 use std::time::Duration;
-use std::{mem, slice, thread};
+use std::{mem, thread};
 
 use core_foundation_sys::string::{CFStringGetCString, CFStringGetCStringPtr, CFStringRef};
 use sys;
@@ -24,9 +24,12 @@ use sys::{
     kCFStringEncodingUTF8, AudioDeviceID, AudioObjectAddPropertyListener,
     AudioObjectGetPropertyData, AudioObjectGetPropertyDataSize, AudioObjectID,
     AudioObjectPropertyAddress, AudioObjectRemovePropertyListener, AudioObjectSetPropertyData,
-    AudioStreamBasicDescription, AudioValueRange, OSStatus,
+    AudioStreamBasicDescription, AudioStreamRangedDescription, AudioValueRange, OSStatus,
 };
 
+use crate::audio_unit::audio_format::{AudioFormat, LinearPcmFlags};
+use crate::audio_unit::sample_format::SampleFormat;
+use crate::audio_unit::stream_format::StreamFormat;
 use crate::audio_unit::{AudioUnit, Element, IOType, Scope};
 
 /// Helper function to get the device id of the default input or output device
@@ -144,6 +147,7 @@ pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
     let device_count = data_size / mem::size_of::<AudioDeviceID>() as u32;
     let mut audio_devices = vec![];
     audio_devices.reserve_exact(device_count as usize);
+    unsafe { audio_devices.set_len(device_count as usize) };
 
     let status = unsafe {
         AudioObjectGetPropertyData(
@@ -156,9 +160,6 @@ pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
         )
     };
     try_status_or_return!(status);
-
-    unsafe { audio_devices.set_len(device_count as usize) };
-
     Ok(audio_devices)
 }
 
@@ -259,8 +260,9 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
             );
             Error::from_os_status(status)?;
             let n_ranges = data_size as usize / mem::size_of::<AudioValueRange>();
-            let mut ranges: Vec<u8> = vec![];
-            ranges.reserve_exact(data_size as usize);
+            let mut ranges: Vec<AudioValueRange> = vec![];
+            ranges.reserve_exact(n_ranges as usize);
+            ranges.set_len(n_ranges);
             let status = AudioObjectGetPropertyData(
                 device_id,
                 &property_address as *const _,
@@ -270,8 +272,6 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
                 ranges.as_mut_ptr() as *mut _,
             );
             Error::from_os_status(status)?;
-            let ranges: *mut AudioValueRange = ranges.as_mut_ptr() as *mut _;
-            let ranges: &'static [AudioValueRange] = slice::from_raw_parts(ranges, n_ranges);
 
             // Now that we have the available ranges, pick the one matching the desired rate.
             let new_rate_integer = new_rate as u32;
@@ -322,15 +322,68 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
     }
 }
 
-/// Change the sample rate and format of a device.
+/// Find the closest match of the physical formats to the provided `StreamFormat`.
+/// It will pick the first format it finds that supports the provided sample format, rate and number of channels.
+/// The provided format flags in the `StreamFormat` are ignored.
+pub fn find_matching_physical_format(
+    device_id: AudioDeviceID,
+    stream_format: StreamFormat,
+) -> Option<AudioStreamBasicDescription> {
+    if let Ok(all_formats) = get_supported_physical_stream_formats(device_id) {
+        let requested_samplerate = stream_format.sample_rate as usize;
+        let requested_bits = stream_format.sample_format.size_in_bits();
+        let requested_float = stream_format.sample_format == SampleFormat::F32;
+        let requested_channels = stream_format.channels;
+        for fmt in all_formats {
+            let min_rate = fmt.mSampleRateRange.mMinimum as usize;
+            let max_rate = fmt.mSampleRateRange.mMaximum as usize;
+            let rate = fmt.mFormat.mSampleRate as usize;
+            let channels = fmt.mFormat.mChannelsPerFrame;
+            if let Some(AudioFormat::LinearPCM(flags)) = AudioFormat::from_format_and_flag(
+                fmt.mFormat.mFormatID,
+                Some(fmt.mFormat.mFormatFlags),
+            ) {
+                let is_float = flags.contains(LinearPcmFlags::IS_FLOAT);
+                let is_int = flags.contains(LinearPcmFlags::IS_SIGNED_INTEGER);
+                if is_int && is_float {
+                    // Probably never occurs, check just in case
+                    continue;
+                }
+                if requested_float && !is_float {
+                    // Wrong number type
+                    continue;
+                }
+                if !requested_float && !is_int {
+                    // Wrong number type
+                    continue;
+                }
+                if requested_bits != fmt.mFormat.mBitsPerChannel {
+                    // Wrong number of bits
+                    continue;
+                }
+                if requested_channels > channels {
+                    // Too few channels
+                    continue;
+                }
+                if rate == requested_samplerate
+                    || (requested_samplerate >= min_rate && requested_samplerate <= max_rate)
+                {
+                    return Some(fmt.mFormat);
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Change the physical stream format (sample rate and format) of a device.
 /// Only implemented for macOS, not iOS.
-pub fn set_device_sample_format(
+pub fn set_device_physical_stream_format(
     device_id: AudioDeviceID,
     new_asbd: AudioStreamBasicDescription,
 ) -> Result<(), Error> {
-    // Check whether or not we need to change the device sample format and rate.
     unsafe {
-        // Get the current sample rate.
+        // Get the current format.
         let property_address = AudioObjectPropertyAddress {
             mSelector: kAudioStreamPropertyPhysicalFormat,
             mScope: kAudioObjectPropertyScopeGlobal,
@@ -349,7 +402,6 @@ pub fn set_device_sample_format(
         Error::from_os_status(status)?;
         let asbd = maybe_asbd.assume_init();
 
-        // If the requested sample rate and/or format is different to the device sample rate, update the device.
         if !asbds_are_equal(&asbd, &new_asbd) {
             let property_address = AudioObjectPropertyAddress {
                 mSelector: kAudioStreamPropertyPhysicalFormat,
@@ -372,8 +424,7 @@ pub fn set_device_sample_format(
             Error::from_os_status(status)?;
 
             // Wait for the reported format to change.
-            //
-            // This should not take longer than a few ms, but we timeout after 1 sec just in case.
+            // This can take up to half a second, but we timeout after 2 sec just in case.
             let timer = ::std::time::Instant::now();
             loop {
                 let status = AudioObjectGetPropertyData(
@@ -389,8 +440,8 @@ pub fn set_device_sample_format(
                     break;
                 }
                 thread::sleep(Duration::from_millis(5));
-                if timer.elapsed() > Duration::from_secs(1) {
-                    return Err(Error::UnsupportedSampleRate);
+                if timer.elapsed() > Duration::from_secs(2) {
+                    return Err(Error::UnsupportedStreamFormat);
                 }
             }
         }
@@ -413,34 +464,33 @@ fn asbds_are_equal(
         && left.mBitsPerChannel == right.mBitsPerChannel
 }
 
-/// Get a vector with all supported formats as AudioBasicStreamDescriptions.
+/// Get a vector with all supported physical formats as AudioBasicRangedDescriptions.
 /// Only implemented for macOS, not iOS.
-pub fn get_supported_stream_formats(
+pub fn get_supported_physical_stream_formats(
     device_id: AudioDeviceID,
-) -> Result<Vec<AudioStreamBasicDescription>, Error> {
+) -> Result<Vec<AudioStreamRangedDescription>, Error> {
     // Get available formats.
     let mut property_address = AudioObjectPropertyAddress {
         mSelector: kAudioStreamPropertyPhysicalFormat,
         mScope: kAudioObjectPropertyScopeGlobal,
-        //mScope: kAudioDevicePropertyScopeInput,
-        //mScope: kAudioObjectPropertyScopeOutput,
-        //mScope: kAudioDevicePropertyScopeOutput,
         mElement: kAudioObjectPropertyElementMaster,
     };
-    let formats = unsafe {
+    let allformats = unsafe {
         property_address.mSelector = kAudioStreamPropertyAvailablePhysicalFormats;
-        let data_size = 0u32;
+        let mut data_size = 0u32;
         let status = AudioObjectGetPropertyDataSize(
             device_id,
             &property_address as *const _,
             0,
             null(),
-            &data_size as *const _ as *mut _,
+            &mut data_size as *mut _,
         );
         Error::from_os_status(status)?;
-        let n_formats = data_size as usize / mem::size_of::<AudioStreamBasicDescription>();
-        let mut formats: Vec<u8> = vec![];
-        formats.reserve_exact(data_size as usize);
+        let n_formats = data_size as usize / mem::size_of::<AudioStreamRangedDescription>();
+        let mut formats: Vec<AudioStreamRangedDescription> = vec![];
+        formats.reserve_exact(n_formats as usize);
+        formats.set_len(n_formats);
+
         let status = AudioObjectGetPropertyData(
             device_id,
             &property_address as *const _,
@@ -450,19 +500,9 @@ pub fn get_supported_stream_formats(
             formats.as_mut_ptr() as *mut _,
         );
         Error::from_os_status(status)?;
-        let formats: *mut AudioStreamBasicDescription = formats.as_mut_ptr() as *mut _;
-        Vec::from_raw_parts(formats, n_formats, n_formats)
+        formats
     };
-    /*
-    println!("---- All supported formats ----");
-    for asbd in formats.iter() {
-        if let Ok(sf) = StreamFormat::from_asbd(*asbd) {
-                println!("{:#?}", asbd);
-                println!("{:#?}", sf);
-        }
-    }
-    */
-    Ok(formats)
+    Ok(allformats)
 }
 
 /// Changing the sample rate is an asynchonous process.

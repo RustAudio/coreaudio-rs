@@ -364,7 +364,7 @@ pub fn find_matching_physical_format(
             }
         }
     }
-    return None;
+    None
 }
 
 /// Change the physical stream format (sample rate and format) of a device.

@@ -322,42 +322,51 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
     }
 }
 
-/// Find the closest match of the physical formats to the provided StreamFormat.
-/// Note that only the sample format and rate will be matched, the flags will be ignored.
+/// Find the closest match of the physical formats to the provided `StreamFormat`.
+/// It will pick the first format it finds that supports the provided sample format, rate and number of channels.
+/// The provided format flags in the `StreamFormat` are ignored.
 pub fn find_matching_physical_format(
     device_id: AudioDeviceID,
     stream_format: StreamFormat,
 ) -> Option<AudioStreamBasicDescription> {
     if let Ok(all_formats) = get_supported_physical_stream_formats(device_id) {
-        let wanted_samplerate = stream_format.sample_rate as usize;
-        let wanted_bits = stream_format.sample_format.size_in_bits();
-        let wanted_float = stream_format.sample_format == SampleFormat::F32;
-        let wanted_channels = stream_format.channels;
+        let requested_samplerate = stream_format.sample_rate as usize;
+        let requested_bits = stream_format.sample_format.size_in_bits();
+        let requested_float = stream_format.sample_format == SampleFormat::F32;
+        let requested_channels = stream_format.channels;
         for fmt in all_formats {
-            let minrate = fmt.mSampleRateRange.mMinimum as usize;
-            let maxrate = fmt.mSampleRateRange.mMaximum as usize;
+            let min_rate = fmt.mSampleRateRange.mMinimum as usize;
+            let max_rate = fmt.mSampleRateRange.mMaximum as usize;
             let rate = fmt.mFormat.mSampleRate as usize;
             let channels = fmt.mFormat.mChannelsPerFrame;
             if let Some(AudioFormat::LinearPCM(flags)) = AudioFormat::from_format_and_flag(
                 fmt.mFormat.mFormatID,
                 Some(fmt.mFormat.mFormatFlags),
             ) {
-                let floats = flags.contains(LinearPcmFlags::IS_FLOAT);
-                let ints = flags.contains(LinearPcmFlags::IS_SIGNED_INTEGER);
-                if wanted_float != floats || wanted_float == ints {
+                let is_float = flags.contains(LinearPcmFlags::IS_FLOAT);
+                let is_int = flags.contains(LinearPcmFlags::IS_SIGNED_INTEGER);
+                if is_int && is_float {
+                    // Probably never occurs, check just in case
+                    continue;
+                }
+                if requested_float && !is_float {
                     // Wrong number type
                     continue;
                 }
-                if wanted_bits != fmt.mFormat.mBitsPerChannel {
+                if !requested_float && !is_int {
+                    // Wrong number type
+                    continue;
+                }
+                if requested_bits != fmt.mFormat.mBitsPerChannel {
                     // Wrong number of bits
                     continue;
                 }
-                if wanted_channels > channels {
+                if requested_channels > channels {
                     // Too few channels
                     continue;
                 }
-                if rate == wanted_samplerate
-                    || (wanted_samplerate >= minrate && wanted_samplerate <= maxrate)
+                if rate == requested_samplerate
+                    || (requested_samplerate >= min_rate && requested_samplerate <= max_rate)
                 {
                     return Some(fmt.mFormat);
                 }
@@ -373,9 +382,8 @@ pub fn set_device_physical_stream_format(
     device_id: AudioDeviceID,
     new_asbd: AudioStreamBasicDescription,
 ) -> Result<(), Error> {
-    // Check whether or not we need to change the device sample format and rate.
     unsafe {
-        // Get the current sample rate.
+        // Get the current format.
         let property_address = AudioObjectPropertyAddress {
             mSelector: kAudioStreamPropertyPhysicalFormat,
             mScope: kAudioObjectPropertyScopeGlobal,
@@ -393,10 +401,7 @@ pub fn set_device_physical_stream_format(
         );
         Error::from_os_status(status)?;
         let asbd = maybe_asbd.assume_init();
-        //println!("Current: {:?}", asbd);
-        //println!("New: {:?}", new_asbd);
 
-        // If the requested sample rate and/or format is different to the device sample rate, update the device.
         if !asbds_are_equal(&asbd, &new_asbd) {
             let property_address = AudioObjectPropertyAddress {
                 mSelector: kAudioStreamPropertyPhysicalFormat,
@@ -419,8 +424,7 @@ pub fn set_device_physical_stream_format(
             Error::from_os_status(status)?;
 
             // Wait for the reported format to change.
-            //
-            // This should not take longer than a few ms, but we timeout after 1 sec just in case.
+            // This can take up to half a second, but we timeout after 2 sec just in case.
             let timer = ::std::time::Instant::now();
             loop {
                 let status = AudioObjectGetPropertyData(
@@ -460,10 +464,8 @@ fn asbds_are_equal(
         && left.mBitsPerChannel == right.mBitsPerChannel
 }
 
-/// Get a vector with all supported physical formats as AudioBasicStreamDescriptions.
+/// Get a vector with all supported physical formats as AudioBasicRangedDescriptions.
 /// Only implemented for macOS, not iOS.
-/// TODO: figure out why this sometimes crashes with:
-/// malloc: Incorrect checksum for freed object 0x7fca6bc3c538: probably modified after being freed.
 pub fn get_supported_physical_stream_formats(
     device_id: AudioDeviceID,
 ) -> Result<Vec<AudioStreamRangedDescription>, Error> {
@@ -471,9 +473,6 @@ pub fn get_supported_physical_stream_formats(
     let mut property_address = AudioObjectPropertyAddress {
         mSelector: kAudioStreamPropertyPhysicalFormat,
         mScope: kAudioObjectPropertyScopeGlobal,
-        //mScope: kAudioDevicePropertyScopeInput,
-        //mScope: kAudioObjectPropertyScopeOutput,
-        //mScope: kAudioDevicePropertyScopeOutput,
         mElement: kAudioObjectPropertyElementMaster,
     };
     let allformats = unsafe {
@@ -503,15 +502,6 @@ pub fn get_supported_physical_stream_formats(
         Error::from_os_status(status)?;
         formats
     };
-    /*
-    println!("---- All supported formats ----");
-    for asbd in formats.iter() {
-        if let Ok(sf) = StreamFormat::from_asbd(*asbd) {
-                println!("{:#?}", asbd);
-                println!("{:#?}", sf);
-        }
-    }
-    */
     Ok(allformats)
 }
 

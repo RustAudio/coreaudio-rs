@@ -87,7 +87,7 @@ pub trait Sample {
 }
 
 /// Simplified implementation of the `Sample` trait for sample types.
-/// This is only implemented for the types that map directly to a numeric type.
+/// This is only implemented for the sample types that map directly to a numeric type.
 macro_rules! impl_sample {
     ($($T:ident $format:ident),* $(,)*) => {
         $(

@@ -103,6 +103,9 @@ impl StreamFormat {
     }
 
     /// Convert a StreamFormat into an AudioStreamBasicDescription.
+    /// Note that this function assumes that only packed formats are used.
+    /// This only affects I24, since all other formats supported by `StreamFormat`
+    /// are always packed.
     pub fn to_asbd(self) -> sys::AudioStreamBasicDescription {
         let StreamFormat {
             sample_rate,
@@ -111,7 +114,8 @@ impl StreamFormat {
             channels,
         } = self;
 
-        let (format, maybe_flag) = AudioFormat::LinearPCM(flags).as_format_and_flag();
+        let (format, maybe_flag) =
+            AudioFormat::LinearPCM(flags | LinearPcmFlags::IS_PACKED).as_format_and_flag();
 
         let flag = maybe_flag.unwrap_or(::std::u32::MAX - 2147483647);
 
@@ -121,17 +125,9 @@ impl StreamFormat {
         } else {
             sample_format.size_in_bytes() as u32 * channels
         };
-        //let bytes_per_frame = sample_format.size_in_bytes() as u32;
         const FRAMES_PER_PACKET: u32 = 1;
         let bytes_per_packet = bytes_per_frame * FRAMES_PER_PACKET;
-        //let bits_per_channel = bytes_per_frame / channels * 8;
-        //let bits_per_channel = if non_interleaved {
-        //    bytes_per_frame * 8
-        //} else {
-        //    bytes_per_frame / channels * 8
-        //};
         let bits_per_channel = sample_format.size_in_bits();
-        //let bits_per_channel = bytes_per_frame * 8;
 
         sys::AudioStreamBasicDescription {
             mSampleRate: sample_rate,

@@ -94,6 +94,7 @@ fn main() -> Result<(), coreaudio::Error> {
 
     // set the sample rate. This isn't actually needed since the sample rate
     // will anyway be changed when setting the sample format later.
+    // Keeping it here as an example.
     //println!("set device sample rate");
     //set_device_sample_rate(audio_unit_id, SAMPLE_RATE)?;
 

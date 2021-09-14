@@ -36,7 +36,8 @@ pub fn run_example() -> Result<(), coreaudio::Error> {
         SampleFormat::F32 => LinearPcmFlags::IS_FLOAT,
         SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => {
             LinearPcmFlags::IS_SIGNED_INTEGER
-        }
+        },
+        SampleFormat::I24 => { unimplemented!("Not implemented for I24")},
     };
 
     // Using IS_NON_INTERLEAVED everywhere because data::Interleaved is commented out / not implemented

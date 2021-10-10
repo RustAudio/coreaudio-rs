@@ -33,9 +33,7 @@ pub use self::types::{
 };
 
 #[cfg(target_os = "macos")]
-mod macos_helpers;
-#[cfg(target_os = "macos")]
-pub use self::macos_helpers::*;
+pub mod macos_helpers;
 
 pub mod audio_format;
 pub mod render_callback;

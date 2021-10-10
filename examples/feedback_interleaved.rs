@@ -7,8 +7,8 @@ use std::sync::{Arc, Mutex};
 
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
-use coreaudio::audio_unit::{audio_unit_from_device_id, get_default_device_id, get_device_name};
-use coreaudio::audio_unit::{Element, RateListener, SampleFormat, Scope, StreamFormat};
+use coreaudio::audio_unit::macos_helpers::{audio_unit_from_device_id, get_default_device_id, get_device_name, RateListener};
+use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
 use coreaudio::sys::*;
 
 const SAMPLE_RATE: f64 = 44100.0;

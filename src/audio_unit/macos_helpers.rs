@@ -1,4 +1,5 @@
 /// This is a collection of helper functions for performing common tasks on macOS.
+/// These functions are only implemented for macOS, not iOS.
 use crate::error::Error;
 use std::collections::VecDeque;
 use std::ffi::CStr;
@@ -32,8 +33,7 @@ use crate::audio_unit::sample_format::SampleFormat;
 use crate::audio_unit::stream_format::StreamFormat;
 use crate::audio_unit::{AudioUnit, Element, IOType, Scope};
 
-/// Helper function to get the device id of the default input or output device
-/// Only implemented for macOS, not iOS.
+/// Helper function to get the device id of the default input or output device.
 pub fn get_default_device_id(input: bool) -> Option<AudioDeviceID> {
     let selector = if input {
         kAudioHardwarePropertyDefaultInputDevice
@@ -65,8 +65,7 @@ pub fn get_default_device_id(input: bool) -> Option<AudioDeviceID> {
     Some(audio_device_id)
 }
 
-/// Helper function to get the device id of from a device name.
-/// Only implemented for macOS, not iOS.
+/// Find the device id for a device name.
 pub fn get_device_id_from_name(name: &str) -> Option<AudioDeviceID> {
     if let Ok(all_ids) = get_audio_device_ids() {
         return all_ids
@@ -78,7 +77,6 @@ pub fn get_device_id_from_name(name: &str) -> Option<AudioDeviceID> {
 }
 
 /// Create an AudioUnit instance from a device id.
-/// Only implemented for macOS, not iOS.
 pub fn audio_unit_from_device_id(
     device_id: AudioDeviceID,
     input: bool,
@@ -115,8 +113,7 @@ pub fn audio_unit_from_device_id(
     Ok(audio_unit)
 }
 
-/// Helper to list all audio device ids on the system.
-/// Only implemented for macOS, not iOS.
+/// List all audio device ids on the system.
 pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioHardwarePropertyDevices,
@@ -163,8 +160,7 @@ pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
     Ok(audio_devices)
 }
 
-/// Get the device name for the device id.
-/// Only implemented for macOS, not iOS.
+/// Get the device name for a device id.
 pub fn get_device_name(device_id: AudioDeviceID) -> Result<String, Error> {
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioDevicePropertyDeviceNameCFString,
@@ -224,7 +220,6 @@ pub fn get_device_name(device_id: AudioDeviceID) -> Result<String, Error> {
 
 /// Change the sample rate of a device.
 /// Adapted from CPAL.
-/// Only implemented for macOS, not iOS.
 pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result<(), Error> {
     // Check whether or not we need to change the device sample rate to suit the one specified for the stream.
     unsafe {
@@ -323,7 +318,7 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
 }
 
 /// Find the closest match of the physical formats to the provided `StreamFormat`.
-/// It will pick the first format it finds that supports the provided sample format, rate and number of channels.
+/// This function will pick the first format it finds that supports the provided sample format, rate and number of channels.
 /// The provided format flags in the `StreamFormat` are ignored.
 pub fn find_matching_physical_format(
     device_id: AudioDeviceID,
@@ -377,7 +372,6 @@ pub fn find_matching_physical_format(
 }
 
 /// Change the physical stream format (sample rate and format) of a device.
-/// Only implemented for macOS, not iOS.
 pub fn set_device_physical_stream_format(
     device_id: AudioDeviceID,
     new_asbd: AudioStreamBasicDescription,
@@ -465,7 +459,6 @@ fn asbds_are_equal(
 }
 
 /// Get a vector with all supported physical formats as AudioBasicRangedDescriptions.
-/// Only implemented for macOS, not iOS.
 pub fn get_supported_physical_stream_formats(
     device_id: AudioDeviceID,
 ) -> Result<Vec<AudioStreamRangedDescription>, Error> {
@@ -506,8 +499,7 @@ pub fn get_supported_physical_stream_formats(
 }
 
 /// Changing the sample rate is an asynchonous process.
-/// Use a RateListener to get notified when the rate is changed.
-/// Only implemented for macOS, not iOS.
+/// A RateListener can be used to get notified when the rate is changed.
 pub struct RateListener {
     pub queue: Mutex<VecDeque<f64>>,
     sync_channel: Option<Sender<f64>>,
@@ -526,8 +518,9 @@ impl Drop for RateListener {
 
 impl RateListener {
     /// Create a new RateListener for the given AudioDeviceID.
-    /// If a sync Sender is provided, then events will be pushed to that channel.
-    /// If not, they will be stored in an internal queue that will need to be polled.
+    /// If an `std::sync::mpsc::Sender` is provided, then events will be pushed to that channel.
+    /// If not, they will instead be stored in an internal queue that will need to be polled.
+    /// The listener must be registered by calling `register()` in order to start receiving notifications.
     pub fn new(device_id: AudioDeviceID, sync_channel: Option<Sender<f64>>) -> RateListener {
         // Add our sample rate change listener callback.
         let property_address = AudioObjectPropertyAddress {
@@ -592,7 +585,7 @@ impl RateListener {
         Ok(())
     }
 
-    /// Unregister this listener to stop receiving notifications
+    /// Unregister this listener to stop receiving notifications.
     pub fn unregister(&mut self) -> Result<(), Error> {
         if self.rate_listener.is_some() {
             let status = unsafe {
@@ -610,12 +603,14 @@ impl RateListener {
     }
 
     /// Get the number of sample rate values received (equals the number of change events).
+    /// Not used if the RateListener was created with a `std::sync::mpsc::Sender`. 
     pub fn get_nbr_values(&self) -> usize {
         self.queue.lock().unwrap().len()
     }
 
     /// Copy all received values to a Vec. The latest value is the last element.
     /// The internal buffer is preserved.
+    /// Not used if the RateListener was created with a `std::sync::mpsc::Sender`.
     pub fn copy_values(&self) -> Vec<f64> {
         self.queue
             .lock()
@@ -627,13 +622,13 @@ impl RateListener {
 
     /// Get all received values as a Vec. The latest value is the last element.
     /// This clears the internal buffer.
+    /// Not used if the RateListener was created with a `std::sync::mpsc::Sender`.
     pub fn drain_values(&mut self) -> Vec<f64> {
         self.queue.lock().unwrap().drain(..).collect::<Vec<f64>>()
     }
 }
 
 /// An AliveListener is used to get notified when a device is disconnected.
-/// Only implemented for macOS, not iOS.
 pub struct AliveListener {
     alive: Box<AtomicBool>,
     device_id: AudioDeviceID,
@@ -651,6 +646,7 @@ impl Drop for AliveListener {
 
 impl AliveListener {
     /// Create a new AliveListener for the given AudioDeviceID.
+    /// The listener must be registered by calling `register()` in order to start receiving notifications.
     pub fn new(device_id: AudioDeviceID) -> AliveListener {
         // Add our listener callback.
         let property_address = AudioObjectPropertyAddress {

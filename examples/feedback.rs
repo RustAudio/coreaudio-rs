@@ -3,13 +3,12 @@
 extern crate coreaudio;
 
 use std::collections::VecDeque;
-use std::mem;
-use std::ptr::null;
 use std::sync::{Arc, Mutex};
 
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
-use coreaudio::audio_unit::{AudioUnit, Element, SampleFormat, Scope, StreamFormat};
+use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
+use coreaudio::audio_unit::macos_helpers::{audio_unit_from_device_id, get_default_device_id};
 use coreaudio::sys::*;
 
 const SAMPLE_RATE: f64 = 44100.0;
@@ -21,8 +20,8 @@ const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 // type S = i8; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I8;
 
 fn main() -> Result<(), coreaudio::Error> {
-    let mut input_audio_unit = audio_unit_from_device(default_input_device().unwrap(), true)?;
-    let mut output_audio_unit = audio_unit_from_device(default_output_device().unwrap(), false)?;
+    let mut input_audio_unit = audio_unit_from_device_id(get_default_device_id(true).unwrap(), true)?;
+    let mut output_audio_unit = audio_unit_from_device_id(get_default_device_id(false).unwrap(), false)?;
 
     let format_flag = match SAMPLE_FORMAT {
         SampleFormat::F32 => LinearPcmFlags::IS_FLOAT,
@@ -87,6 +86,10 @@ fn main() -> Result<(), coreaudio::Error> {
             mut data,
             ..
         } = args;
+        // Print the number of frames the callback provides.
+        // Included to aid understanding, don't use println and other things
+        // that may block for an unknown amount of time inside the callback
+        // of a real application.
         println!("input cb {} frames", num_frames);
         let buffer_left = producer_left.lock().unwrap();
         let buffer_right = producer_right.lock().unwrap();
@@ -107,6 +110,10 @@ fn main() -> Result<(), coreaudio::Error> {
             mut data,
             ..
         } = args;
+        // Print the number of frames the callback requests.
+        // Included to aid understanding, don't use println and other things
+        // that may block for an unknown amount of time inside the callback
+        // of a real application.
         println!("output cb {} frames", num_frames);
         let buffer_left = consumer_left.lock().unwrap();
         let buffer_right = consumer_right.lock().unwrap();
@@ -127,95 +134,4 @@ fn main() -> Result<(), coreaudio::Error> {
     std::thread::sleep(std::time::Duration::from_millis(100000));
 
     Ok(())
-}
-
-/// Copied from cpal
-pub fn default_input_device() -> Option<AudioDeviceID> {
-    let property_address = AudioObjectPropertyAddress {
-        mSelector: kAudioHardwarePropertyDefaultInputDevice,
-        mScope: kAudioObjectPropertyScopeGlobal,
-        mElement: kAudioObjectPropertyElementMaster,
-    };
-
-    let audio_device_id: AudioDeviceID = 0;
-    let data_size = mem::size_of::<AudioDeviceID>();
-    let status = unsafe {
-        AudioObjectGetPropertyData(
-            kAudioObjectSystemObject,
-            &property_address as *const _,
-            0,
-            null(),
-            &data_size as *const _ as *mut _,
-            &audio_device_id as *const _ as *mut _,
-        )
-    };
-    if status != kAudioHardwareNoError as i32 {
-        return None;
-    }
-
-    Some(audio_device_id)
-}
-
-/// Copied from cpal
-pub fn default_output_device() -> Option<AudioDeviceID> {
-    let property_address = AudioObjectPropertyAddress {
-        mSelector: kAudioHardwarePropertyDefaultOutputDevice,
-        mScope: kAudioObjectPropertyScopeGlobal,
-        mElement: kAudioObjectPropertyElementMaster,
-    };
-
-    let audio_device_id: AudioDeviceID = 0;
-    let data_size = mem::size_of::<AudioDeviceID>();
-    let status = unsafe {
-        AudioObjectGetPropertyData(
-            kAudioObjectSystemObject,
-            &property_address as *const _,
-            0,
-            null(),
-            &data_size as *const _ as *mut _,
-            &audio_device_id as *const _ as *mut _,
-        )
-    };
-    if status != kAudioHardwareNoError as i32 {
-        return None;
-    }
-
-    Some(audio_device_id)
-}
-
-/// Copied from cpal
-fn audio_unit_from_device(
-    device_id: AudioDeviceID,
-    input: bool,
-) -> Result<AudioUnit, coreaudio::Error> {
-    let mut audio_unit = AudioUnit::new(coreaudio::audio_unit::IOType::HalOutput)?;
-
-    if input {
-        // Enable input processing.
-        let enable_input = 1u32;
-        audio_unit.set_property(
-            kAudioOutputUnitProperty_EnableIO,
-            Scope::Input,
-            Element::Input,
-            Some(&enable_input),
-        )?;
-
-        // Disable output processing.
-        let disable_output = 0u32;
-        audio_unit.set_property(
-            kAudioOutputUnitProperty_EnableIO,
-            Scope::Output,
-            Element::Output,
-            Some(&disable_output),
-        )?;
-    }
-
-    audio_unit.set_property(
-        kAudioOutputUnitProperty_CurrentDevice,
-        Scope::Global,
-        Element::Output,
-        Some(&device_id),
-    )?;
-
-    Ok(audio_unit)
 }

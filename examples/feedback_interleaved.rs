@@ -99,7 +99,7 @@ fn main() -> Result<(), coreaudio::Error> {
             num_frames, data, ..
         } = args;
         // Print the number of frames the callback requests.
-        // Included to aid understanding, don't use println and other things 
+        // Included to aid understanding, don't use println and other things
         // that may block for an unknown amount of time inside the callback
         // of a real application.
         println!("input cb {} frames", num_frames);

@@ -98,6 +98,10 @@ fn main() -> Result<(), coreaudio::Error> {
         let Args {
             num_frames, data, ..
         } = args;
+        // Print the number of frames the callback requests.
+        // Included to aid understanding, don't use println and other things 
+        // that may block for an unknown amount of time inside the callback
+        // of a real application.
         println!("input cb {} frames", num_frames);
         let buffer_left = producer_left.lock().unwrap();
         let buffer_right = producer_right.lock().unwrap();
@@ -116,6 +120,7 @@ fn main() -> Result<(), coreaudio::Error> {
         let Args {
             num_frames, data, ..
         } = args;
+        // Print the number of frames the callback requests.
         println!("output cb {} frames", num_frames);
         let buffer_left = consumer_left.lock().unwrap();
         let buffer_right = consumer_right.lock().unwrap();

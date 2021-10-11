@@ -41,6 +41,9 @@ fn main() -> Result<(), coreaudio::Error> {
     // Construct an Output audio unit that delivers audio to the default output device.
     let mut audio_unit = AudioUnit::new(IOType::DefaultOutput)?;
 
+    // Read the input format. This is counterintuitive, but it's the format used when sending
+    // audio data to the AudioUnit representing the output device. This is separate from the
+    // format the AudioUnit later uses to send the data to the hardware device.
     let stream_format = audio_unit.input_stream_format()?;
     println!("{:#?}", &stream_format);
 

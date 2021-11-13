@@ -5,13 +5,13 @@ extern crate coreaudio;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
-use coreaudio::audio_unit::{AudioUnit, Element, SampleFormat, Scope, StreamFormat};
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
+use coreaudio::audio_unit::{AudioUnit, Element, SampleFormat, Scope, StreamFormat};
 use coreaudio::sys::*;
 
-
-type S = f32; const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
+type S = f32;
+const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 // type S = i32; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I32;
 // type S = i16; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I16;
 // type S = i8; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I8;
@@ -34,7 +34,10 @@ pub fn run_example() -> Result<(), coreaudio::Error> {
 
     let format_flag = match SAMPLE_FORMAT {
         SampleFormat::F32 => LinearPcmFlags::IS_FLOAT,
-        SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => LinearPcmFlags::IS_SIGNED_INTEGER,
+        SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => {
+            LinearPcmFlags::IS_SIGNED_INTEGER
+        },
+        SampleFormat::I24 => { unimplemented!("Not implemented for I24")},
     };
 
     // Using IS_NON_INTERLEAVED everywhere because data::Interleaved is commented out / not implemented
@@ -44,7 +47,7 @@ pub fn run_example() -> Result<(), coreaudio::Error> {
         flags: format_flag | LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_NON_INTERLEAVED,
         // audio_unit.set_input_callback is hardcoded to 1 buffer, and when using non_interleaved
         // we are forced to 1 channel
-        channels_per_frame: 1,
+        channels: 1,
     };
 
     let out_stream_format = StreamFormat {
@@ -52,7 +55,7 @@ pub fn run_example() -> Result<(), coreaudio::Error> {
         sample_format: SAMPLE_FORMAT,
         flags: format_flag | LinearPcmFlags::IS_PACKED | LinearPcmFlags::IS_NON_INTERLEAVED,
         // you can change this to 1
-        channels_per_frame: 2,
+        channels: 2,
     };
 
     println!("input={:#?}", &in_stream_format);
@@ -61,8 +64,18 @@ pub fn run_example() -> Result<(), coreaudio::Error> {
     println!("output_asbd={:#?}", &out_stream_format.to_asbd());
 
     let id = kAudioUnitProperty_StreamFormat;
-    input_audio_unit.set_property(id, Scope::Output, Element::Input, Some(&in_stream_format.to_asbd()))?;
-    output_audio_unit.set_property(id, Scope::Input, Element::Output, Some(&out_stream_format.to_asbd()))?;
+    input_audio_unit.set_property(
+        id,
+        Scope::Output,
+        Element::Input,
+        Some(&in_stream_format.to_asbd()),
+    )?;
+    output_audio_unit.set_property(
+        id,
+        Scope::Input,
+        Element::Output,
+        Some(&out_stream_format.to_asbd()),
+    )?;
 
     let buffer_left = Arc::new(Mutex::new(VecDeque::<S>::new()));
     let producer_left = buffer_left.clone();

@@ -2,8 +2,8 @@
 
 extern crate coreaudio;
 
-use coreaudio::audio_unit::{AudioUnit, IOType, SampleFormat};
 use coreaudio::audio_unit::render_callback::{self, data};
+use coreaudio::audio_unit::{AudioUnit, IOType, SampleFormat};
 use std::f64::consts::PI;
 
 struct SineWaveGenerator {
@@ -41,7 +41,10 @@ fn main() -> Result<(), coreaudio::Error> {
     // Construct an Output audio unit that delivers audio to the default output device.
     let mut audio_unit = AudioUnit::new(IOType::DefaultOutput)?;
 
-    let stream_format = audio_unit.output_stream_format()?;
+    // Read the input format. This is counterintuitive, but it's the format used when sending
+    // audio data to the AudioUnit representing the output device. This is separate from the
+    // format the AudioUnit later uses to send the data to the hardware device.
+    let stream_format = audio_unit.input_stream_format()?;
     println!("{:#?}", &stream_format);
 
     // For this example, our sine wave expects `f32` data.
@@ -49,7 +52,11 @@ fn main() -> Result<(), coreaudio::Error> {
 
     type Args = render_callback::Args<data::NonInterleaved<f32>>;
     audio_unit.set_render_callback(move |args| {
-        let Args { num_frames, mut data, .. } = args;
+        let Args {
+            num_frames,
+            mut data,
+            ..
+        } = args;
         for i in 0..num_frames {
             let sample = samples.next().unwrap();
             for channel in data.channels_mut() {

@@ -1,24 +1,27 @@
-use error::{self, Error};
+use super::audio_format::LinearPcmFlags;
+use super::{AudioUnit, Element, Scope};
+use crate::error::{self, Error};
+use std::cmp::Ordering;
 use std::mem;
 use std::os::raw::c_void;
 use std::slice;
-use super::{AudioUnit, Element, Scope};
 use sys;
 
 pub use self::action_flags::ActionFlags;
 pub use self::data::Data;
-
 
 /// When `set_render_callback` is called, a closure of this type will be used to wrap the given
 /// render callback function.
 ///
 /// This allows the user to provide a custom, more rust-esque callback function type that takes
 /// greater advantage of rust's type safety.
-pub type InputProcFn = dyn FnMut(*mut sys::AudioUnitRenderActionFlags,
-                             *const sys::AudioTimeStamp,
-                             sys::UInt32,
-                             sys::UInt32,
-                             *mut sys::AudioBufferList) -> sys::OSStatus;
+pub type InputProcFn = dyn FnMut(
+    *mut sys::AudioUnitRenderActionFlags,
+    *const sys::AudioTimeStamp,
+    sys::UInt32,
+    sys::UInt32,
+    *mut sys::AudioBufferList,
+) -> sys::OSStatus;
 
 /// This type allows us to safely wrap a boxed `RenderCallback` to use within the input proc.
 pub struct InputProcFnWrapper {
@@ -45,21 +48,24 @@ pub struct Args<D> {
     pub flags: action_flags::Handle,
 }
 
-
 /// Format specific render callback data.
 pub mod data {
+    use super::super::Sample;
+    use super::super::StreamFormat;
+    use crate::audio_unit::audio_format::LinearPcmFlags;
     use std::marker::PhantomData;
     use std::slice;
-    use super::super::StreamFormat;
-    use super::super::Sample;
     use sys;
 
     /// Audio data wrappers specific to the `AudioUnit`'s `AudioFormat`.
     pub trait Data {
         /// Check whether or not the stream format matches this type of data.
-        fn does_stream_format_match(&StreamFormat) -> bool;
+        fn does_stream_format_match(stream_format: &StreamFormat) -> bool;
         /// We must be able to construct Self from arguments given to the `input_proc`.
-        unsafe fn from_input_proc_args(num_frames: u32, io_data: *mut sys::AudioBufferList) -> Self;
+        /// # Safety
+        /// TODO document how to use this function safely.
+        unsafe fn from_input_proc_args(num_frames: u32, io_data: *mut sys::AudioBufferList)
+            -> Self;
     }
 
     /// A raw pointer to the audio data so that the user may handle it themselves.
@@ -72,55 +78,29 @@ pub mod data {
         fn does_stream_format_match(_: &StreamFormat) -> bool {
             true
         }
-        unsafe fn from_input_proc_args(_num_frames: u32, io_data: *mut sys::AudioBufferList) -> Self {
+        unsafe fn from_input_proc_args(
+            _num_frames: u32,
+            io_data: *mut sys::AudioBufferList,
+        ) -> Self {
             Raw { data: io_data }
         }
     }
 
-    // TODO: When testing with the `HalOutput` audio unit it seemed not to allow interleaved data.
-    // Even though the `IS_NON_INTERLEAVED` flag was not set, the audio unit continues to deliver
-    // the audio as non-interleaved samples anyway. Investigate this, as it might not even be
-    // possible to use this type with audio units!
-    //
-    // /// An interleaved linear PCM buffer with samples of type `S`.
-    // pub struct Interleaved<'a, S> {
-    //     pub buffer: &'a mut [S],
-    //     pub channels: usize,
-    // }
+    /// An interleaved linear PCM buffer with samples of type `S`.
+    pub struct Interleaved<S: 'static> {
+        /// The audio buffer.
+        pub buffer: &'static mut [S],
+        pub channels: usize,
+        sample_format: PhantomData<S>,
+    }
 
-    // // Implementation for an interleaved linear PCM audio format.
-    // impl<'a, S> Data for Interleaved<'a, S>
-    //     where S: Sample,
-    // {
-    //     fn does_stream_format_match(format: &StreamFormat) -> bool {
-    //         !format.flags.contains(linear_pcm_flags::IS_NON_INTERLEAVED) &&
-    //             S::sample_format().does_match_flags(format.flags)
-    //     }
-
-    //     #[allow(non_snake_case)]
-    //     unsafe fn from_input_proc_args(frames: u32, io_data: *mut sys::AudioBufferList) -> Self {
-    //         // We're expecting a single interleaved buffer which will be the first in the array.
-    //         let sys::AudioBuffer { mNumberChannels, mDataByteSize, mData } = (*io_data).mBuffers[0];
-
-    //         // Ensure that the size of the data matches the size of the sample format
-    //         // multiplied by the number of frames.
-    //         //
-    //         // TODO: Return an Err instead of `panic`ing.
-    //         let buffer_len = frames as usize * mNumberChannels as usize;
-    //         let expected_size = ::std::mem::size_of::<S>() * buffer_len;
-    //         assert!(mDataByteSize as usize == expected_size);
-
-    //         let buffer: &mut [S] = {
-    //             let buffer_ptr = mData as *mut S;
-    //             slice::from_raw_parts_mut(buffer_ptr, buffer_len)
-    //         };
-
-    //         Interleaved {
-    //             buffer: buffer,
-    //             channels: mNumberChannels as usize,
-    //         }
-    //     }
-    // }
+    /// An interleaved linear PCM buffer with samples stored as plain bytes.
+    pub struct InterleavedBytes<S: 'static> {
+        /// The audio buffer.
+        pub buffer: &'static mut [u8],
+        pub channels: usize,
+        sample_format: PhantomData<S>,
+    }
 
     /// A wrapper around the pointer to the `mBuffers` array.
     pub struct NonInterleaved<S> {
@@ -131,14 +111,14 @@ pub mod data {
         sample_format: PhantomData<S>,
     }
 
-    /// An iterator produced by a `NoneInterleaved`, yielding a reference to each channel.
+    /// An iterator produced by a `NonInterleaved`, yielding a reference to each channel.
     pub struct Channels<'a, S: 'a> {
         buffers: slice::Iter<'a, sys::AudioBuffer>,
         frames: usize,
         sample_format: PhantomData<S>,
     }
 
-    /// An iterator produced by a `NoneInterleaved`, yielding a mutable reference to each channel.
+    /// An iterator produced by a `NonInterleaved`, yielding a mutable reference to each channel.
     pub struct ChannelsMut<'a, S: 'a> {
         buffers: slice::IterMut<'a, sys::AudioBuffer>,
         frames: usize,
@@ -151,11 +131,17 @@ pub mod data {
         type Item = &'a [S];
         #[allow(non_snake_case)]
         fn next(&mut self) -> Option<Self::Item> {
-            self.buffers.next().map(|&sys::AudioBuffer { mNumberChannels, mData, .. }| {
-                let len = mNumberChannels as usize * self.frames;
-                let ptr = mData as *mut S;
-                unsafe { slice::from_raw_parts(ptr, len) }
-            })
+            self.buffers.next().map(
+                |&sys::AudioBuffer {
+                     mNumberChannels,
+                     mData,
+                     ..
+                 }| {
+                    let len = mNumberChannels as usize * self.frames;
+                    let ptr = mData as *mut S;
+                    unsafe { slice::from_raw_parts(ptr, len) }
+                },
+            )
         }
     }
 
@@ -163,16 +149,21 @@ pub mod data {
         type Item = &'a mut [S];
         #[allow(non_snake_case)]
         fn next(&mut self) -> Option<Self::Item> {
-            self.buffers.next().map(|&mut sys::AudioBuffer { mNumberChannels, mData, .. }| {
-                let len = mNumberChannels as usize * self.frames;
-                let ptr = mData as *mut S;
-                unsafe { slice::from_raw_parts_mut(ptr, len) }
-            })
+            self.buffers.next().map(
+                |&mut sys::AudioBuffer {
+                     mNumberChannels,
+                     mData,
+                     ..
+                 }| {
+                    let len = mNumberChannels as usize * self.frames;
+                    let ptr = mData as *mut S;
+                    unsafe { slice::from_raw_parts_mut(ptr, len) }
+                },
+            )
         }
     }
 
     impl<S> NonInterleaved<S> {
-
         /// An iterator yielding a reference to each channel in the array.
         pub fn channels(&self) -> Channels<S> {
             Channels {
@@ -190,18 +181,18 @@ pub mod data {
                 sample_format: PhantomData,
             }
         }
-
     }
 
     // Implementation for a non-interleaved linear PCM audio format.
     impl<S> Data for NonInterleaved<S>
-        where S: Sample,
+    where
+        S: Sample,
     {
-        fn does_stream_format_match(format: &StreamFormat) -> bool {
-            // TODO: This is never set, even though the default ABSD on OS X is non-interleaved!
-            // Should really investigate why this is.
-            // format.flags.contains(linear_pcm_flags::IS_NON_INTERLEAVED) &&
-                S::sample_format().does_match_flags(format.flags)
+        fn does_stream_format_match(stream_format: &StreamFormat) -> bool {
+            stream_format
+                .flags
+                .contains(LinearPcmFlags::IS_NON_INTERLEAVED)
+                && S::sample_format().does_match_flags(stream_format.flags)
         }
 
         #[allow(non_snake_case)]
@@ -210,20 +201,101 @@ pub mod data {
             let len = (*io_data).mNumberBuffers as usize;
             let buffers = slice::from_raw_parts_mut(ptr, len);
             NonInterleaved {
-                buffers: buffers,
+                buffers,
                 frames: frames as usize,
                 sample_format: PhantomData,
             }
         }
     }
 
+    // Implementation for an interleaved linear PCM audio format.
+    impl<S> Data for Interleaved<S>
+    where
+        S: Sample,
+    {
+        fn does_stream_format_match(stream_format: &StreamFormat) -> bool {
+            !stream_format
+                .flags
+                .contains(LinearPcmFlags::IS_NON_INTERLEAVED)
+                && S::sample_format().does_match_flags(stream_format.flags)
+        }
+
+        #[allow(non_snake_case)]
+        unsafe fn from_input_proc_args(frames: u32, io_data: *mut sys::AudioBufferList) -> Self {
+            // // We're expecting a single interleaved buffer which will be the first in the array.
+            let sys::AudioBuffer {
+                mNumberChannels,
+                mDataByteSize,
+                mData,
+            } = (*io_data).mBuffers[0];
+            // // Ensure that the size of the data matches the size of the sample format
+            // // multiplied by the number of frames.
+            // //
+            // // TODO: Return an Err instead of `panic`ing.
+            let buffer_len = frames as usize * mNumberChannels as usize;
+            let expected_size = ::std::mem::size_of::<S>() * buffer_len;
+            assert!(mDataByteSize as usize == expected_size);
+
+            let buffer: &mut [S] = {
+                let buffer_ptr = mData as *mut S;
+                slice::from_raw_parts_mut(buffer_ptr, buffer_len)
+            };
+
+            Interleaved {
+                buffer,
+                channels: mNumberChannels as usize,
+                sample_format: PhantomData,
+            }
+        }
+    }
+
+    // Implementation for an interleaved linear PCM audio format using plain bytes.
+    impl<S> Data for InterleavedBytes<S>
+    where
+        S: Sample,
+    {
+        fn does_stream_format_match(stream_format: &StreamFormat) -> bool {
+            !stream_format
+                .flags
+                .contains(LinearPcmFlags::IS_NON_INTERLEAVED)
+                && S::sample_format().does_match_flags(stream_format.flags)
+        }
+
+        #[allow(non_snake_case)]
+        unsafe fn from_input_proc_args(frames: u32, io_data: *mut sys::AudioBufferList) -> Self {
+            // // We're expecting a single interleaved buffer which will be the first in the array.
+            let sys::AudioBuffer {
+                mNumberChannels,
+                mDataByteSize,
+                mData,
+            } = (*io_data).mBuffers[0];
+            // // Ensure that the size of the data matches the size of the sample format
+            // // multiplied by the number of frames.
+            // //
+            // // TODO: Return an Err instead of `panic`ing.
+            let buffer_len = frames as usize * mNumberChannels as usize;
+            let expected_size = ::std::mem::size_of::<S>() * buffer_len;
+            assert!(mDataByteSize as usize == expected_size);
+
+            let buffer: &mut [u8] = {
+                let buffer_ptr = mData as *mut u8;
+                slice::from_raw_parts_mut(buffer_ptr, mDataByteSize as usize)
+            };
+
+            InterleavedBytes {
+                buffer,
+                channels: mNumberChannels as usize,
+                sample_format: PhantomData,
+            }
+        }
+    }
 }
 
 pub mod action_flags {
     use std::fmt;
     use sys;
 
-    bitflags!{
+    bitflags! {
         pub struct ActionFlags: u32 {
             /// Called on a render notification Proc, which is called either before or after the
             /// render operation of the audio unit. If this flag is set, the proc is being called
@@ -294,18 +366,15 @@ pub mod action_flags {
 
     impl fmt::Debug for Handle {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            if self.ptr == ::std::ptr::null_mut() {
+            if self.ptr.is_null() {
                 write!(f, "{:?}", self.ptr)
             } else {
-                unsafe {
-                    write!(f, "{:?}", *self.ptr)
-                }
+                unsafe { write!(f, "{:?}", *self.ptr) }
             }
         }
     }
 
     impl Handle {
-
         /// Retrieve the current state of the `ActionFlags`.
         pub fn get(&self) -> ActionFlags {
             ActionFlags::from_bits_truncate(unsafe { *self.ptr })
@@ -363,30 +432,32 @@ pub mod action_flags {
 
         /// Wrap the given pointer with a `Handle`.
         pub fn from_ptr(ptr: *mut sys::AudioUnitRenderActionFlags) -> Self {
-            Handle { ptr: ptr }
+            Handle { ptr }
         }
-
     }
 
     unsafe impl Send for Handle {}
 
     impl ::std::fmt::Display for ActionFlags {
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-            write!(f, "{:?}", match self.bits() {
-                sys::kAudioUnitRenderAction_PreRender => "PRE_RENDER",
-                sys::kAudioUnitRenderAction_PostRender => "POST_RENDER",
-                sys::kAudioUnitRenderAction_OutputIsSilence => "OUTPUT_IS_SILENCE",
-                sys::kAudioOfflineUnitRenderAction_Preflight => "OFFLINE_PREFLIGHT",
-                sys::kAudioOfflineUnitRenderAction_Render => "OFFLINE_RENDER",
-                sys::kAudioOfflineUnitRenderAction_Complete => "OFFLINE_COMPLETE",
-                sys::kAudioUnitRenderAction_PostRenderError => "POST_RENDER_ERROR",
-                sys::kAudioUnitRenderAction_DoNotCheckRenderArgs => "DO_NOT_CHECK_RENDER_ARGS",
-                _ => "<Unknown ActionFlags>",
-            })
+            write!(
+                f,
+                "{:?}",
+                match self.bits() {
+                    sys::kAudioUnitRenderAction_PreRender => "PRE_RENDER",
+                    sys::kAudioUnitRenderAction_PostRender => "POST_RENDER",
+                    sys::kAudioUnitRenderAction_OutputIsSilence => "OUTPUT_IS_SILENCE",
+                    sys::kAudioOfflineUnitRenderAction_Preflight => "OFFLINE_PREFLIGHT",
+                    sys::kAudioOfflineUnitRenderAction_Render => "OFFLINE_RENDER",
+                    sys::kAudioOfflineUnitRenderAction_Complete => "OFFLINE_COMPLETE",
+                    sys::kAudioUnitRenderAction_PostRenderError => "POST_RENDER_ERROR",
+                    sys::kAudioUnitRenderAction_DoNotCheckRenderArgs => "DO_NOT_CHECK_RENDER_ARGS",
+                    _ => "<Unknown ActionFlags>",
+                }
+            )
         }
     }
 }
-
 
 impl AudioUnit {
     /// Pass a render callback (aka "Input Procedure") to the **AudioUnit**.
@@ -415,23 +486,23 @@ impl AudioUnit {
                                   in_time_stamp: *const sys::AudioTimeStamp,
                                   in_bus_number: sys::UInt32,
                                   in_number_frames: sys::UInt32,
-                                  io_data: *mut sys::AudioBufferList| -> sys::OSStatus
-        {
+                                  io_data: *mut sys::AudioBufferList|
+              -> sys::OSStatus {
             let args = unsafe {
                 let data = D::from_input_proc_args(in_number_frames, io_data);
                 let flags = action_flags::Handle::from_ptr(io_action_flags);
                 Args {
-                    data: data,
+                    data,
                     time_stamp: *in_time_stamp,
-                    flags: flags,
+                    flags,
                     bus_number: in_bus_number as u32,
                     num_frames: in_number_frames as usize,
                 }
             };
 
             match f(args) {
-                Ok(()) => 0 as sys::OSStatus,
-                Err(()) => error::Error::Unspecified.to_os_status(),
+                Ok(()) => 0,
+                Err(()) => error::Error::Unspecified.as_os_status(),
             }
         };
 
@@ -479,6 +550,11 @@ impl AudioUnit {
             return Err(Error::RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat);
         }
 
+        // Interleaved or non-interleaved?
+        let non_interleaved = stream_format
+            .flags
+            .contains(LinearPcmFlags::IS_NON_INTERLEAVED);
+
         // Pre-allocate a buffer list for input stream.
         //
         // First, get the current buffer size for pre-allocating the `AudioBuffer`s.
@@ -497,7 +573,11 @@ impl AudioUnit {
             (sample_rate * seconds as f64).round() as u32
         };
         let sample_bytes = stream_format.sample_format.size_in_bytes();
-        let n_channels = stream_format.channels_per_frame;
+        let n_channels = stream_format.channels;
+        if non_interleaved && n_channels > 1 {
+            return Err(Error::NonInterleavedInputOnlySupportsMono);
+        }
+
         let data_byte_size = buffer_frame_size * sample_bytes as u32 * n_channels;
         let mut data = vec![0u8; data_byte_size as usize];
         let audio_buffer = sys::AudioBuffer {
@@ -507,6 +587,7 @@ impl AudioUnit {
         };
         // Relieve ownership of the `Vec` until we're ready to drop the `AudioBufferList`.
         mem::forget(data);
+
         let audio_buffer_list = Box::new(sys::AudioBufferList {
             mNumberBuffers: 1,
             mBuffers: [audio_buffer],
@@ -526,38 +607,43 @@ impl AudioUnit {
                                   in_time_stamp: *const sys::AudioTimeStamp,
                                   in_bus_number: sys::UInt32,
                                   in_number_frames: sys::UInt32,
-                                  _io_data: *mut sys::AudioBufferList| -> sys::OSStatus
-        {
+                                  _io_data: *mut sys::AudioBufferList|
+              -> sys::OSStatus {
             // If the buffer size has changed, ensure the AudioBuffer is the correct size.
             if buffer_frame_size != in_number_frames {
                 unsafe {
                     // Retrieve the up-to-date stream format.
                     let id = sys::kAudioUnitProperty_StreamFormat;
-                    let asbd = match super::get_property(audio_unit, id, Scope::Output, Element::Input) {
-                        Err(err) => return err.to_os_status(),
-                        Ok(asbd) => asbd,
-                    };
+                    let asbd =
+                        match super::get_property(audio_unit, id, Scope::Output, Element::Input) {
+                            Err(err) => return err.as_os_status(),
+                            Ok(asbd) => asbd,
+                        };
                     let stream_format = match super::StreamFormat::from_asbd(asbd) {
-                        Err(err) => return err.to_os_status(),
+                        Err(err) => return err.as_os_status(),
                         Ok(fmt) => fmt,
                     };
                     let sample_bytes = stream_format.sample_format.size_in_bytes();
-                    let n_channels = stream_format.channels_per_frame;
-                    let data_byte_size = in_number_frames as usize
-                        * sample_bytes
-                        * n_channels as usize;
+                    let n_channels = stream_format.channels;
+                    let data_byte_size =
+                        in_number_frames as usize * sample_bytes * n_channels as usize;
                     let ptr = (*audio_buffer_list_ptr).mBuffers.as_ptr() as *const sys::AudioBuffer;
                     let len = (*audio_buffer_list_ptr).mNumberBuffers as usize;
+
                     let buffers: &[sys::AudioBuffer] = slice::from_raw_parts(ptr, len);
                     for &buffer in buffers {
                         let ptr = buffer.mData as *mut u8;
                         let len = buffer.mDataByteSize as usize;
                         let cap = len;
                         let mut vec = Vec::from_raw_parts(ptr, len, cap);
-                        if len < data_byte_size {
-                            vec.reserve_exact(data_byte_size - len);
-                        } else if len > data_byte_size {
-                            vec.truncate(data_byte_size);
+                        match len.cmp(&data_byte_size) {
+                            Ordering::Greater => {
+                                vec.truncate(data_byte_size);
+                            }
+                            Ordering::Less => {
+                                vec.reserve_exact(data_byte_size - len);
+                            }
+                            Ordering::Equal => {}
                         }
                         mem::forget(vec);
                     }
@@ -583,17 +669,17 @@ impl AudioUnit {
                 let data = D::from_input_proc_args(in_number_frames, audio_buffer_list_ptr);
                 let flags = action_flags::Handle::from_ptr(io_action_flags);
                 Args {
-                    data: data,
+                    data,
                     time_stamp: *in_time_stamp,
-                    flags: flags,
+                    flags,
                     bus_number: in_bus_number as u32,
                     num_frames: in_number_frames as usize,
                 }
             };
 
             match f(args) {
-                Ok(()) => 0 as sys::OSStatus,
-                Err(()) => error::Error::Unspecified.to_os_status(),
+                Ok(()) => 0,
+                Err(()) => error::Error::Unspecified.as_os_status(),
             }
         };
 
@@ -644,7 +730,10 @@ impl AudioUnit {
     /// safely dropped.
     pub fn free_input_callback(&mut self) -> Option<Box<InputProcFnWrapper>> {
         if let Some(input_callback) = self.maybe_input_callback.take() {
-            let super::InputCallback { buffer_list, callback } = input_callback;
+            let super::InputCallback {
+                buffer_list,
+                callback,
+            } = input_callback;
             unsafe {
                 // Take ownership over the AudioBufferList in order to safely free it.
                 let buffer_list: Box<sys::AudioBufferList> = Box::from_raw(buffer_list);
@@ -667,21 +756,23 @@ impl AudioUnit {
     }
 }
 
-
 /// Callback procedure that will be called each time our audio_unit requests audio.
-extern "C" fn input_proc(in_ref_con: *mut c_void,
-                         io_action_flags: *mut sys::AudioUnitRenderActionFlags,
-                         in_time_stamp: *const sys::AudioTimeStamp,
-                         in_bus_number: sys::UInt32,
-                         in_number_frames: sys::UInt32,
-                         io_data: *mut sys::AudioBufferList) -> sys::OSStatus
-{
+extern "C" fn input_proc(
+    in_ref_con: *mut c_void,
+    io_action_flags: *mut sys::AudioUnitRenderActionFlags,
+    in_time_stamp: *const sys::AudioTimeStamp,
+    in_bus_number: sys::UInt32,
+    in_number_frames: sys::UInt32,
+    io_data: *mut sys::AudioBufferList,
+) -> sys::OSStatus {
     let wrapper = in_ref_con as *mut InputProcFnWrapper;
     unsafe {
-        (*(*wrapper).callback)(io_action_flags,
-                               in_time_stamp,
-                               in_bus_number,
-                               in_number_frames,
-                               io_data)
+        (*(*wrapper).callback)(
+            io_action_flags,
+            in_time_stamp,
+            in_bus_number,
+            in_number_frames,
+            io_data,
+        )
     }
 }

@@ -1,17 +1,19 @@
-//! A basic output stream example, using an Output AudioUnit to generate a sine wave.
+//! An output stream example showing more advanced usage.
+//! Tries to use hog mode to get exclusive access to the device.
 
 extern crate coreaudio;
 
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
-use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::macos_helpers::{
-    audio_unit_from_device_id, find_matching_physical_format, get_default_device_id,
+    audio_unit_from_device_id, find_matching_physical_format, get_default_device_id, get_owner_pid,
     get_supported_physical_stream_formats, set_device_physical_stream_format,
-    set_device_sample_rate, AliveListener, RateListener,
+    set_device_sample_rate, switch_ownership, AliveListener, RateListener,
 };
+use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
 use coreaudio::sys::kAudioUnitProperty_StreamFormat;
 use std::f64::consts::PI;
+use std::process;
 
 const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 // type S = i32; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I32;
@@ -60,6 +62,23 @@ fn main() -> Result<(), coreaudio::Error> {
     let audio_unit_id = get_default_device_id(false).unwrap();
     let mut audio_unit = audio_unit_from_device_id(audio_unit_id, false)?;
 
+    let pid = get_owner_pid(audio_unit_id)?;
+    if pid != -1 {
+        println!("Device is owned by another process with pid {}!", pid);
+    } else {
+        println!("Device is free, trying to get exclusive access..");
+        let new_pid = switch_ownership(audio_unit_id)?;
+        let process_id = process::id();
+        if new_pid == process_id as i32 {
+            println!("We have exclusive access.");
+        } else {
+            println!(
+                "Could not get exclusive access. Process pid: {}, new pid value: {}",
+                process_id, new_pid
+            );
+        }
+    }
+
     let mut format_flag = match SAMPLE_FORMAT {
         SampleFormat::F32 => LinearPcmFlags::IS_FLOAT | LinearPcmFlags::IS_PACKED,
         SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => {
@@ -101,7 +120,7 @@ fn main() -> Result<(), coreaudio::Error> {
     println!("setting hardware (physical) format");
     let hw_stream_format = StreamFormat {
         sample_rate: SAMPLE_RATE,
-        sample_format: SampleFormat::I24,
+        sample_format: SampleFormat::I16,
         flags: LinearPcmFlags::empty(),
         channels: 2,
     };
@@ -177,6 +196,22 @@ fn main() -> Result<(), coreaudio::Error> {
         // print all sample change events
         println!("rate events: {:?}", rate_listener.copy_values());
         println!("alive state: {}", alive_listener.is_alive());
+    }
+
+    // Release exclusive access, not really needed as the process anyway exits after this.
+    let owner_pid = get_owner_pid(audio_unit_id)?;
+    let process_id = process::id();
+    if owner_pid == process_id as i32 {
+        println!("Releasing exclusive access");
+        let new_pid = switch_ownership(audio_unit_id)?;
+        if new_pid == -1 {
+            println!("Exclusive access released.");
+        } else {
+            println!(
+                "Could not release exclusive access. Process pid: {}, new pid value: {}",
+                process_id, new_pid
+            );
+        }
     }
     Ok(())
 }

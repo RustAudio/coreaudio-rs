@@ -732,7 +732,6 @@ impl AliveListener {
 /// Get the pid of the process that currently owns exclusive access to a device.
 /// A pid value of -1 means no process owns exclusive access.
 pub fn get_hogging_pid(device_id: AudioDeviceID) -> Result<pid_t, Error> {
-    // Get available formats.
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioDevicePropertyHogMode,
         mScope: kAudioObjectPropertyScopeGlobal,
@@ -763,14 +762,12 @@ pub fn get_hogging_pid(device_id: AudioDeviceID) -> Result<pid_t, Error> {
 /// Returns the pid of the new owning process.
 /// A pid value of -1 means no process owns exclusive access.
 pub fn toggle_hog_mode(device_id: AudioDeviceID) -> Result<pid_t, Error> {
-    // Get available formats.
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioDevicePropertyHogMode,
         mScope: kAudioObjectPropertyScopeGlobal,
         mElement: kAudioObjectPropertyElementMaster,
     };
     let pid = unsafe {
-        //let temp_pid: pid_t = std::process::id() as _;
         let temp_pid: pid_t = -1;
         let data_size = mem::size_of::<pid_t>();
         let status = AudioObjectSetPropertyData(

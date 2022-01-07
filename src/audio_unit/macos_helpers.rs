@@ -728,11 +728,10 @@ impl AliveListener {
     }
 }
 
-/// Hog mode.
-/// Get the pid of the process that currently owns
-/// exclusive access to a device.
-/// A value of -1 means no process owns exclusive access.
-pub fn get_owner_pid(device_id: AudioDeviceID) -> Result<pid_t, Error> {
+/// Helper for hog mode (exclusive access).
+/// Get the pid of the process that currently owns exclusive access to a device.
+/// A pid value of -1 means no process owns exclusive access.
+pub fn get_hogging_pid(device_id: AudioDeviceID) -> Result<pid_t, Error> {
     // Get available formats.
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioDevicePropertyHogMode,
@@ -756,14 +755,14 @@ pub fn get_owner_pid(device_id: AudioDeviceID) -> Result<pid_t, Error> {
     Ok(pid)
 }
 
-/// Hog mode.
-/// Switch the exclusive access to a device.
+/// Helper for hog mode (exclusive access).
+/// Toggle hog mode for a device.
 /// If no process owns exclusive access, then the calling process takes ownership.
 /// If the calling process already has ownership, this is released.
 /// If another process owns access, then nothing will happen.
 /// Returns the pid of the new owning process.
-/// A value of -1 means no process owns exclusive access.
-pub fn switch_ownership(device_id: AudioDeviceID) -> Result<pid_t, Error> {
+/// A pid value of -1 means no process owns exclusive access.
+pub fn toggle_hog_mode(device_id: AudioDeviceID) -> Result<pid_t, Error> {
     // Get available formats.
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioDevicePropertyHogMode,

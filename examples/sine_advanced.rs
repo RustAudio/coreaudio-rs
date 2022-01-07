@@ -5,9 +5,9 @@ extern crate coreaudio;
 
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::macos_helpers::{
-    audio_unit_from_device_id, find_matching_physical_format, get_default_device_id, get_owner_pid,
+    audio_unit_from_device_id, find_matching_physical_format, get_default_device_id, get_hogging_pid,
     get_supported_physical_stream_formats, set_device_physical_stream_format,
-    set_device_sample_rate, switch_ownership, AliveListener, RateListener,
+    set_device_sample_rate, toggle_hog_mode, AliveListener, RateListener,
 };
 use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
@@ -62,12 +62,12 @@ fn main() -> Result<(), coreaudio::Error> {
     let audio_unit_id = get_default_device_id(false).unwrap();
     let mut audio_unit = audio_unit_from_device_id(audio_unit_id, false)?;
 
-    let pid = get_owner_pid(audio_unit_id)?;
+    let pid = get_hogging_pid(audio_unit_id)?;
     if pid != -1 {
         println!("Device is owned by another process with pid {}!", pid);
     } else {
         println!("Device is free, trying to get exclusive access..");
-        let new_pid = switch_ownership(audio_unit_id)?;
+        let new_pid = toggle_hog_mode(audio_unit_id)?;
         let process_id = process::id();
         if new_pid == process_id as i32 {
             println!("We have exclusive access.");
@@ -198,12 +198,12 @@ fn main() -> Result<(), coreaudio::Error> {
         println!("alive state: {}", alive_listener.is_alive());
     }
 
-    // Release exclusive access, not really needed as the process anyway exits after this.
-    let owner_pid = get_owner_pid(audio_unit_id)?;
+    // Release exclusive access, not really needed as the process exits anyway after this.
+    let owner_pid = get_hogging_pid(audio_unit_id)?;
     let process_id = process::id();
     if owner_pid == process_id as i32 {
         println!("Releasing exclusive access");
-        let new_pid = switch_ownership(audio_unit_id)?;
+        let new_pid = toggle_hog_mode(audio_unit_id)?;
         if new_pid == -1 {
             println!("Exclusive access released.");
         } else {

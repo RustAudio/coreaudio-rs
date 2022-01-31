@@ -13,10 +13,11 @@ use std::{mem, thread};
 
 use core_foundation_sys::string::{CFStringGetCString, CFStringGetCStringPtr, CFStringRef};
 use sys;
+use sys::pid_t;
 use sys::{
     kAudioDevicePropertyAvailableNominalSampleRates, kAudioDevicePropertyDeviceIsAlive,
-    kAudioDevicePropertyDeviceNameCFString, kAudioDevicePropertyNominalSampleRate,
-    kAudioDevicePropertyScopeOutput, kAudioHardwareNoError,
+    kAudioDevicePropertyDeviceNameCFString, kAudioDevicePropertyHogMode,
+    kAudioDevicePropertyNominalSampleRate, kAudioDevicePropertyScopeOutput, kAudioHardwareNoError,
     kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice,
     kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMaster,
     kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
@@ -603,7 +604,7 @@ impl RateListener {
     }
 
     /// Get the number of sample rate values received (equals the number of change events).
-    /// Not used if the RateListener was created with a `std::sync::mpsc::Sender`. 
+    /// Not used if the RateListener was created with a `std::sync::mpsc::Sender`.
     pub fn get_nbr_values(&self) -> usize {
         self.queue.lock().unwrap().len()
     }
@@ -725,4 +726,69 @@ impl AliveListener {
     pub fn is_alive(&self) -> bool {
         self.alive.load(Ordering::SeqCst)
     }
+}
+
+/// Helper for hog mode (exclusive access).
+/// Get the pid of the process that currently owns exclusive access to a device.
+/// A pid value of -1 means no process owns exclusive access.
+pub fn get_hogging_pid(device_id: AudioDeviceID) -> Result<pid_t, Error> {
+    let property_address = AudioObjectPropertyAddress {
+        mSelector: kAudioDevicePropertyHogMode,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMaster,
+    };
+    let pid = unsafe {
+        let temp_pid: pid_t = 0;
+        let data_size = mem::size_of::<pid_t>();
+        let status = AudioObjectGetPropertyData(
+            device_id,
+            &property_address as *const _,
+            0,
+            null(),
+            &data_size as *const _ as *mut _,
+            &temp_pid as *const _ as *mut _,
+        );
+        Error::from_os_status(status)?;
+        temp_pid
+    };
+    Ok(pid)
+}
+
+/// Helper for hog mode (exclusive access).
+/// Toggle hog mode for a device.
+/// If no process owns exclusive access, then the calling process takes ownership.
+/// If the calling process already has ownership, this is released.
+/// If another process owns access, then nothing will happen.
+/// Returns the pid of the new owning process.
+/// A pid value of -1 means no process owns exclusive access.
+pub fn toggle_hog_mode(device_id: AudioDeviceID) -> Result<pid_t, Error> {
+    let property_address = AudioObjectPropertyAddress {
+        mSelector: kAudioDevicePropertyHogMode,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMaster,
+    };
+    let pid = unsafe {
+        let temp_pid: pid_t = -1;
+        let data_size = mem::size_of::<pid_t>();
+        let status = AudioObjectSetPropertyData(
+            device_id,
+            &property_address as *const _,
+            0,
+            null(),
+            data_size as u32,
+            &temp_pid as *const _ as *mut _,
+        );
+        Error::from_os_status(status)?;
+        let status = AudioObjectGetPropertyData(
+            device_id,
+            &property_address as *const _,
+            0,
+            null(),
+            &data_size as *const _ as *mut _,
+            &temp_pid as *const _ as *mut _,
+        );
+        Error::from_os_status(status)?;
+        temp_pid
+    };
+    Ok(pid)
 }

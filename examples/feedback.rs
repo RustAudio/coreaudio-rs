@@ -6,9 +6,9 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
+use coreaudio::audio_unit::macos_helpers::{audio_unit_from_device_id, get_default_device_id};
 use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
-use coreaudio::audio_unit::macos_helpers::{audio_unit_from_device_id, get_default_device_id};
 use coreaudio::sys::*;
 
 const SAMPLE_RATE: f64 = 44100.0;
@@ -20,8 +20,10 @@ const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 // type S = i8; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I8;
 
 fn main() -> Result<(), coreaudio::Error> {
-    let mut input_audio_unit = audio_unit_from_device_id(get_default_device_id(true).unwrap(), true)?;
-    let mut output_audio_unit = audio_unit_from_device_id(get_default_device_id(false).unwrap(), false)?;
+    let mut input_audio_unit =
+        audio_unit_from_device_id(get_default_device_id(true).unwrap(), true)?;
+    let mut output_audio_unit =
+        audio_unit_from_device_id(get_default_device_id(false).unwrap(), false)?;
 
     let format_flag = match SAMPLE_FORMAT {
         SampleFormat::F32 => LinearPcmFlags::IS_FLOAT,

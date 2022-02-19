@@ -138,7 +138,7 @@ pub enum AudioFormat {
     ///
     /// **Available** in OS X v10.5 and later.
     MPEG4AAC_HE_V2, // = 1633772400,
-    /// MPEG-4 Apatial Audio audio object.
+    /// MPEG-4 Spatial Audio audio object.
     ///
     /// **Available** in OS X v10.5 and later.
     MPEG4AAC_Spatial, // = 1633772403,
@@ -151,7 +151,7 @@ pub enum AudioFormat {
     ///
     /// **Available** in OS X v10.6 and later.
     Audible, // = 1096107074,
-    /// The iLBC (internet Low Bitrate Codec) narrow band cpeech codec.
+    /// The iLBC (internet Low Bitrate Codec) narrow band speech codec.
     ///
     /// **Available** in OS X v10.6 and later.
     iLBC, // = 1768710755,
@@ -422,12 +422,12 @@ bitflags! {
 /// there is only ever one flag set at a time. Thus, we use an enum as a more accurate,
 /// user-friendly, type-safe representation.
 ///
-/// Original documenation
+/// Original documentation
 /// [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/MPEG_4_Audio_Object_Type_Constants).
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum Mpeg4ObjectId {
-    /// Advanced audio coding; the baisc MPEG-4 technology.
+    /// Advanced audio coding; the basic MPEG-4 technology.
     AAC_Main = 1,
     /// Lossless coding; provides compression with no loss of quality.
     AAC_LC = 2,
@@ -443,7 +443,7 @@ pub enum Mpeg4ObjectId {
     /// Transform-domain weighted interleaved vector quantization; an audio codec optimised for
     /// audio coding at ultra low bit rates around 8kbit/s.
     TwinVQ = 7,
-    /// Code Excited Linear Prdiction; a narrow-band/wide-band speech codec.
+    /// Code Excited Linear Prediction; a narrow-band/wide-band speech codec.
     CELP = 8,
     /// Harmonic Vector Excitation Coding; a very-low bit-rate parametric speech codec.
     HVXC = 9,
@@ -468,7 +468,7 @@ impl Mpeg4ObjectId {
 }
 
 bitflags! {
-    /// "These flags indicate the valuid fields in an AudioTimeStamp structure."
+    /// "These flags indicate the valid fields in an AudioTimeStamp structure."
     ///
     /// **Available** in OS X v10.0 and later.
     ///

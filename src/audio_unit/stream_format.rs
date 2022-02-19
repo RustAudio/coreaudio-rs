@@ -44,7 +44,7 @@ pub struct StreamFormat {
     /// linear PCM format.
     ///
     /// iOS uses integer and fixed-point audio data. The result is faster calculations and less
-    /// battery drain when processing audio. iOS provides a Converter audio unit and inclues the
+    /// battery drain when processing audio. iOS provides a Converter audio unit and includes the
     /// interfaces from Audio Converter Services (TODO: look into exposing this).
     pub sample_format: SampleFormat,
     /// The format flags for the given StreamFormat.

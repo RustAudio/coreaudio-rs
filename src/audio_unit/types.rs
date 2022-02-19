@@ -1,6 +1,6 @@
 //! Core Audio's various const audio unit types identifiers represented as typesafe enums.
 //!
-//! Oirginal documentation [here](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Types).
+//! Original documentation [here](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Types).
 
 /// Represents the different kinds of Audio Units that are available.
 ///
@@ -29,7 +29,7 @@ pub enum Type {
     /// A format converter unit can transform audio formats, such as performing sample rate
     /// conversion.
     ///
-    /// A format converter is also appropriate for dferred rendering and for effects such as
+    /// A format converter is also appropriate for deferred rendering and for effects such as
     /// varispeed.
     ///
     /// A format converter unit can ask for as much or as little audio input as it needs to produce
@@ -89,7 +89,7 @@ pub enum Type {
     ///
     /// **Available** in OS X v10.3 and later.
     OfflineEffect,
-    /// FIXME: Could not find any documenation for this type - it seems it was added very recently
+    /// FIXME: Could not find any documentation for this type - it seems it was added very recently
     /// (around 2013) and Apple's documentation doesn't seem to have updated to include it.
     MidiProcessor,
 }
@@ -437,7 +437,7 @@ pub enum IOType {
     VoiceProcessingIO = 1987078511,
     /// Connects to device hardware for input, output, or simultaneous input and output.
     /// Use it for playback, recording, or low-latency simultaneous input and output where echo
-    /// cancelation is not needed.
+    /// cancellation is not needed.
     ///
     /// See https://developer.apple.com/library/content/documentation/MusicAudio/Conceptual/AudioUnitHostingGuide_iOS/UsingSpecificAudioUnits/UsingSpecificAudioUnits.html
     /// **Available** in iOS.

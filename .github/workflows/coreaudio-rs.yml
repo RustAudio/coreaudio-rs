@@ -5,7 +5,7 @@ jobs:
   macos-test:
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install llvm and clang
       run: brew install llvm
     - name: Install stable
@@ -25,7 +25,7 @@ jobs:
   ios-build:
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install llvm and clang
       run: brew install llvm
     - name: Install stable
@@ -45,7 +45,7 @@ jobs:
   macos-docs:
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install llvm and clang
       run: brew install llvm
     - name: Install stable
@@ -65,7 +65,7 @@ jobs:
       CRATESIO_TOKEN: ${{ secrets.CRATESIO_TOKEN }}
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install llvm and clang
       run: brew install llvm
     - name: Install stable

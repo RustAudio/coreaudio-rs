@@ -1,7 +1,6 @@
 use super::audio_format::LinearPcmFlags;
 use super::{AudioUnit, Element, Scope};
 use crate::error::{self, Error};
-use std::cmp::Ordering;
 use std::mem;
 use std::os::raw::c_void;
 use std::slice;
@@ -580,12 +579,14 @@ impl AudioUnit {
 
         let data_byte_size = buffer_frame_size * sample_bytes as u32 * n_channels;
         let mut data = vec![0u8; data_byte_size as usize];
+        let mut buffer_capacity = data_byte_size as usize;
         let audio_buffer = sys::AudioBuffer {
             mDataByteSize: data_byte_size,
             mNumberChannels: n_channels,
             mData: data.as_mut_ptr() as *mut _,
         };
         // Relieve ownership of the `Vec` until we're ready to drop the `AudioBufferList`.
+        // TODO: This leaks the len & capacity fields, since only the buffer pointer is released
         mem::forget(data);
 
         let audio_buffer_list = Box::new(sys::AudioBufferList {
@@ -627,24 +628,21 @@ impl AudioUnit {
                     let n_channels = stream_format.channels;
                     let data_byte_size =
                         in_number_frames as usize * sample_bytes * n_channels as usize;
-                    let ptr = (*audio_buffer_list_ptr).mBuffers.as_ptr() as *const sys::AudioBuffer;
+                    let ptr = (*audio_buffer_list_ptr).mBuffers.as_ptr() as *mut sys::AudioBuffer;
                     let len = (*audio_buffer_list_ptr).mNumberBuffers as usize;
 
-                    let buffers: &[sys::AudioBuffer] = slice::from_raw_parts(ptr, len);
-                    for &buffer in buffers {
-                        let ptr = buffer.mData as *mut u8;
-                        let len = buffer.mDataByteSize as usize;
-                        let cap = len;
-                        let mut vec = Vec::from_raw_parts(ptr, len, cap);
-                        match len.cmp(&data_byte_size) {
-                            Ordering::Greater => {
-                                vec.truncate(data_byte_size);
-                            }
-                            Ordering::Less => {
-                                vec.reserve_exact(data_byte_size - len);
-                            }
-                            Ordering::Equal => {}
-                        }
+                    let buffers: &mut [sys::AudioBuffer] = slice::from_raw_parts_mut(ptr, len);
+                    let old_capacity = buffer_capacity;
+                    for buffer in buffers {
+                        let current_len = buffer.mDataByteSize as usize;
+                        let audio_buffer_ptr = buffer.mData as *mut u8;
+                        let mut vec: Vec<u8> =
+                            Vec::from_raw_parts(audio_buffer_ptr, current_len, old_capacity);
+                        vec.resize(data_byte_size, 0u8);
+
+                        buffer_capacity = vec.capacity();
+                        buffer.mData = vec.as_mut_ptr() as *mut _;
+                        buffer.mDataByteSize = data_byte_size as u32;
                         mem::forget(vec);
                     }
                 }

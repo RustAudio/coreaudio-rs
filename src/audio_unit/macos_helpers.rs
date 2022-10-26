@@ -20,8 +20,8 @@ use sys::{
     kAudioDevicePropertyNominalSampleRate, kAudioDevicePropertyScopeOutput, kAudioHardwareNoError,
     kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice,
     kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMain,
-    kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
-    kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
+    kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyScopeInput, kAudioObjectPropertyScopeOutput,
+    kAudioObjectSystemObject, kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
     kAudioStreamPropertyAvailablePhysicalFormats, kAudioStreamPropertyPhysicalFormat,
     kCFStringEncodingUTF8, AudioDeviceID, AudioObjectAddPropertyListener,
     AudioObjectGetPropertyData, AudioObjectGetPropertyDataSize, AudioObjectID,
@@ -115,10 +115,15 @@ pub fn audio_unit_from_device_id(
 }
 
 /// List all audio device ids on the system.
-pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
+pub fn get_audio_device_ids_for_scope(scope: Scope) -> Result<Vec<AudioDeviceID>, Error> {
+    let dev_scope = match scope {
+        Scope::Input => kAudioObjectPropertyScopeInput,
+        Scope::Output => kAudioObjectPropertyScopeOutput,
+        _ => kAudioObjectPropertyScopeGlobal,
+    };
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioHardwarePropertyDevices,
-        mScope: kAudioObjectPropertyScopeGlobal,
+        mScope: dev_scope,
         mElement: kAudioObjectPropertyElementMain,
     };
 
@@ -160,6 +165,11 @@ pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
     try_status_or_return!(status);
     Ok(audio_devices)
 }
+
+pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
+    return get_audio_device_ids_for_scope(Scope::Global);
+}
+
 
 /// Get the device name for a device id.
 pub fn get_device_name(device_id: AudioDeviceID) -> Result<String, Error> {

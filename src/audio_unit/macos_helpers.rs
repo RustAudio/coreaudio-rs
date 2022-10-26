@@ -12,6 +12,7 @@ use std::time::Duration;
 use std::{mem, thread};
 
 use core_foundation_sys::string::{CFStringGetCString, CFStringGetCStringPtr, CFStringRef};
+use libc;
 use sys;
 use sys::pid_t;
 use sys::{
@@ -27,6 +28,7 @@ use sys::{
     AudioObjectGetPropertyData, AudioObjectGetPropertyDataSize, AudioObjectID,
     AudioObjectPropertyAddress, AudioObjectRemovePropertyListener, AudioObjectSetPropertyData,
     AudioStreamBasicDescription, AudioStreamRangedDescription, AudioValueRange, OSStatus,
+    AudioObjectPropertyScope, kAudioDevicePropertyStreamConfiguration, kAudioObjectPropertyElementWildcard,
 };
 
 use crate::audio_unit::audio_format::{AudioFormat, LinearPcmFlags};
@@ -168,6 +170,73 @@ pub fn get_audio_device_ids_for_scope(scope: Scope) -> Result<Vec<AudioDeviceID>
 
 pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
     return get_audio_device_ids_for_scope(Scope::Global);
+}
+
+/// does this device support input / ouptut?
+pub fn get_audio_device_supports_scope(devid: AudioDeviceID, scope: Scope) -> Result<bool, Error> {
+    let dev_scope: AudioObjectPropertyScope = match scope {
+        Scope::Input => kAudioObjectPropertyScopeInput,
+        Scope::Output => kAudioObjectPropertyScopeOutput,
+        _ => kAudioObjectPropertyScopeGlobal,
+    };
+    let property_address = AudioObjectPropertyAddress {
+        mSelector: kAudioDevicePropertyStreamConfiguration,
+        mScope: dev_scope,
+        mElement: kAudioObjectPropertyElementWildcard,
+    };
+
+    macro_rules! try_status_or_return {
+        ($status:expr) => {
+            if $status != kAudioHardwareNoError as i32 {
+                return Err(Error::Unknown($status));
+            }
+        };
+    }
+
+    let data_size = 0u32;
+    let status = unsafe {
+        AudioObjectGetPropertyDataSize(
+            devid,
+            &property_address as *const _,
+            0,
+            null(),
+            &data_size as *const _ as *mut _,
+        )
+    };
+    try_status_or_return!(status);
+
+    unsafe {
+        let buffers: *mut sys::AudioBufferList = libc::malloc(data_size as usize) as *mut sys::AudioBufferList;
+        // let count = data_size / mem::size_of::<sys::AudioBuffer>() as u32;
+        // let mut audio_buffers: Vec<sys::AudioBuffer> = vec![];
+        // audio_buffers.reserve_exact(count as usize);
+        // unsafe { audio_buffers.set_len(count as usize) };
+
+        let status = unsafe {
+            AudioObjectGetPropertyData(
+                devid,
+                &property_address as *const _,
+                0,
+                null(),
+                &data_size as *const _ as *mut _,
+                buffers as *mut _,
+            )
+        };
+        if status != kAudioHardwareNoError as i32 {
+            libc::free(buffers as *mut libc::c_void);
+            return Err(Error::Unknown(status));
+        }
+
+        for i in 0..(*buffers).mNumberBuffers {
+            let buf = (*buffers).mBuffers[i as usize];
+            if buf.mNumberChannels > 0 {
+                libc::free(buffers as *mut libc::c_void);
+                return Ok(true);
+            }
+        }
+        libc::free(buffers as *mut libc::c_void);
+    }
+    Ok(false)
 }
 
 

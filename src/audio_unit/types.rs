@@ -439,7 +439,7 @@ pub enum IOType {
     /// Use it for playback, recording, or low-latency simultaneous input and output where echo
     /// cancelation is not needed.
     ///
-    /// See https://developer.apple.com/library/content/documentation/MusicAudio/Conceptual/AudioUnitHostingGuide_iOS/UsingSpecificAudioUnits/UsingSpecificAudioUnits.html
+    /// See <https://developer.apple.com/library/content/documentation/MusicAudio/Conceptual/AudioUnitHostingGuide_iOS/UsingSpecificAudioUnits/UsingSpecificAudioUnits.html>
     /// **Available** in iOS.
     RemoteIO = 1919512419,
 }

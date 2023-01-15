@@ -16,10 +16,10 @@ use sys;
 /// Seeing as `LinearPCM` data (the `AudioFormat` used by the `AudioUnit` API) implies a single
 /// frame per packet, we can infer many of the fields in an ASBD from the sample type.
 ///
-/// `bytes_per_packet` = size_of::<S>()
-/// `bytes_per_frame` = size_of::<S>()
+/// `bytes_per_packet = size_of::<S>()`
+/// `bytes_per_frame = size_of::<S>()`
 /// `frames_per_packet` = 1
-/// `bits_per_channel` = size_of::<S>() / channels_per_frame * 8
+/// `bits_per_channel = size_of::<S>()` / channels_per_frame * 8
 ///
 /// > A *packet* is a collection of one or more contiguous frames. In linear PCM audio, a packet is
 /// always a single frame.

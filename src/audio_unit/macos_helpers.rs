@@ -12,6 +12,7 @@ use std::time::Duration;
 use std::{mem, thread};
 
 use core_foundation_sys::string::{CFStringGetCString, CFStringGetCStringPtr, CFStringRef};
+use libc;
 use sys;
 use sys::pid_t;
 use sys::{
@@ -19,14 +20,15 @@ use sys::{
     kAudioDevicePropertyDeviceNameCFString, kAudioDevicePropertyHogMode,
     kAudioDevicePropertyNominalSampleRate, kAudioDevicePropertyScopeOutput, kAudioHardwareNoError,
     kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice,
-    kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMaster,
-    kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
-    kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
+    kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMain,
+    kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyScopeInput, kAudioObjectPropertyScopeOutput,
+    kAudioObjectSystemObject, kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
     kAudioStreamPropertyAvailablePhysicalFormats, kAudioStreamPropertyPhysicalFormat,
     kCFStringEncodingUTF8, AudioDeviceID, AudioObjectAddPropertyListener,
     AudioObjectGetPropertyData, AudioObjectGetPropertyDataSize, AudioObjectID,
     AudioObjectPropertyAddress, AudioObjectRemovePropertyListener, AudioObjectSetPropertyData,
     AudioStreamBasicDescription, AudioStreamRangedDescription, AudioValueRange, OSStatus,
+    AudioObjectPropertyScope, kAudioDevicePropertyStreamConfiguration, kAudioObjectPropertyElementWildcard,
 };
 
 use crate::audio_unit::audio_format::{AudioFormat, LinearPcmFlags};
@@ -44,7 +46,7 @@ pub fn get_default_device_id(input: bool) -> Option<AudioDeviceID> {
     let property_address = AudioObjectPropertyAddress {
         mSelector: selector,
         mScope: kAudioObjectPropertyScopeGlobal,
-        mElement: kAudioObjectPropertyElementMaster,
+        mElement: kAudioObjectPropertyElementMain,
     };
 
     let audio_device_id: AudioDeviceID = 0;
@@ -115,11 +117,16 @@ pub fn audio_unit_from_device_id(
 }
 
 /// List all audio device ids on the system.
-pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
+pub fn get_audio_device_ids_for_scope(scope: Scope) -> Result<Vec<AudioDeviceID>, Error> {
+    let dev_scope = match scope {
+        Scope::Input => kAudioObjectPropertyScopeInput,
+        Scope::Output => kAudioObjectPropertyScopeOutput,
+        _ => kAudioObjectPropertyScopeGlobal,
+    };
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioHardwarePropertyDevices,
-        mScope: kAudioObjectPropertyScopeGlobal,
-        mElement: kAudioObjectPropertyElementMaster,
+        mScope: dev_scope,
+        mElement: kAudioObjectPropertyElementMain,
     };
 
     macro_rules! try_status_or_return {
@@ -161,12 +168,84 @@ pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
     Ok(audio_devices)
 }
 
+pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
+    return get_audio_device_ids_for_scope(Scope::Global);
+}
+
+/// does this device support input / ouptut?
+pub fn get_audio_device_supports_scope(devid: AudioDeviceID, scope: Scope) -> Result<bool, Error> {
+    let dev_scope: AudioObjectPropertyScope = match scope {
+        Scope::Input => kAudioObjectPropertyScopeInput,
+        Scope::Output => kAudioObjectPropertyScopeOutput,
+        _ => kAudioObjectPropertyScopeGlobal,
+    };
+    let property_address = AudioObjectPropertyAddress {
+        mSelector: kAudioDevicePropertyStreamConfiguration,
+        mScope: dev_scope,
+        mElement: kAudioObjectPropertyElementWildcard,
+    };
+
+    macro_rules! try_status_or_return {
+        ($status:expr) => {
+            if $status != kAudioHardwareNoError as i32 {
+                return Err(Error::Unknown($status));
+            }
+        };
+    }
+
+    let data_size = 0u32;
+    let status = unsafe {
+        AudioObjectGetPropertyDataSize(
+            devid,
+            &property_address as *const _,
+            0,
+            null(),
+            &data_size as *const _ as *mut _,
+        )
+    };
+    try_status_or_return!(status);
+
+    unsafe {
+        let buffers: *mut sys::AudioBufferList = libc::malloc(data_size as usize) as *mut sys::AudioBufferList;
+        // let count = data_size / mem::size_of::<sys::AudioBuffer>() as u32;
+        // let mut audio_buffers: Vec<sys::AudioBuffer> = vec![];
+        // audio_buffers.reserve_exact(count as usize);
+        // unsafe { audio_buffers.set_len(count as usize) };
+
+        let status = unsafe {
+            AudioObjectGetPropertyData(
+                devid,
+                &property_address as *const _,
+                0,
+                null(),
+                &data_size as *const _ as *mut _,
+                buffers as *mut _,
+            )
+        };
+        if status != kAudioHardwareNoError as i32 {
+            libc::free(buffers as *mut libc::c_void);
+            return Err(Error::Unknown(status));
+        }
+
+        for i in 0..(*buffers).mNumberBuffers {
+            let buf = (*buffers).mBuffers[i as usize];
+            if buf.mNumberChannels > 0 {
+                libc::free(buffers as *mut libc::c_void);
+                return Ok(true);
+            }
+        }
+        libc::free(buffers as *mut libc::c_void);
+    }
+    Ok(false)
+}
+
+
 /// Get the device name for a device id.
 pub fn get_device_name(device_id: AudioDeviceID) -> Result<String, Error> {
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioDevicePropertyDeviceNameCFString,
         mScope: kAudioDevicePropertyScopeOutput,
-        mElement: kAudioObjectPropertyElementMaster,
+        mElement: kAudioObjectPropertyElementMain,
     };
 
     macro_rules! try_status_or_return {
@@ -228,7 +307,7 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
         let mut property_address = AudioObjectPropertyAddress {
             mSelector: kAudioDevicePropertyNominalSampleRate,
             mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMaster,
+            mElement: kAudioObjectPropertyElementMain,
         };
         let sample_rate: f64 = 0.0;
         let data_size = mem::size_of::<f64>() as u32;
@@ -382,7 +461,7 @@ pub fn set_device_physical_stream_format(
         let property_address = AudioObjectPropertyAddress {
             mSelector: kAudioStreamPropertyPhysicalFormat,
             mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMaster,
+            mElement: kAudioObjectPropertyElementMain,
         };
         let maybe_asbd: mem::MaybeUninit<AudioStreamBasicDescription> = mem::MaybeUninit::zeroed();
         let data_size = mem::size_of::<AudioStreamBasicDescription>() as u32;
@@ -401,7 +480,7 @@ pub fn set_device_physical_stream_format(
             let property_address = AudioObjectPropertyAddress {
                 mSelector: kAudioStreamPropertyPhysicalFormat,
                 mScope: kAudioObjectPropertyScopeGlobal,
-                mElement: kAudioObjectPropertyElementMaster,
+                mElement: kAudioObjectPropertyElementMain,
             };
 
             let reported_asbd: mem::MaybeUninit<AudioStreamBasicDescription> =
@@ -467,7 +546,7 @@ pub fn get_supported_physical_stream_formats(
     let mut property_address = AudioObjectPropertyAddress {
         mSelector: kAudioStreamPropertyPhysicalFormat,
         mScope: kAudioObjectPropertyScopeGlobal,
-        mElement: kAudioObjectPropertyElementMaster,
+        mElement: kAudioObjectPropertyElementMain,
     };
     let allformats = unsafe {
         property_address.mSelector = kAudioStreamPropertyAvailablePhysicalFormats;
@@ -527,7 +606,7 @@ impl RateListener {
         let property_address = AudioObjectPropertyAddress {
             mSelector: kAudioDevicePropertyNominalSampleRate,
             mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMaster,
+            mElement: kAudioObjectPropertyElementMain,
         };
         let queue = Mutex::new(VecDeque::new());
         RateListener {
@@ -553,7 +632,7 @@ impl RateListener {
             let property_address = AudioObjectPropertyAddress {
                 mSelector: kAudioDevicePropertyNominalSampleRate,
                 mScope: kAudioObjectPropertyScopeGlobal,
-                mElement: kAudioObjectPropertyElementMaster,
+                mElement: kAudioObjectPropertyElementMain,
             };
             let result = AudioObjectGetPropertyData(
                 device_id,
@@ -653,7 +732,7 @@ impl AliveListener {
         let property_address = AudioObjectPropertyAddress {
             mSelector: kAudioDevicePropertyDeviceIsAlive,
             mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMaster,
+            mElement: kAudioObjectPropertyElementMain,
         };
         AliveListener {
             alive: Box::new(AtomicBool::new(true)),
@@ -677,7 +756,7 @@ impl AliveListener {
             let property_address = AudioObjectPropertyAddress {
                 mSelector: kAudioDevicePropertyDeviceIsAlive,
                 mScope: kAudioObjectPropertyScopeGlobal,
-                mElement: kAudioObjectPropertyElementMaster,
+                mElement: kAudioObjectPropertyElementMain,
             };
             let result = AudioObjectGetPropertyData(
                 device_id,
@@ -735,7 +814,7 @@ pub fn get_hogging_pid(device_id: AudioDeviceID) -> Result<pid_t, Error> {
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioDevicePropertyHogMode,
         mScope: kAudioObjectPropertyScopeGlobal,
-        mElement: kAudioObjectPropertyElementMaster,
+        mElement: kAudioObjectPropertyElementMain,
     };
     let pid = unsafe {
         let temp_pid: pid_t = 0;
@@ -765,7 +844,7 @@ pub fn toggle_hog_mode(device_id: AudioDeviceID) -> Result<pid_t, Error> {
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioDevicePropertyHogMode,
         mScope: kAudioObjectPropertyScopeGlobal,
-        mElement: kAudioObjectPropertyElementMaster,
+        mElement: kAudioObjectPropertyElementMain,
     };
     let pid = unsafe {
         let temp_pid: pid_t = -1;

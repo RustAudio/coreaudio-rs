@@ -5,8 +5,8 @@ extern crate coreaudio;
 
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::macos_helpers::{
-    audio_unit_from_device_id, find_matching_physical_format, get_default_device_id, get_hogging_pid,
-    get_supported_physical_stream_formats, set_device_physical_stream_format,
+    audio_unit_from_device_id, find_matching_physical_format, get_default_device_id,
+    get_hogging_pid, get_supported_physical_stream_formats, set_device_physical_stream_format,
     set_device_sample_rate, toggle_hog_mode, AliveListener, RateListener,
 };
 use coreaudio::audio_unit::render_callback::{self, data};

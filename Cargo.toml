@@ -22,7 +22,7 @@ open_al = ["coreaudio-sys/open_al"]
 core_midi = ["coreaudio-sys/core_midi"]
 
 [dependencies]
-bitflags = "1.0"
+bitflags = "2.1"
 coreaudio-sys = { version = "0.2", default-features = false }
 core-foundation-sys = "0.6.2"
 

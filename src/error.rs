@@ -41,6 +41,8 @@ pub mod audio {
         }
     }
 
+    impl std::error::Error for Error {}
+
     impl ::std::fmt::Display for Error {
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
             let description = match *self {
@@ -93,6 +95,8 @@ pub mod audio_codec {
         }
     }
 
+    impl std::error::Error for Error {}
+
     impl ::std::fmt::Display for Error {
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
             let description = match *self {
@@ -138,6 +142,8 @@ pub mod audio_format {
             *self as OSStatus
         }
     }
+
+    impl std::error::Error for Error {}
 
     impl ::std::fmt::Display for Error {
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
@@ -208,6 +214,8 @@ pub mod audio_unit {
             *self as OSStatus
         }
     }
+
+    impl std::error::Error for Error {}
 
     impl ::std::fmt::Display for Error {
         fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
@@ -301,6 +309,8 @@ impl Error {
         }
     }
 }
+
+impl std::error::Error for Error {}
 
 impl ::std::fmt::Display for Error {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {

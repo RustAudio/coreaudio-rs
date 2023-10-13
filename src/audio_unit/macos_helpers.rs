@@ -173,6 +173,11 @@ pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
     get_audio_device_ids_for_scope(Scope::Global)
 }
 
+#[test]
+fn test_get_audio_device_ids() {
+    let _ = get_audio_device_ids().expect("Failed to get audio device ids");
+}
+
 /// does this device support input / ouptut?
 pub fn get_audio_device_supports_scope(devid: AudioDeviceID, scope: Scope) -> Result<bool, Error> {
     let dev_scope: AudioObjectPropertyScope = match scope {

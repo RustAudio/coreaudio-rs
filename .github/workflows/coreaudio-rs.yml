@@ -22,6 +22,14 @@ jobs:
     # - name: cargo test - all features
     #   run: cargo test --all-features --verbose
 
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: rustsec/audit-check@v1.4.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   ios-build:
     runs-on: macOS-latest
     steps:

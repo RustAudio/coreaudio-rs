@@ -178,6 +178,22 @@ fn test_get_audio_device_ids() {
     let _ = get_audio_device_ids().expect("Failed to get audio device ids");
 }
 
+#[test]
+fn test_get_audio_device_ids_for_scope() {
+    for scope in &[
+        Scope::Global,
+        Scope::Input,
+        Scope::Output,
+        Scope::Group,
+        Scope::Part,
+        Scope::Note,
+        Scope::Layer,
+        Scope::LayerItem,
+    ] {
+        let _ = get_audio_device_ids_for_scope(*scope).expect("Failed to get audio device ids");
+    }
+}
+
 /// does this device support input / ouptut?
 pub fn get_audio_device_supports_scope(devid: AudioDeviceID, scope: Scope) -> Result<bool, Error> {
     let dev_scope: AudioObjectPropertyScope = match scope {

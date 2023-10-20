@@ -5,7 +5,7 @@ jobs:
   macos-test:
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install llvm and clang
       run: brew install llvm
     - name: Install stable
@@ -25,7 +25,7 @@ jobs:
   security-audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: rustsec/audit-check@v1.4.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -33,7 +33,7 @@ jobs:
   ios-build:
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install llvm and clang
       run: brew install llvm
     - name: Install stable
@@ -53,7 +53,7 @@ jobs:
   macos-docs:
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install llvm and clang
       run: brew install llvm
     - name: Install stable
@@ -73,7 +73,7 @@ jobs:
       CRATESIO_TOKEN: ${{ secrets.CRATESIO_TOKEN }}
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install llvm and clang
       run: brew install llvm
     - name: Install stable

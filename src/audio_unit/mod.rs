@@ -290,27 +290,28 @@ impl AudioUnit {
         &mut self,
         stream_format: StreamFormat,
         scope: Scope,
+        element: Element,
     ) -> Result<(), Error> {
         let id = sys::kAudioUnitProperty_StreamFormat;
         let asbd = stream_format.to_asbd();
-        self.set_property(id, scope, Element::Output, Some(&asbd))
+        self.set_property(id, scope, element, Some(&asbd))
     }
 
     /// Return the current Stream Format for the AudioUnit.
-    pub fn stream_format(&self, scope: Scope) -> Result<StreamFormat, Error> {
+    pub fn stream_format(&self, scope: Scope, element: Element) -> Result<StreamFormat, Error> {
         let id = sys::kAudioUnitProperty_StreamFormat;
-        let asbd = self.get_property(id, scope, Element::Output)?;
+        let asbd = self.get_property(id, scope, element)?;
         StreamFormat::from_asbd(asbd)
     }
 
     /// Return the current output Stream Format for the AudioUnit.
     pub fn output_stream_format(&self) -> Result<StreamFormat, Error> {
-        self.stream_format(Scope::Output)
+        self.stream_format(Scope::Input, Element::Output)
     }
 
     /// Return the current input Stream Format for the AudioUnit.
     pub fn input_stream_format(&self) -> Result<StreamFormat, Error> {
-        self.stream_format(Scope::Input)
+        self.stream_format(Scope::Output, Element::Input)
     }
 }
 

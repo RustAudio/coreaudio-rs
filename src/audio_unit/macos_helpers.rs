@@ -70,17 +70,23 @@ pub fn get_default_device_id(input: bool) -> Option<AudioDeviceID> {
 }
 
 /// Find the device id for a device name.
-pub fn get_device_id_from_name(name: &str) -> Option<AudioDeviceID> {
+/// Set `input` to `true` to find a playback device, or `false` for a capture device.
+pub fn get_device_id_from_name(name: &str, input: bool) -> Option<AudioDeviceID> {
+    let scope = match input {
+        false => Scope::Output,
+        true => Scope::Input,
+    };
     if let Ok(all_ids) = get_audio_device_ids() {
         return all_ids
             .iter()
-            .find(|id| get_device_name(**id).unwrap_or_else(|_| "".to_string()) == name)
+            .find(|id| get_device_name(**id).unwrap_or_default() == name && get_audio_device_supports_scope(**id, scope).unwrap_or_default())
             .copied();
     }
     None
 }
 
 /// Create an AudioUnit instance from a device id.
+/// Set `input` to `true` to create a playback device, or `false` for a capture device.
 pub fn audio_unit_from_device_id(
     device_id: AudioDeviceID,
     input: bool,

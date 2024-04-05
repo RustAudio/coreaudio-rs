@@ -7,7 +7,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v2.0
+      uses: KyleMayes/install-llvm-action@v2.0.1
       with:
         version: "15.0"
     - name: Install stable
@@ -37,7 +37,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v2.0
+      uses: KyleMayes/install-llvm-action@v2.0.1
       with:
         version: "15.0"
     - name: Install stable
@@ -59,7 +59,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v2.0
+      uses: KyleMayes/install-llvm-action@v2.0.1
       with:
         version: "15.0"
     - name: Install stable
@@ -81,7 +81,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v2.0
+      uses: KyleMayes/install-llvm-action@v2.0.1
       with:
         version: "15.0"
     - name: Install stable

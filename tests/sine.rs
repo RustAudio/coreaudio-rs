@@ -1,3 +1,4 @@
+
 //! A basic output stream example, using an Output AudioUnit to generate a sine wave.
 
 extern crate coreaudio;
@@ -33,7 +34,8 @@ impl Iterator for SineWaveGenerator {
     }
 }
 
-fn main() -> Result<(), coreaudio::Error> {
+#[test]
+fn sine() -> Result<(), coreaudio::Error> {
     let frequency_hz = 440.;
     let volume = 0.15;
     let mut samples = SineWaveGenerator::new(frequency_hz, volume);
@@ -67,7 +69,7 @@ fn main() -> Result<(), coreaudio::Error> {
     })?;
     audio_unit.start()?;
 
-    std::thread::sleep(std::time::Duration::from_millis(3000));
+    std::thread::sleep(std::time::Duration::from_millis(50));
 
     Ok(())
 }

@@ -1,7 +1,4 @@
-
-//! A basic output stream example, using an Output AudioUnit to generate a sine wave.
-
-extern crate coreaudio;
+// This is from examples/sine.rs
 
 use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::{AudioUnit, IOType, SampleFormat};
@@ -37,15 +34,12 @@ impl Iterator for SineWaveGenerator {
 #[test]
 fn sine() -> Result<(), coreaudio::Error> {
     let frequency_hz = 440.;
-    let volume = 0.15;
+    let volume = 0.01; // Lets have this audio be very quiet.
     let mut samples = SineWaveGenerator::new(frequency_hz, volume);
 
     // Construct an Output audio unit that delivers audio to the default output device.
     let mut audio_unit = AudioUnit::new(IOType::DefaultOutput)?;
 
-    // Read the input format. This is counterintuitive, but it's the format used when sending
-    // audio data to the AudioUnit representing the output device. This is separate from the
-    // format the AudioUnit later uses to send the data to the hardware device.
     let stream_format = audio_unit.output_stream_format()?;
     println!("{:#?}", &stream_format);
 
@@ -69,7 +63,7 @@ fn sine() -> Result<(), coreaudio::Error> {
     })?;
     audio_unit.start()?;
 
-    std::thread::sleep(std::time::Duration::from_millis(50));
+    std::thread::sleep(std::time::Duration::from_millis(100));
 
     Ok(())
 }

@@ -3,19 +3,19 @@ on: [push, pull_request]
 jobs:
   # Run cargo test with default, no and all features.
   macos-test:
-    runs-on: macOS-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macOS-latest, macOS-14]
     steps:
     - uses: actions/checkout@v4
     - name: Install LLVM and Clang
       uses: KyleMayes/install-llvm-action@v2.0.1
       with:
         version: "15.0"
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
+    - uses: dtolnay/rust-toolchain@master
       with:
-        profile: minimal
         toolchain: stable
-        override: true
     - name: cargo test
       run: cargo test --verbose
     # TODO: These don't work as of 2020-12-06, but they should.
@@ -40,12 +40,9 @@ jobs:
       uses: KyleMayes/install-llvm-action@v2.0.1
       with:
         version: "15.0"
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
+    - uses: dtolnay/rust-toolchain@master
       with:
-        profile: minimal
         toolchain: stable
-        override: true
     - name: Add iOS targets
       run: rustup target add aarch64-apple-ios x86_64-apple-ios
     - name: Install cargo lipo
@@ -62,12 +59,9 @@ jobs:
       uses: KyleMayes/install-llvm-action@v2.0.1
       with:
         version: "15.0"
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
+    - uses: dtolnay/rust-toolchain@master
       with:
-        profile: minimal
         toolchain: stable
-        override: true
     - name: cargo doc - all features
       run: cargo doc --all-features --verbose
 
@@ -84,12 +78,9 @@ jobs:
       uses: KyleMayes/install-llvm-action@v2.0.1
       with:
         version: "15.0"
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
+    - uses: dtolnay/rust-toolchain@master
       with:
-        profile: minimal
         toolchain: stable
-        override: true
     - name: cargo publish
       continue-on-error: true
       run: cargo publish --token $CRATESIO_TOKEN

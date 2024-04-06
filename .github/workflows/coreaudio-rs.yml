@@ -6,7 +6,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macOS-latest, macOS-14]
+        os: [macOS-12, macOS-13 macOS-14]
     steps:
     - uses: actions/checkout@v4
     - name: Install LLVM and Clang

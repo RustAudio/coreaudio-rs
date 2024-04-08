@@ -6,7 +6,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macOS-12, macOS-13, macOS-14]
+        os: [macOS-latest]
     steps:
     - uses: actions/checkout@v4
     - name: Install LLVM and Clang
@@ -18,6 +18,8 @@ jobs:
         toolchain: stable
     - name: cargo test
       run: cargo test --verbose
+    - name: Run sign example
+      run: cargo run --example sine
     # TODO: These don't work as of 2020-12-06, but they should.
     # - name: cargo test - no features
     #   run: cargo test --no-default-features --verbose

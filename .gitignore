@@ -2,3 +2,4 @@ target/
 /Cargo.lock
 .cargo/
 .DS_Store
+llvm/

@@ -44,7 +44,7 @@ fn main() -> Result<(), coreaudio::Error> {
     // Read the input format. This is counterintuitive, but it's the format used when sending
     // audio data to the AudioUnit representing the output device. This is separate from the
     // format the AudioUnit later uses to send the data to the hardware device.
-    let stream_format = audio_unit.input_stream_format()?;
+    let stream_format = audio_unit.output_stream_format()?;
     println!("{:#?}", &stream_format);
 
     // For this example, our sine wave expects `f32` data.

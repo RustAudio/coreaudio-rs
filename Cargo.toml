@@ -31,6 +31,18 @@ all-features = true
 default-target = "aarch64-apple-darwin"
 targets = ["x86_64-apple-darwin", "x86_64-apple-ios", "aarch64-apple-darwin", "aarch64-apple-ios", "aarch64-apple-visionos"]
 
+[[example]]
+name = "feedback_interleaved"
+
+[[example]]
+name = "feedback"
+
+[[example]]
+name = "sine_advanced"
+
+[[example]]
+name = "sine"
+
 # TODO: remove this fix, once https://github.com/RustAudio/coreaudio-sys/pull/102 has been merged.
 [patch.crates-io]
 coreaudio-sys = { git = "https://github.com/eugenehp/coreaudio-sys.git", branch = "visionos" }

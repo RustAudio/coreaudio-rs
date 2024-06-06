@@ -21,6 +21,7 @@ const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 // type S = i8; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I8;
 
 const SAMPLE_RATE: f64 = 44100.0;
+// const SAMPLE_RATE: f64 = 48000.0;
 
 const INTERLEAVED: bool = true;
 

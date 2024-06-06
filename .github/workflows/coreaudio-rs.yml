@@ -51,6 +51,24 @@ jobs:
       run: cargo install cargo-lipo
     - name: Build iphonesimulator feedback example
       run: cd examples/ios && xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=x86_64 -scheme coreaudio-ios-example -configuration Debug -derivedDataPath build -sdk iphonesimulator
+  
+  visionos-build:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install LLVM and Clang
+      uses: KyleMayes/install-llvm-action@v2.0.2
+      with:
+        version: "18.1.0" 
+    - uses: dtolnay/rust-toolchain@nightly
+      with:
+        profile: minimal
+    - name: Add visionOS targets
+      run: rustup target add aarch64-apple-visionos
+    - name: Install cargo lipo
+      run: cargo install cargo-lipo
+    - name: Build xrsimulator feedback example
+      run: cd examples/ios && xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=aarch64 -scheme coreaudio-ios-example -configuration Debug -derivedDataPath build -sdk xrsimulator
 
   # Build the docs with all features to make sure docs.rs will work.
   macos-docs:

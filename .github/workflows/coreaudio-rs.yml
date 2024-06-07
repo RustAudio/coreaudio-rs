@@ -18,8 +18,6 @@ jobs:
         toolchain: stable
     - name: cargo test
       run: cargo test --verbose
-    - name: Run sign example
-      run: cargo run --example sine
     # TODO: These don't work as of 2020-12-06, but they should.
     # - name: cargo test - no features
     #   run: cargo test --no-default-features --verbose

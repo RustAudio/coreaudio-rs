@@ -3,7 +3,7 @@ name = "coreaudio-rs"
 version = "0.12.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>", "yupferris <jake@fusetools.com>"]
 description = "A friendly rust interface for Apple's CoreAudio API."
-keywords = ["core", "audio", "unit", "osx", "ios"]
+keywords = ["core", "audio", "unit", "osx", "ios", "visionos"]
 readme = "README.md"
 license = "MIT/Apache-2.0"
 edition = '2018'
@@ -30,3 +30,6 @@ core-foundation-sys = "0.8.3"
 all-features = true
 default-target = "x86_64-apple-darwin"
 targets = ["x86_64-apple-darwin", "x86_64-apple-ios"]
+
+[patch.crates-io]
+coreaudio-sys = { git = "https://github.com/simlay/coreaudio-sys.git", branch = "tier-3-more-apple-targets"}

@@ -52,6 +52,30 @@ jobs:
     - name: Build iphonesimulator feedback example
       run: cd examples/ios && xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=x86_64 -scheme coreaudio-ios-example -configuration Debug -derivedDataPath build -sdk iphonesimulator
 
+  apple-tier-3-check:
+    runs-on: macOS-14
+    strategy:
+      matrix:
+        target: [
+          aarch64-apple-visionos,
+          aarch64-apple-visionos-sim,
+        ]
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: nightly
+        components: rust-src
+
+    - name: Install Xcode Command Line Tools
+      # TODO: Remove this when xcode 15.2 or later is the default in
+      # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-arm64-Readme.md#xcode
+      run: sudo xcode-select --switch /Applications/Xcode_15.4.app/Contents/Developer
+
+    - name: Build for visionOS target ${{matrix.target}}
+      run: cargo +nightly build -Z build-std --target=${{matrix.target}}
+
   # Build the docs with all features to make sure docs.rs will work.
   macos-docs:
     runs-on: macOS-latest

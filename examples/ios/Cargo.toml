@@ -13,3 +13,7 @@ crate-type = ["staticlib"]
 [dependencies]
 coreaudio-rs = { path = "../.." }
 
+# TODO: remove this fix, once https://github.com/RustAudio/coreaudio-sys/pull/102 has been merged.
+[patch.crates-io]
+coreaudio-sys = { git = "https://github.com/eugenehp/coreaudio-sys.git", branch = "visionos" }
+# coreaudio-sys = { path = "../../../coreaudio-sys" }

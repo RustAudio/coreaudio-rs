@@ -43,7 +43,7 @@ jobs:
       with:
         toolchain: stable
     - name: Add iOS targets
-      run: rustup target add aarch64-apple-ios x86_64-apple-ios
+      run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios x86_64-apple-ios-sim 
     - name: Build iphonesimulator feedback example
       run: cd examples/ios && xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=arm64 -scheme coreaudio-ios-example -configuration Debug -derivedDataPath build -sdk iphonesimulator
   
@@ -54,8 +54,6 @@ jobs:
     - uses: dtolnay/rust-toolchain@nightly
       with:
         profile: minimal
-    - name: Add visionOS targets
-      run: rustup target add aarch64-apple-visionos
     - name: Build xrsimulator feedback example
       run: cd examples/ios && xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=arm64 -scheme coreaudio-ios-example -configuration Debug -derivedDataPath build -sdk xrsimulator
 

@@ -6,6 +6,9 @@ PATH=$PATH:$HOME/.cargo/bin
 
 POSITIONAL_ARGS=()
 
+# cargo clean
+# rm -rf build
+
 # ./build_rust_deps.sh --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:-}" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}
 
 # TODO: x86_64 crashes

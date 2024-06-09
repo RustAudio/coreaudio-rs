@@ -119,6 +119,7 @@ dependencies = [
 [[package]]
 name = "coreaudio-sys"
 version = "0.2.15"
+source = "git+https://github.com/eugenehp/coreaudio-sys.git?branch=visionos#17eaa7c2fb9b5cf81e3c09984c1c443c4b724635"
 dependencies = [
  "bindgen",
 ]

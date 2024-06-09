@@ -9,11 +9,18 @@ jobs:
         os: [macOS-latest]
     steps:
     - uses: actions/checkout@v4
+
+    - name: Install LLVM and Clang
+      uses: KyleMayes/install-llvm-action@v2.0.3
+      with:
+        version: "15.0"
+
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: stable
     - name: cargo test
       run: cargo test --verbose
+
     
     #  TODO: don't run on CI, it loops. Works fine locally.
     # - name: Run sine example
@@ -38,7 +45,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v2.0.2
+      uses: KyleMayes/install-llvm-action@v2.0.3
       with:
         version: "15.0"
     - uses: dtolnay/rust-toolchain@master
@@ -70,7 +77,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v2.0.2
+      uses: KyleMayes/install-llvm-action@v2.0.3
       with:
         version: "15.0"
     - uses: dtolnay/rust-toolchain@master
@@ -89,7 +96,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v2.0.2
+      uses: KyleMayes/install-llvm-action@v2.0.3
       with:
         version: "15.0"
     - uses: dtolnay/rust-toolchain@master

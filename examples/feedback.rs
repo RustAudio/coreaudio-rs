@@ -5,6 +5,7 @@ extern crate coreaudio;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
+use avfaudio::session::{AVAudioSession, Category};
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::macos_helpers::{audio_unit_from_device_id, get_default_device_id};
 use coreaudio::audio_unit::render_callback::{self, data};
@@ -20,6 +21,10 @@ const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
 // type S = i8; const SAMPLE_FORMAT: SampleFormat = SampleFormat::I8;
 
 fn main() -> Result<(), coreaudio::Error> {
+
+    let session = AVAudioSession::shared_instance();
+    session.set_category(Category::play_and_record());
+
     let mut input_audio_unit =
         audio_unit_from_device_id(get_default_device_id(true).unwrap(), true)?;
     let mut output_audio_unit =

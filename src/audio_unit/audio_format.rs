@@ -282,6 +282,8 @@ bitflags! {
     /// the **AudioFormat** type.
     ///
     /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
+    #[derive(Copy, Clone, Debug)]
+    #[allow(non_camel_case_types)]
     pub struct StandardFlags: u32 {
         /// Set for floating point, clear for integer.
         ///
@@ -335,7 +337,10 @@ bitflags! {
     /// have chosen to separate these for greater type safety and clearer compatibility with
     /// the **AudioFormat** type.
     ///
-    /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
+    /// Original documentation [here](https://developer.apple.com/documentation/coreaudiotypes/1572097-audio_stream_basic_description_f).
+    /// 
+    #[derive(Copy, Clone, Debug)]
+    #[allow(non_camel_case_types)]
     pub struct LinearPcmFlags: u32 {
         /// Synonmyn for the **IS_FLOAT** **StandardFlags**.
         ///
@@ -399,6 +404,8 @@ bitflags! {
     /// the **AudioFormat** type.
     ///
     /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
+    #[derive(Copy, Clone, Debug)]
+    #[allow(non_camel_case_types)]
     pub struct AppleLosslessFlags: u32 {
         /// Sourced from 16 bit native endian signed integer data.
         const BIT_16_SOURCE_DATA = 1;
@@ -473,6 +480,8 @@ bitflags! {
     /// **Available** in OS X v10.0 and later.
     ///
     /// Original Documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/Audio_Time_Stamp_Flags).
+    #[derive(Copy, Clone, Debug)]
+    #[allow(non_camel_case_types)]
     pub struct AudioTimeStampFlags: u32 {
         /// The sample frame time is valid.
         const SAMPLE_TIME_VALID = 1;

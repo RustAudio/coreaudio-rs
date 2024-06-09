@@ -9,15 +9,23 @@ jobs:
         os: [macOS-latest]
     steps:
     - uses: actions/checkout@v4
+
     - name: Install LLVM and Clang
       uses: KyleMayes/install-llvm-action@v2.0.3
       with:
         version: "15.0"
+
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: stable
     - name: cargo test
       run: cargo test --verbose
+
+    
+    #  TODO: don't run on CI, it loops. Works fine locally.
+    # - name: Run sine example
+    #   run: cargo run --example sine
+
     # TODO: These don't work as of 2020-12-06, but they should.
     # - name: cargo test - no features
     #   run: cargo test --no-default-features --verbose
@@ -44,11 +52,24 @@ jobs:
       with:
         toolchain: stable
     - name: Add iOS targets
-      run: rustup target add aarch64-apple-ios x86_64-apple-ios
-    - name: Install cargo lipo
-      run: cargo install cargo-lipo
+      run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
     - name: Build iphonesimulator feedback example
-      run: cd examples/ios && xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=x86_64 -scheme coreaudio-ios-example -configuration Debug -derivedDataPath build -sdk iphonesimulator
+      run: cd examples/ios && xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=arm64 -scheme coreaudio-ios-example -configuration Debug -derivedDataPath build -sdk iphonesimulator
+  
+  visionos-build:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        profile: minimal
+        toolchain: nightly
+        components: rust-src
+    # select Xcode with visionOS support that has xrsimulator SDK installed
+    - name: Install Xcode Command Line Tools
+      run: sudo xcode-select --switch /Applications/Xcode_15.4.app/Contents/Developer
+    - name: Build xrsimulator feedback example
+      run: cd examples/ios && xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=arm64 -scheme coreaudio-ios-example -configuration Debug -derivedDataPath build -sdk xrsimulator
 
   # Build the docs with all features to make sure docs.rs will work.
   macos-docs:

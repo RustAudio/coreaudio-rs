@@ -3,3 +3,4 @@ target/
 .cargo/
 .DS_Store
 llvm/
+build

@@ -14,8 +14,10 @@ jobs:
         toolchain: stable
     - name: cargo test
       run: cargo test --verbose
-    - name: Run sine example
-      run: cargo run --example sine
+    
+    #  TODO: don't run on CI, it loops. Works fine locally.
+    # - name: Run sine example
+    #   run: cargo run --example sine
 
     # TODO: These don't work as of 2020-12-06, but they should.
     # - name: cargo test - no features

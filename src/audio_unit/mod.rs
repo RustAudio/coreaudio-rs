@@ -315,6 +315,18 @@ impl AudioUnit {
     }
 }
 
+impl AsRef<sys::AudioUnit> for AudioUnit {
+    fn as_ref(&self) -> &sys::AudioUnit {
+        &self.instance
+    }
+}
+
+impl AsMut<sys::AudioUnit> for AudioUnit {
+    fn as_mut(&mut self) -> &mut sys::AudioUnit {
+        &mut self.instance
+    }
+}
+
 unsafe impl Send for AudioUnit {}
 
 impl Drop for AudioUnit {

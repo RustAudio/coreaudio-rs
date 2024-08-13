@@ -9,10 +9,6 @@ jobs:
         os: [macOS-latest]
     steps:
     - uses: actions/checkout@v4
-    - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v2.0.3
-      with:
-        version: "15.0"
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: stable
@@ -36,10 +32,6 @@ jobs:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v2.0.3
-      with:
-        version: "15.0"
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: stable
@@ -55,10 +47,6 @@ jobs:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v2.0.3
-      with:
-        version: "15.0"
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: stable
@@ -74,10 +62,6 @@ jobs:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v2.0.3
-      with:
-        version: "15.0"
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: stable

@@ -596,7 +596,7 @@ pub fn get_supported_physical_stream_formats(
     Ok(allformats)
 }
 
-/// Changing the sample rate is an asynchonous process.
+/// Changing the sample rate is an asynchronous process.
 /// A RateListener can be used to get notified when the rate is changed.
 pub struct RateListener {
     pub queue: Mutex<VecDeque<f64>>,

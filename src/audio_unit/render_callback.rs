@@ -58,7 +58,7 @@ pub mod data {
 
     /// Audio data wrappers specific to the `AudioUnit`'s `AudioFormat`.
     pub trait Data {
-        /// Check whether or not the stream format matches this type of data.
+        /// Check whether the stream format matches this type of data.
         fn does_stream_format_match(stream_format: &StreamFormat) -> bool;
         /// We must be able to construct Self from arguments given to the `input_proc`.
         /// # Safety

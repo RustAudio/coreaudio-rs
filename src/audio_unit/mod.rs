@@ -197,7 +197,7 @@ impl AudioUnit {
 
     /// Sets the value for some property of the **AudioUnit**.
     ///
-    /// To clear an audio unit property value, set the data paramater with `None::<()>`.
+    /// To clear an audio unit property value, set the data parameter with `None::<()>`.
     ///
     /// Clearing properties only works for those properties that do not have a default value.
     ///
@@ -351,7 +351,7 @@ impl Drop for AudioUnit {
 
 /// Sets the value for some property of the **AudioUnit**.
 ///
-/// To clear an audio unit property value, set the data paramater with `None::<()>`.
+/// To clear an audio unit property value, set the data parameter with `None::<()>`.
 ///
 /// Clearing properties only works for those properties that do not have a default value.
 ///

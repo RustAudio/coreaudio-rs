@@ -337,31 +337,31 @@ bitflags! {
     ///
     /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
     pub struct LinearPcmFlags: u32 {
-        /// Synonmyn for the **IS_FLOAT** **StandardFlags**.
+        /// Synonym for the **IS_FLOAT** **StandardFlags**.
         ///
         /// **Available** in OS X v10.0 and later.
         const IS_FLOAT = 1;
-        /// Synonmyn for the **IS_BIG_ENDIAN** **StandardFlags**.
+        /// Synonym for the **IS_BIG_ENDIAN** **StandardFlags**.
         ///
         /// **Available** in OS X v10.0 and later.
         const IS_BIG_ENDIAN = 2;
-        /// Synonmyn for the **IS_SIGNED_INTEGER** **StandardFlags**.
+        /// Synonym for the **IS_SIGNED_INTEGER** **StandardFlags**.
         ///
         /// **Available** in OS X v10.0 and later.
         const IS_SIGNED_INTEGER = 4;
-        /// Synonmyn for the **IS_PACKED** **StandardFlags**.
+        /// Synonym for the **IS_PACKED** **StandardFlags**.
         ///
         /// **Available** in OS X v10.0 and later.
         const IS_PACKED = 8;
-        /// Synonmyn for the **IS_ALIGNED_HIGH** **StandardFlags**.
+        /// Synonym for the **IS_ALIGNED_HIGH** **StandardFlags**.
         ///
         /// **Available** in OS X v10.0 and later.
         const IS_ALIGNED_HIGH = 16;
-        /// Synonmyn for the **IS_NON_INTERLEAVED** **StandardFlags**.
+        /// Synonym for the **IS_NON_INTERLEAVED** **StandardFlags**.
         ///
         /// **Available** in OS X v10.2 and later.
         const IS_NON_INTERLEAVED = 32;
-        /// Synonmyn for the **IS_NON_MIXABLE** **StandardFlags**.
+        /// Synonym for the **IS_NON_MIXABLE** **StandardFlags**.
         ///
         /// **Available** in OS X v10.3 and later.
         const IS_NON_MIXABLE = 64;
@@ -443,7 +443,7 @@ pub enum Mpeg4ObjectId {
     /// Transform-domain weighted interleaved vector quantization; an audio codec optimised for
     /// audio coding at ultra low bit rates around 8kbit/s.
     TwinVQ = 7,
-    /// Code Excited Linear Prdiction; a narrow-band/wide-band speech codec.
+    /// Code Excited Linear Prediction; a narrow-band/wide-band speech codec.
     CELP = 8,
     /// Harmonic Vector Excitation Coding; a very-low bit-rate parametric speech codec.
     HVXC = 9,

@@ -1,5 +1,5 @@
 /// This is a collection of helper functions for performing common tasks on macOS.
-/// These functions are only implemented for macOS, not iOS.
+/// These functions are only implemented for macOS, not iOS or visionOS.
 use crate::error::Error;
 use std::collections::VecDeque;
 use std::ffi::CStr;

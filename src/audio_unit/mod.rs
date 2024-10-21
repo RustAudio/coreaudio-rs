@@ -394,6 +394,7 @@ pub fn set_property<T>(
 /// Gets the value of an **AudioUnit** property.
 ///
 /// **Available** in iOS 2.0 and later.
+/// **Available** in visionOS 1.0 and later.
 ///
 /// Parameters
 /// ----------
@@ -426,12 +427,13 @@ pub fn get_property<T>(
 /// Gets the value of a specified audio session property.
 ///
 /// **Available** in iOS 2.0 and later.
+/// **Available** in visionOS 1.0 and later.
 ///
 /// Parameters
 /// ----------
 ///
 /// - **id**: The identifier of the property.
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "visionos"))]
 pub fn audio_session_get_property<T>(id: u32) -> Result<T, Error> {
     let mut size = ::std::mem::size_of::<T>() as u32;
     unsafe {

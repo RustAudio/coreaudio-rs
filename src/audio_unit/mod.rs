@@ -19,11 +19,10 @@
 //! fixes!
 
 use crate::error::Error;
+use crate::sys;
 use std::mem;
 use std::os::raw::{c_uint, c_void};
-use std::ptr;
-
-use sys;
+use std::ptr::{self, NonNull};
 
 pub use self::audio_format::AudioFormat;
 pub use self::sample_format::{Sample, SampleFormat};
@@ -145,7 +144,7 @@ impl AudioUnit {
             // find the first system audio unit matching the description, using a system-defined
             // ordering. If you instead pass a previously found audio unit reference in this
             // parameter, the function locates the next audio unit matching the description.
-            let component = sys::AudioComponentFindNext(ptr::null_mut(), &desc as *const _);
+            let component = sys::AudioComponentFindNext(ptr::null_mut(), NonNull::from(&desc));
             if component.is_null() {
                 return Err(Error::NoMatchingDefaultAudioUnitFound);
             }
@@ -154,7 +153,7 @@ impl AudioUnit {
             let mut instance_uninit = mem::MaybeUninit::<sys::AudioUnit>::uninit();
             try_os_status!(sys::AudioComponentInstanceNew(
                 component,
-                instance_uninit.as_mut_ptr() as *mut sys::AudioUnit
+                NonNull::from(&mut instance_uninit).cast()
             ));
             let instance: sys::AudioUnit = instance_uninit.assume_init();
 
@@ -413,8 +412,8 @@ pub fn get_property<T>(
     let mut size = ::std::mem::size_of::<T>() as u32;
     unsafe {
         let mut data_uninit = ::std::mem::MaybeUninit::<T>::uninit();
-        let data_ptr = data_uninit.as_mut_ptr() as *mut _ as *mut c_void;
-        let size_ptr = &mut size as *mut _;
+        let data_ptr = NonNull::from(&mut data_uninit).cast::<c_void>();
+        let size_ptr = NonNull::from(&mut size);
         try_os_status!(sys::AudioUnitGetProperty(
             au, id, scope, elem, data_ptr, size_ptr
         ));
@@ -434,6 +433,7 @@ pub fn get_property<T>(
 #[cfg(target_os = "ios")]
 pub fn audio_session_get_property<T>(id: u32) -> Result<T, Error> {
     let mut size = ::std::mem::size_of::<T>() as u32;
+    #[allow(deprecated)]
     unsafe {
         let mut data_uninit = ::std::mem::MaybeUninit::<T>::uninit();
         let data_ptr = data_uninit.as_mut_ptr() as *mut _ as *mut c_void;

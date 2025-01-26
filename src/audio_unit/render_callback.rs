@@ -1,10 +1,11 @@
 use super::audio_format::LinearPcmFlags;
 use super::{AudioUnit, Element, Scope};
 use crate::error::{self, Error};
+use crate::sys;
 use std::mem;
 use std::os::raw::c_void;
+use std::ptr::NonNull;
 use std::slice;
-use sys;
 
 pub use self::action_flags::ActionFlags;
 pub use self::data::Data;
@@ -15,10 +16,10 @@ pub use self::data::Data;
 /// This allows the user to provide a custom, more rust-esque callback function type that takes
 /// greater advantage of rust's type safety.
 pub type InputProcFn = dyn FnMut(
-    *mut sys::AudioUnitRenderActionFlags,
-    *const sys::AudioTimeStamp,
-    sys::UInt32,
-    sys::UInt32,
+    NonNull<sys::AudioUnitRenderActionFlags>,
+    NonNull<sys::AudioTimeStamp>,
+    u32,
+    u32,
     *mut sys::AudioBufferList,
 ) -> sys::OSStatus;
 
@@ -52,9 +53,9 @@ pub mod data {
     use super::super::Sample;
     use super::super::StreamFormat;
     use crate::audio_unit::audio_format::LinearPcmFlags;
+    use crate::sys;
     use std::marker::PhantomData;
     use std::slice;
-    use sys;
 
     /// Audio data wrappers specific to the `AudioUnit`'s `AudioFormat`.
     pub trait Data {
@@ -291,8 +292,8 @@ pub mod data {
 }
 
 pub mod action_flags {
+    use crate::sys;
     use std::fmt;
-    use sys;
 
     bitflags! {
         pub struct ActionFlags: u32 {
@@ -301,20 +302,20 @@ pub mod action_flags {
             /// before the render operation is performed.
             ///
             /// **Available** in OS X v10.0 and later.
-            const PRE_RENDER = sys::kAudioUnitRenderAction_PreRender;
+            const PRE_RENDER = sys::AudioUnitRenderActionFlags::UnitRenderAction_PreRender.0;
             /// Called on a render notification Proc, which is called either before or after the
             /// render operation of the audio unit. If this flag is set, the proc is being called
             /// after the render operation is completed.
             ///
             /// **Available** in OS X v10.0 and later.
-            const POST_RENDER = sys::kAudioUnitRenderAction_PostRender;
+            const POST_RENDER = sys::AudioUnitRenderActionFlags::UnitRenderAction_PostRender.0;
             /// This flag can be set in a render input callback (or in the audio unit's render
             /// operation itself) and is used to indicate that the render buffer contains only
             /// silence. It can then be used by the caller as a hint to whether the buffer needs to
             /// be processed or not.
             ///
             /// **Available** in OS X v10.2 and later.
-            const OUTPUT_IS_SILENCE = sys::kAudioUnitRenderAction_OutputIsSilence;
+            const OUTPUT_IS_SILENCE = sys::AudioUnitRenderActionFlags::UnitRenderAction_OutputIsSilence.0;
             /// This is used with offline audio units (of type 'auol'). It is used when an offline
             /// unit is being preflighted, which is performed prior to when the actual offline
             /// rendering actions are performed. It is used for those cases where the offline
@@ -323,32 +324,32 @@ pub mod action_flags {
             /// normalization).
             ///
             /// **Available** in OS X v10.3 and later.
-            const OFFLINE_PREFLIGHT = sys::kAudioOfflineUnitRenderAction_Preflight;
+            const OFFLINE_PREFLIGHT = sys::AudioUnitRenderActionFlags::OfflineUnitRenderAction_Preflight.0;
             /// Once an offline unit has been successfully preflighted, it is then put into its
             /// render mode. This flag is set to indicate to the audio unit that it is now in that
             /// state and that it should perform processing on the input data.
             ///
             /// **Available** in OS X v10.3 and later.
-            const OFFLINE_RENDER = sys::kAudioOfflineUnitRenderAction_Render;
+            const OFFLINE_RENDER = sys::AudioUnitRenderActionFlags::OfflineUnitRenderAction_Render.0;
             /// This flag is set when an offline unit has completed either its preflight or
             /// performed render operation.
             ///
             /// **Available** in OS X v10.3 and later.
-            const OFFLINE_COMPLETE = sys::kAudioOfflineUnitRenderAction_Complete;
+            const OFFLINE_COMPLETE = sys::AudioUnitRenderActionFlags::OfflineUnitRenderAction_Complete.0;
             /// If this flag is set on the post-render call an error was returned by the audio
             /// unit's render operation. In this case, the error can be retrieved through the
             /// `lastRenderError` property and the audio data in `ioData` handed to the post-render
             /// notification will be invalid.
             ///
             /// **Available** in OS X v10.5 and later.
-            const POST_RENDER_ERROR = sys::kAudioUnitRenderAction_PostRenderError;
+            const POST_RENDER_ERROR = sys::AudioUnitRenderActionFlags::UnitRenderAction_PostRenderError.0;
             /// If this flag is set, then checks that are done on the arguments provided to render
             /// are not performed. This can be useful to use to save computation time in situations
             /// where you are sure you are providing the correct arguments and structures to the
             /// various render calls.
             ///
             /// **Available** in OS X v10.7 and later.
-            const DO_NOT_CHECK_RENDER_ARGS = sys::kAudioUnitRenderAction_DoNotCheckRenderArgs;
+            const DO_NOT_CHECK_RENDER_ARGS = sys::AudioUnitRenderActionFlags::UnitRenderAction_DoNotCheckRenderArgs.0;
         }
     }
 
@@ -376,11 +377,11 @@ pub mod action_flags {
     impl Handle {
         /// Retrieve the current state of the `ActionFlags`.
         pub fn get(&self) -> ActionFlags {
-            ActionFlags::from_bits_truncate(unsafe { *self.ptr })
+            ActionFlags::from_bits_truncate(unsafe { *self.ptr }.0)
         }
 
         fn set(&mut self, flags: ActionFlags) {
-            unsafe { *self.ptr = flags.bits() }
+            unsafe { (*self.ptr).0 = flags.bits() }
         }
 
         /// The raw value of the flags currently stored.
@@ -442,15 +443,21 @@ pub mod action_flags {
             write!(
                 f,
                 "{:?}",
-                match self.bits() {
-                    sys::kAudioUnitRenderAction_PreRender => "PRE_RENDER",
-                    sys::kAudioUnitRenderAction_PostRender => "POST_RENDER",
-                    sys::kAudioUnitRenderAction_OutputIsSilence => "OUTPUT_IS_SILENCE",
-                    sys::kAudioOfflineUnitRenderAction_Preflight => "OFFLINE_PREFLIGHT",
-                    sys::kAudioOfflineUnitRenderAction_Render => "OFFLINE_RENDER",
-                    sys::kAudioOfflineUnitRenderAction_Complete => "OFFLINE_COMPLETE",
-                    sys::kAudioUnitRenderAction_PostRenderError => "POST_RENDER_ERROR",
-                    sys::kAudioUnitRenderAction_DoNotCheckRenderArgs => "DO_NOT_CHECK_RENDER_ARGS",
+                match sys::AudioUnitRenderActionFlags(self.bits()) {
+                    sys::AudioUnitRenderActionFlags::UnitRenderAction_PreRender => "PRE_RENDER",
+                    sys::AudioUnitRenderActionFlags::UnitRenderAction_PostRender => "POST_RENDER",
+                    sys::AudioUnitRenderActionFlags::UnitRenderAction_OutputIsSilence =>
+                        "OUTPUT_IS_SILENCE",
+                    sys::AudioUnitRenderActionFlags::OfflineUnitRenderAction_Preflight =>
+                        "OFFLINE_PREFLIGHT",
+                    sys::AudioUnitRenderActionFlags::OfflineUnitRenderAction_Render =>
+                        "OFFLINE_RENDER",
+                    sys::AudioUnitRenderActionFlags::OfflineUnitRenderAction_Complete =>
+                        "OFFLINE_COMPLETE",
+                    sys::AudioUnitRenderActionFlags::UnitRenderAction_PostRenderError =>
+                        "POST_RENDER_ERROR",
+                    sys::AudioUnitRenderActionFlags::UnitRenderAction_DoNotCheckRenderArgs =>
+                        "DO_NOT_CHECK_RENDER_ARGS",
                     _ => "<Unknown ActionFlags>",
                 }
             )
@@ -479,18 +486,18 @@ impl AudioUnit {
         //
         // This allows us to take advantage of rust's type system and provide format-specific
         // `Args` types which can be checked at compile time.
-        let input_proc_fn = move |io_action_flags: *mut sys::AudioUnitRenderActionFlags,
-                                  in_time_stamp: *const sys::AudioTimeStamp,
-                                  in_bus_number: sys::UInt32,
-                                  in_number_frames: sys::UInt32,
+        let input_proc_fn = move |io_action_flags: NonNull<sys::AudioUnitRenderActionFlags>,
+                                  in_time_stamp: NonNull<sys::AudioTimeStamp>,
+                                  in_bus_number: u32,
+                                  in_number_frames: u32,
                                   io_data: *mut sys::AudioBufferList|
               -> sys::OSStatus {
             let args = unsafe {
                 let data = D::from_input_proc_args(in_number_frames, io_data);
-                let flags = action_flags::Handle::from_ptr(io_action_flags);
+                let flags = action_flags::Handle::from_ptr(io_action_flags.as_ptr());
                 Args {
                     data,
-                    time_stamp: *in_time_stamp,
+                    time_stamp: in_time_stamp.read(),
                     flags,
                     bus_number: in_bus_number as u32,
                     num_frames: in_number_frames as usize,
@@ -600,10 +607,10 @@ impl AudioUnit {
         // This allows us to take advantage of rust's type system and provide format-specific
         // `Args` types which can be checked at compile time.
         let audio_unit = self.instance;
-        let input_proc_fn = move |io_action_flags: *mut sys::AudioUnitRenderActionFlags,
-                                  in_time_stamp: *const sys::AudioTimeStamp,
-                                  in_bus_number: sys::UInt32,
-                                  in_number_frames: sys::UInt32,
+        let input_proc_fn = move |io_action_flags: NonNull<sys::AudioUnitRenderActionFlags>,
+                                  in_time_stamp: NonNull<sys::AudioTimeStamp>,
+                                  in_bus_number: u32,
+                                  in_number_frames: u32,
                                   _io_data: *mut sys::AudioBufferList|
               -> sys::OSStatus {
             // If the buffer size has changed, ensure the AudioBuffer is the correct size.
@@ -648,11 +655,11 @@ impl AudioUnit {
             unsafe {
                 let status = sys::AudioUnitRender(
                     audio_unit,
-                    io_action_flags,
+                    io_action_flags.as_ptr(),
                     in_time_stamp,
                     in_bus_number,
                     in_number_frames,
-                    audio_buffer_list_ptr,
+                    NonNull::new(audio_buffer_list_ptr).unwrap(),
                 );
                 if status != 0 {
                     return status;
@@ -661,10 +668,10 @@ impl AudioUnit {
 
             let args = unsafe {
                 let data = D::from_input_proc_args(in_number_frames, audio_buffer_list_ptr);
-                let flags = action_flags::Handle::from_ptr(io_action_flags);
+                let flags = action_flags::Handle::from_ptr(io_action_flags.as_ptr());
                 Args {
                     data,
-                    time_stamp: *in_time_stamp,
+                    time_stamp: in_time_stamp.read(),
                     flags,
                     bus_number: in_bus_number as u32,
                     num_frames: in_number_frames as usize,
@@ -751,22 +758,20 @@ impl AudioUnit {
 }
 
 /// Callback procedure that will be called each time our audio_unit requests audio.
-extern "C" fn input_proc(
-    in_ref_con: *mut c_void,
-    io_action_flags: *mut sys::AudioUnitRenderActionFlags,
-    in_time_stamp: *const sys::AudioTimeStamp,
-    in_bus_number: sys::UInt32,
-    in_number_frames: sys::UInt32,
+extern "C-unwind" fn input_proc(
+    in_ref_con: NonNull<c_void>,
+    io_action_flags: NonNull<sys::AudioUnitRenderActionFlags>,
+    in_time_stamp: NonNull<sys::AudioTimeStamp>,
+    in_bus_number: u32,
+    in_number_frames: u32,
     io_data: *mut sys::AudioBufferList,
 ) -> sys::OSStatus {
-    let wrapper = in_ref_con as *mut InputProcFnWrapper;
-    unsafe {
-        (*(*wrapper).callback)(
-            io_action_flags,
-            in_time_stamp,
-            in_bus_number,
-            in_number_frames,
-            io_data,
-        )
-    }
+    let wrapper = unsafe { in_ref_con.cast::<InputProcFnWrapper>().as_mut() };
+    (wrapper.callback)(
+        io_action_flags,
+        in_time_stamp,
+        in_bus_number,
+        in_number_frames,
+        io_data,
+    )
 }

@@ -1,7 +1,10 @@
 [package]
 name = "coreaudio-rs"
 version = "0.12.1"
-authors = ["mitchmindtree <mitchell.nordine@gmail.com>", "yupferris <jake@fusetools.com>"]
+authors = [
+    "mitchmindtree <mitchell.nordine@gmail.com>",
+    "yupferris <jake@fusetools.com>",
+]
 description = "A friendly rust interface for Apple's CoreAudio API."
 keywords = ["core", "audio", "unit", "osx", "ios"]
 readme = "README.md"
@@ -14,19 +17,98 @@ homepage = "https://github.com/RustAudio/coreaudio-rs"
 name = "coreaudio"
 
 [features]
-default = ["audio_toolbox", "audio_unit", "core_audio", "open_al", "core_midi"]
-audio_toolbox = ["coreaudio-sys/audio_toolbox"]
-audio_unit = ["coreaudio-sys/audio_unit"]
-core_audio = ["coreaudio-sys/core_audio"]
-open_al = ["coreaudio-sys/open_al"]
-core_midi = ["coreaudio-sys/core_midi"]
+default = ["audio_toolbox", "core_audio"]
+audio_toolbox = ["dep:objc2-audio-toolbox", "dep:objc2-core-foundation"]
+core_audio = ["dep:objc2-core-audio", "dep:objc2-core-audio-types"]
+core_midi = ["dep:objc2-core-midi"]
+
+# Deprecated
+audio_unit = ["audio_toolbox"]
+
+# Unsupported
+open_al = []
 
 [dependencies]
 bitflags = "1.0"
-coreaudio-sys = { version = "0.2", default-features = false }
-core-foundation-sys = "0.8.3"
+libc = "0.2"
+objc2-core-foundation = { version = "0.3", optional = true, default-features = false, features = [
+    "std",
+    "CFBase",
+    "CFString",
+] }
+objc2-audio-toolbox = { version = "0.3", optional = true, default-features = false, features = [
+    "std",
+    "bitflags",
+    "libc",
+    "objc2-core-foundation",
+    "AUAudioUnit",
+    "AUAudioUnitImplementation",
+    "AUCocoaUIView",
+    "AUComponent",
+    "AUGraph",
+    "AUParameters",
+    "AudioCodec",
+    "AudioComponent",
+    "AudioConverter",
+    "AudioFile",
+    "AudioFileStream",
+    "AudioFormat",
+    "AudioOutputUnit",
+    "AudioQueue",
+    "AudioServices",
+    "AudioSession",
+    "AudioUnit",
+    "AudioUnitCarbonView",
+    "AudioUnitParameters",
+    "AudioUnitProperties",
+    "AudioUnitUtilities",
+    "AudioWorkInterval",
+    "CAFFile",
+    "CAShow",
+    "DefaultAudioOutput",
+    "ExtendedAudioFile",
+    "MusicDevice",
+    "MusicPlayer",
+    "objc2-core-audio",
+    "objc2-core-audio-types",
+] }
+objc2-core-audio = { version = "0.3", optional = true, default-features = false, features = [
+    "std",
+    "objc2-core-audio-types",
+    "AudioHardware",
+    "AudioHardwareDeprecated",
+    "AudioServerPlugIn",
+    "HostTime",
+] }
+objc2-core-audio-types = { version = "0.3", optional = true, default-features = false, features = [
+    "std",
+    "bitflags",
+    "AudioSessionTypes",
+    "CoreAudioBaseTypes",
+] }
+objc2-core-midi = { version = "0.3", optional = true, default-features = false, features = [
+    "std",
+    "objc2-core-foundation",
+    "MIDIBluetoothConnection",
+    "MIDICIDevice",
+    "MIDICIDeviceManager",
+    "MIDICapabilityInquiry",
+    "MIDIDriver",
+    "MIDIMessages",
+    "MIDINetworkSession",
+    "MIDIServices",
+    "MIDISetup",
+    "MIDIThruConnection",
+    "MIDIUMPCI",
+    "MIDIUMPCIProfile",
+    "MIDIUMPEndpoint",
+    "MIDIUMPEndpointManager",
+    "MIDIUMPFunctionBlock",
+    "MIDIUMPMutableEndpoint",
+    "MIDIUMPMutableFunctionBlock",
+] }
 
 [package.metadata.docs.rs]
 all-features = true
-default-target = "x86_64-apple-darwin"
-targets = ["x86_64-apple-darwin", "x86_64-apple-ios"]
+default-target = "aarch64-apple-darwin"
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-apple-ios"]

@@ -6,7 +6,7 @@ use super::audio_format::AudioFormat;
 use super::audio_format::LinearPcmFlags;
 use super::SampleFormat;
 use crate::error::{self, Error};
-use sys;
+use crate::sys;
 
 /// A representation of the AudioStreamBasicDescription specifically for use with the AudioUnit API.
 ///

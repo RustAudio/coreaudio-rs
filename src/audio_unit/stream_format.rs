@@ -2,11 +2,12 @@
 //!
 //! Find the original `AudioStreamBasicDescription` reference [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/c/tdef/AudioStreamBasicDescription).
 
+use objc2_core_audio_types::AudioStreamBasicDescription;
+
 use super::audio_format::AudioFormat;
 use super::audio_format::LinearPcmFlags;
 use super::SampleFormat;
 use crate::error::{self, Error};
-use crate::sys;
 
 /// A representation of the AudioStreamBasicDescription specifically for use with the AudioUnit API.
 ///
@@ -68,10 +69,10 @@ impl StreamFormat {
     ///
     /// Returns an `Error` if the sample format of the asbd cannot be matched to a format supported by SampleFormat.
     #[allow(non_snake_case)]
-    pub fn from_asbd(asbd: sys::AudioStreamBasicDescription) -> Result<StreamFormat, Error> {
+    pub fn from_asbd(asbd: AudioStreamBasicDescription) -> Result<StreamFormat, Error> {
         const NOT_SUPPORTED: Error = Error::AudioUnit(error::audio_unit::Error::FormatNotSupported);
 
-        let sys::AudioStreamBasicDescription {
+        let AudioStreamBasicDescription {
             mSampleRate,
             mFormatID,
             mFormatFlags,
@@ -106,7 +107,7 @@ impl StreamFormat {
     /// Note that this function assumes that only packed formats are used.
     /// This only affects I24, since all other formats supported by `StreamFormat`
     /// are always packed.
-    pub fn to_asbd(self) -> sys::AudioStreamBasicDescription {
+    pub fn to_asbd(self) -> AudioStreamBasicDescription {
         let StreamFormat {
             sample_rate,
             flags,
@@ -129,7 +130,7 @@ impl StreamFormat {
         let bytes_per_packet = bytes_per_frame * FRAMES_PER_PACKET;
         let bits_per_channel = sample_format.size_in_bits();
 
-        sys::AudioStreamBasicDescription {
+        AudioStreamBasicDescription {
             mSampleRate: sample_rate,
             mFormatID: format,
             mFormatFlags: flag,

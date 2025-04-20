@@ -12,4 +12,11 @@ crate-type = ["staticlib"]
 
 [dependencies]
 coreaudio-rs = { path = "../.." }
-
+objc2-audio-toolbox = { version = "0.3", default-features = false, features = [
+    "std",
+    "AudioUnitProperties",
+] }
+objc2-core-audio-types = { version = "0.3", default-features = false, features = [
+    "std",
+    "CoreAudioBaseTypes",
+] }

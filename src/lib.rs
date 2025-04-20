@@ -17,16 +17,5 @@ pub use error::Error;
 pub mod audio_unit;
 pub mod error;
 
-pub mod sys {
-    #[cfg(feature = "audio_toolbox")]
-    pub use objc2_audio_toolbox::*;
-    #[cfg(feature = "core_audio")]
-    pub use objc2_core_audio::*;
-    #[cfg(feature = "core_audio")]
-    pub use objc2_core_audio_types::*;
-    #[cfg(feature = "core_midi")]
-    pub use objc2_core_midi::*;
-
-    // MacTypes.h
-    pub type OSStatus = i32;
-}
+// MacTypes.h
+pub type OSStatus = i32;

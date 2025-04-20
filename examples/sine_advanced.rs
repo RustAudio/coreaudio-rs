@@ -11,7 +11,7 @@ use coreaudio::audio_unit::macos_helpers::{
 };
 use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
-use coreaudio::sys::kAudioUnitProperty_StreamFormat;
+use objc2_audio_toolbox::kAudioUnitProperty_StreamFormat;
 use std::f64::consts::PI;
 use std::process;
 

@@ -18,9 +18,14 @@ name = "coreaudio"
 
 [features]
 default = ["audio_toolbox", "core_audio"]
-audio_toolbox = ["dep:objc2-audio-toolbox", "dep:objc2-core-foundation"]
+audio_toolbox = [
+    "dep:objc2-audio-toolbox",
+    "dep:objc2-core-foundation",
+    "dep:objc2-core-audio",
+    "dep:objc2-core-audio-types",
+]
 core_audio = ["dep:objc2-core-audio", "dep:objc2-core-audio-types"]
-core_midi = ["dep:objc2-core-midi"]
+core_midi = []
 
 # Deprecated
 audio_unit = ["audio_toolbox"]
@@ -33,7 +38,6 @@ bitflags = "1.0"
 libc = "0.2"
 objc2-core-foundation = { version = "0.3", optional = true, default-features = false, features = [
     "std",
-    "CFBase",
     "CFString",
 ] }
 objc2-audio-toolbox = { version = "0.3", optional = true, default-features = false, features = [
@@ -41,71 +45,24 @@ objc2-audio-toolbox = { version = "0.3", optional = true, default-features = fal
     "bitflags",
     "libc",
     "objc2-core-foundation",
-    "AUAudioUnit",
-    "AUAudioUnitImplementation",
-    "AUCocoaUIView",
-    "AUComponent",
-    "AUGraph",
-    "AUParameters",
-    "AudioCodec",
-    "AudioComponent",
-    "AudioConverter",
-    "AudioFile",
-    "AudioFileStream",
-    "AudioFormat",
-    "AudioOutputUnit",
-    "AudioQueue",
-    "AudioServices",
-    "AudioSession",
-    "AudioUnit",
-    "AudioUnitCarbonView",
-    "AudioUnitParameters",
-    "AudioUnitProperties",
-    "AudioUnitUtilities",
-    "AudioWorkInterval",
-    "CAFFile",
-    "CAShow",
-    "DefaultAudioOutput",
-    "ExtendedAudioFile",
-    "MusicDevice",
-    "MusicPlayer",
     "objc2-core-audio",
     "objc2-core-audio-types",
+    "AUComponent",
+    "AudioComponent",
+    "AudioOutputUnit",
+    "AudioUnitProperties",
+    "AudioSession",
 ] }
 objc2-core-audio = { version = "0.3", optional = true, default-features = false, features = [
     "std",
     "objc2-core-audio-types",
     "AudioHardware",
     "AudioHardwareDeprecated",
-    "AudioServerPlugIn",
-    "HostTime",
 ] }
 objc2-core-audio-types = { version = "0.3", optional = true, default-features = false, features = [
     "std",
     "bitflags",
-    "AudioSessionTypes",
     "CoreAudioBaseTypes",
-] }
-objc2-core-midi = { version = "0.3", optional = true, default-features = false, features = [
-    "std",
-    "objc2-core-foundation",
-    "MIDIBluetoothConnection",
-    "MIDICIDevice",
-    "MIDICIDeviceManager",
-    "MIDICapabilityInquiry",
-    "MIDIDriver",
-    "MIDIMessages",
-    "MIDINetworkSession",
-    "MIDIServices",
-    "MIDISetup",
-    "MIDIThruConnection",
-    "MIDIUMPCI",
-    "MIDIUMPCIProfile",
-    "MIDIUMPEndpoint",
-    "MIDIUMPEndpointManager",
-    "MIDIUMPFunctionBlock",
-    "MIDIUMPMutableEndpoint",
-    "MIDIUMPMutableFunctionBlock",
 ] }
 
 [package.metadata.docs.rs]

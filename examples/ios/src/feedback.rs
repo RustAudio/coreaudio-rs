@@ -8,7 +8,8 @@ use std::sync::{Arc, Mutex};
 use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::{AudioUnit, Element, SampleFormat, Scope, StreamFormat};
-use coreaudio::sys::*;
+use objc2_audio_toolbox::{kAudioOutputUnitProperty_EnableIO, kAudioUnitProperty_StreamFormat};
+use objc2_core_audio_types::AudioStreamBasicDescription;
 
 type S = f32;
 const SAMPLE_FORMAT: SampleFormat = SampleFormat::F32;
@@ -36,8 +37,10 @@ pub fn run_example() -> Result<(), coreaudio::Error> {
         SampleFormat::F32 => LinearPcmFlags::IS_FLOAT,
         SampleFormat::I32 | SampleFormat::I16 | SampleFormat::I8 => {
             LinearPcmFlags::IS_SIGNED_INTEGER
-        },
-        SampleFormat::I24 => { unimplemented!("Not implemented for I24")},
+        }
+        SampleFormat::I24 => {
+            unimplemented!("Not implemented for I24")
+        }
     };
 
     // Using IS_NON_INTERLEAVED everywhere because data::Interleaved is commented out / not implemented

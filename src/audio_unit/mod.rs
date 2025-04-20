@@ -18,8 +18,16 @@
 //! If you can find documentation on these, please feel free to submit an issue or PR with the
 //! fixes!
 
+use objc2_audio_toolbox::{
+    kAudioUnitManufacturer_Apple, kAudioUnitProperty_SampleRate, kAudioUnitProperty_StreamFormat,
+    AudioComponentDescription, AudioComponentFindNext, AudioComponentInstanceDispose,
+    AudioComponentInstanceNew, AudioOutputUnitStart, AudioOutputUnitStop,
+    AudioUnit as InnerAudioUnit, AudioUnitGetProperty, AudioUnitInitialize, AudioUnitSetProperty,
+    AudioUnitUninitialize,
+};
+use objc2_core_audio_types::AudioBufferList;
+
 use crate::error::Error;
-use crate::sys;
 use std::mem;
 use std::os::raw::{c_uint, c_void};
 use std::ptr::{self, NonNull};
@@ -65,18 +73,19 @@ pub enum Element {
     Input = 1,
 }
 
-/// A rust representation of the sys::AudioUnit, including a pointer to the current rendering callback.
+/// A rust representation of the [`objc2_audio_toolbox::AudioUnit`], including
+/// a pointer to the current rendering callback.
 ///
 /// Find the original Audio Unit Programming Guide [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html).
 pub struct AudioUnit {
-    instance: sys::AudioUnit,
+    instance: InnerAudioUnit,
     maybe_render_callback: Option<*mut render_callback::InputProcFnWrapper>,
     maybe_input_callback: Option<InputCallback>,
 }
 
 struct InputCallback {
     // The audio buffer list to which input data is rendered.
-    buffer_list: *mut sys::AudioBufferList,
+    buffer_list: *mut AudioBufferList,
     callback: *mut render_callback::InputProcFnWrapper,
 }
 
@@ -119,7 +128,7 @@ impl AudioUnit {
     where
         T: Into<Type>,
     {
-        const MANUFACTURER_IDENTIFIER: u32 = sys::kAudioUnitManufacturer_Apple;
+        const MANUFACTURER_IDENTIFIER: u32 = kAudioUnitManufacturer_Apple;
         let au_type: Type = ty.into();
         let sub_type_u32 = match au_type.as_subtype_u32() {
             Some(u) => u,
@@ -127,7 +136,7 @@ impl AudioUnit {
         };
 
         // A description of the audio unit we desire.
-        let desc = sys::AudioComponentDescription {
+        let desc = AudioComponentDescription {
             componentType: au_type.as_u32() as c_uint,
             componentSubType: sub_type_u32 as c_uint,
             componentManufacturer: MANUFACTURER_IDENTIFIER,
@@ -144,21 +153,21 @@ impl AudioUnit {
             // find the first system audio unit matching the description, using a system-defined
             // ordering. If you instead pass a previously found audio unit reference in this
             // parameter, the function locates the next audio unit matching the description.
-            let component = sys::AudioComponentFindNext(ptr::null_mut(), NonNull::from(&desc));
+            let component = AudioComponentFindNext(ptr::null_mut(), NonNull::from(&desc));
             if component.is_null() {
                 return Err(Error::NoMatchingDefaultAudioUnitFound);
             }
 
             // Create an instance of the default audio unit using the component.
-            let mut instance_uninit = mem::MaybeUninit::<sys::AudioUnit>::uninit();
-            try_os_status!(sys::AudioComponentInstanceNew(
+            let mut instance_uninit = mem::MaybeUninit::<InnerAudioUnit>::uninit();
+            try_os_status!(AudioComponentInstanceNew(
                 component,
                 NonNull::from(&mut instance_uninit).cast()
             ));
-            let instance: sys::AudioUnit = instance_uninit.assume_init();
+            let instance: InnerAudioUnit = instance_uninit.assume_init();
 
             // Initialise the audio unit!
-            try_os_status!(sys::AudioUnitInitialize(instance));
+            try_os_status!(AudioUnitInitialize(instance));
             Ok(AudioUnit {
                 instance,
                 maybe_render_callback: None,
@@ -176,7 +185,7 @@ impl AudioUnit {
     /// cannot be changed while an audio unit is initialized.
     pub fn initialize(&mut self) -> Result<(), Error> {
         unsafe {
-            try_os_status!(sys::AudioUnitInitialize(self.instance));
+            try_os_status!(AudioUnitInitialize(self.instance));
         }
         Ok(())
     }
@@ -189,7 +198,7 @@ impl AudioUnit {
     /// AudioUnitInitialize to reinitialize it.
     pub fn uninitialize(&mut self) -> Result<(), Error> {
         unsafe {
-            try_os_status!(sys::AudioUnitUninitialize(self.instance));
+            try_os_status!(AudioUnitUninitialize(self.instance));
         }
         Ok(())
     }
@@ -241,7 +250,7 @@ impl AudioUnit {
     /// **Available** in OS X v10.0 and later.
     pub fn start(&mut self) -> Result<(), Error> {
         unsafe {
-            try_os_status!(sys::AudioOutputUnitStart(self.instance));
+            try_os_status!(AudioOutputUnitStart(self.instance));
         }
         Ok(())
     }
@@ -252,7 +261,7 @@ impl AudioUnit {
     /// **Available** in OS X v10.0 and later.
     pub fn stop(&mut self) -> Result<(), Error> {
         unsafe {
-            try_os_status!(sys::AudioOutputUnitStop(self.instance));
+            try_os_status!(AudioOutputUnitStop(self.instance));
         }
         Ok(())
     }
@@ -261,13 +270,13 @@ impl AudioUnit {
     ///
     /// **Available** in iOS 2.0 and later.
     pub fn set_sample_rate(&mut self, sample_rate: f64) -> Result<(), Error> {
-        let id = sys::kAudioUnitProperty_SampleRate;
+        let id = kAudioUnitProperty_SampleRate;
         self.set_property(id, Scope::Input, Element::Output, Some(&sample_rate))
     }
 
     /// Get the **AudioUnit**'s sample rate.
     pub fn sample_rate(&self) -> Result<f64, Error> {
-        let id = sys::kAudioUnitProperty_SampleRate;
+        let id = kAudioUnitProperty_SampleRate;
         self.get_property(id, Scope::Input, Element::Output)
     }
 
@@ -291,14 +300,14 @@ impl AudioUnit {
         scope: Scope,
         element: Element,
     ) -> Result<(), Error> {
-        let id = sys::kAudioUnitProperty_StreamFormat;
+        let id = kAudioUnitProperty_StreamFormat;
         let asbd = stream_format.to_asbd();
         self.set_property(id, scope, element, Some(&asbd))
     }
 
     /// Return the current Stream Format for the AudioUnit.
     pub fn stream_format(&self, scope: Scope, element: Element) -> Result<StreamFormat, Error> {
-        let id = sys::kAudioUnitProperty_StreamFormat;
+        let id = kAudioUnitProperty_StreamFormat;
         let asbd = self.get_property(id, scope, element)?;
         StreamFormat::from_asbd(asbd)
     }
@@ -314,14 +323,14 @@ impl AudioUnit {
     }
 }
 
-impl AsRef<sys::AudioUnit> for AudioUnit {
-    fn as_ref(&self) -> &sys::AudioUnit {
+impl AsRef<InnerAudioUnit> for AudioUnit {
+    fn as_ref(&self) -> &InnerAudioUnit {
         &self.instance
     }
 }
 
-impl AsMut<sys::AudioUnit> for AudioUnit {
-    fn as_mut(&mut self) -> &mut sys::AudioUnit {
+impl AsMut<InnerAudioUnit> for AudioUnit {
+    fn as_mut(&mut self) -> &mut InnerAudioUnit {
         &mut self.instance
     }
 }
@@ -338,12 +347,12 @@ impl Drop for AudioUnit {
             // A user should explicitly terminate the `AudioUnit` if they want to handle errors (we
             // still need to provide a way to actually do that).
             self.stop().ok();
-            error::Error::from_os_status(sys::AudioUnitUninitialize(self.instance)).ok();
+            error::Error::from_os_status(AudioUnitUninitialize(self.instance)).ok();
 
             self.free_render_callback();
             self.free_input_callback();
 
-            error::Error::from_os_status(sys::AudioComponentInstanceDispose(self.instance)).ok();
+            error::Error::from_os_status(AudioComponentInstanceDispose(self.instance)).ok();
         }
     }
 }
@@ -367,7 +376,7 @@ impl Drop for AudioUnit {
 /// - **elem**: The audio unit element for the property.
 /// - **maybe_data**: The value that you want to apply to the property.
 pub fn set_property<T>(
-    au: sys::AudioUnit,
+    au: InnerAudioUnit,
     id: u32,
     scope: Scope,
     elem: Element,
@@ -382,11 +391,7 @@ pub fn set_property<T>(
         .unwrap_or_else(|| (::std::ptr::null(), 0));
     let scope = scope as c_uint;
     let elem = elem as c_uint;
-    unsafe {
-        try_os_status!(sys::AudioUnitSetProperty(
-            au, id, scope, elem, data_ptr, size
-        ))
-    }
+    unsafe { try_os_status!(AudioUnitSetProperty(au, id, scope, elem, data_ptr, size)) }
     Ok(())
 }
 
@@ -402,7 +407,7 @@ pub fn set_property<T>(
 /// - **scope**: The audio unit scope for the property.
 /// - **elem**: The audio unit element for the property.
 pub fn get_property<T>(
-    au: sys::AudioUnit,
+    au: InnerAudioUnit,
     id: u32,
     scope: Scope,
     elem: Element,
@@ -414,7 +419,7 @@ pub fn get_property<T>(
         let mut data_uninit = ::std::mem::MaybeUninit::<T>::uninit();
         let data_ptr = NonNull::from(&mut data_uninit).cast::<c_void>();
         let size_ptr = NonNull::from(&mut size);
-        try_os_status!(sys::AudioUnitGetProperty(
+        try_os_status!(AudioUnitGetProperty(
             au, id, scope, elem, data_ptr, size_ptr
         ));
         let data: T = data_uninit.assume_init();
@@ -438,7 +443,9 @@ pub fn audio_session_get_property<T>(id: u32) -> Result<T, Error> {
         let mut data_uninit = ::std::mem::MaybeUninit::<T>::uninit();
         let data_ptr = data_uninit.as_mut_ptr() as *mut _ as *mut c_void;
         let size_ptr = &mut size as *mut _;
-        try_os_status!(sys::AudioSessionGetProperty(id, size_ptr, data_ptr));
+        try_os_status!(objc2_audio_toolbox::AudioSessionGetProperty(
+            id, size_ptr, data_ptr
+        ));
         let data: T = data_uninit.assume_init();
         Ok(data)
     }

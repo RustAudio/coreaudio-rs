@@ -4,10 +4,10 @@ pub use self::audio::Error as AudioError;
 pub use self::audio_codec::Error as AudioCodecError;
 pub use self::audio_format::Error as AudioFormatError;
 pub use self::audio_unit::Error as AudioUnitError;
-use crate::sys::OSStatus;
+use crate::OSStatus;
 
 pub mod audio {
-    use crate::sys::OSStatus;
+    use crate::OSStatus;
 
     #[derive(Copy, Clone, Debug)]
     pub enum Error {
@@ -61,7 +61,7 @@ pub mod audio {
 }
 
 pub mod audio_codec {
-    use crate::sys::OSStatus;
+    use crate::OSStatus;
 
     #[derive(Copy, Clone, Debug)]
     pub enum Error {
@@ -115,7 +115,7 @@ pub mod audio_codec {
 }
 
 pub mod audio_format {
-    use crate::sys::OSStatus;
+    use crate::OSStatus;
 
     // TODO: Finish implementing these values.
     #[derive(Copy, Clone, Debug)]
@@ -162,7 +162,7 @@ pub mod audio_format {
 }
 
 pub mod audio_unit {
-    use crate::sys::OSStatus;
+    use crate::OSStatus;
 
     #[derive(Copy, Clone, Debug)]
     pub enum Error {

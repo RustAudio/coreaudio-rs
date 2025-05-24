@@ -10,7 +10,11 @@ use std::sync::Mutex;
 use std::time::Duration;
 use std::{mem, thread};
 
-use crate::sys::{
+use libc::pid_t;
+use objc2_audio_toolbox::{
+    kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
+};
+use objc2_core_audio::{
     kAudioDevicePropertyAvailableNominalSampleRates, kAudioDevicePropertyDeviceIsAlive,
     kAudioDevicePropertyDeviceNameCFString, kAudioDevicePropertyHogMode,
     kAudioDevicePropertyNominalSampleRate, kAudioDevicePropertyScopeOutput,
@@ -19,22 +23,20 @@ use crate::sys::{
     kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMaster,
     kAudioObjectPropertyElementWildcard, kAudioObjectPropertyScopeGlobal,
     kAudioObjectPropertyScopeInput, kAudioObjectPropertyScopeOutput, kAudioObjectSystemObject,
-    kAudioOutputUnitProperty_CurrentDevice, kAudioOutputUnitProperty_EnableIO,
     kAudioStreamPropertyAvailablePhysicalFormats, kAudioStreamPropertyPhysicalFormat,
     AudioDeviceID, AudioObjectAddPropertyListener, AudioObjectGetPropertyData,
     AudioObjectGetPropertyDataSize, AudioObjectID, AudioObjectPropertyAddress,
-    AudioObjectPropertyScope, AudioObjectRemovePropertyListener, AudioObjectSetPropertyData,
-    AudioStreamBasicDescription, AudioStreamRangedDescription, AudioValueRange, OSStatus,
+    AudioObjectPropertyListenerProc, AudioObjectPropertyScope, AudioObjectRemovePropertyListener,
+    AudioObjectSetPropertyData, AudioStreamRangedDescription,
 };
-use libc::pid_t;
-use objc2_core_audio::AudioObjectPropertyListenerProc;
+use objc2_core_audio_types::{AudioBufferList, AudioStreamBasicDescription, AudioValueRange};
 use objc2_core_foundation::CFString;
 
 use crate::audio_unit::audio_format::{AudioFormat, LinearPcmFlags};
 use crate::audio_unit::sample_format::SampleFormat;
 use crate::audio_unit::stream_format::StreamFormat;
 use crate::audio_unit::{AudioUnit, Element, IOType, Scope};
-use crate::sys;
+use crate::OSStatus;
 
 /// Helper function to get the device id of the default input or output device.
 pub fn get_default_device_id(input: bool) -> Option<AudioDeviceID> {
@@ -236,7 +238,7 @@ pub fn get_audio_device_supports_scope(devid: AudioDeviceID, scope: Scope) -> Re
     try_status_or_return!(status);
 
     let mut bfrs: Vec<u8> = Vec::with_capacity(data_size as usize);
-    let buffers = bfrs.as_mut_ptr() as *mut sys::AudioBufferList;
+    let buffers = bfrs.as_mut_ptr() as *mut AudioBufferList;
     unsafe {
         let status = AudioObjectGetPropertyData(
             devid,

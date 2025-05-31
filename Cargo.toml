@@ -1,6 +1,6 @@
 [package]
 name = "coreaudio-rs"
-version = "0.13.0-beta-1"
+version = "0.13.0"
 authors = [
     "mitchmindtree <mitchell.nordine@gmail.com>",
     "yupferris <jake@fusetools.com>",

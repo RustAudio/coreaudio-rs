@@ -23,7 +23,7 @@ use crate::error::{self, Error};
 /// `bits_per_channel = size_of::<S>()` / channels_per_frame * 8
 ///
 /// > A *packet* is a collection of one or more contiguous frames. In linear PCM audio, a packet is
-/// always a single frame.
+/// > always a single frame.
 ///
 /// [from *Core Audio Overview*](https://developer.apple.com/library/ios/documentation/MusicAudio/Conceptual/CoreAudioOverview/WhatisCoreAudio/WhatisCoreAudio.html)
 ///
@@ -31,10 +31,10 @@ use crate::error::{self, Error};
 /// >
 /// > - iOS input and output: Linear PCM with 16-bit integer samples.
 /// > - iOS audio units and other audio processing: Noninterleaved linear PCM with 8.24-bit
-/// fixed-point samples
+/// >   fixed-point samples
 /// > - Mac input and output: Linear PCM with 32-bit floating point samples.
 /// > - Mac audio units and other audio processing: Noninterleaved linear PCM with 32-bit floating
-/// point samples.
+/// >   point samples.
 #[derive(Copy, Clone, Debug)]
 pub struct StreamFormat {
     /// The number of frames of audio data per second used to represent a signal.
@@ -61,7 +61,7 @@ impl StreamFormat {
     /// specified in the documentation:
     ///
     /// > Specify kAudioFormatLinearPCM for the mFormatID field. Audio units use uncompressed audio
-    /// data, so this is the correct format identifier to use whenever you work with audio units.
+    /// > data, so this is the correct format identifier to use whenever you work with audio units.
     ///
     /// [*Audio Unit Hosting Guide for iOS*](https://developer.apple.com/library/ios/documentation/MusicAudio/Conceptual/AudioUnitHostingGuide_iOS/AudioUnitHostingFundamentals/AudioUnitHostingFundamentals.html)
     ///
@@ -118,7 +118,7 @@ impl StreamFormat {
         let (format, maybe_flag) =
             AudioFormat::LinearPCM(flags | LinearPcmFlags::IS_PACKED).as_format_and_flag();
 
-        let flag = maybe_flag.unwrap_or(::std::u32::MAX - 2147483647);
+        let flag = maybe_flag.unwrap_or(u32::MAX - 2147483647);
 
         let non_interleaved = flags.contains(LinearPcmFlags::IS_NON_INTERLEAVED);
         let bytes_per_frame = if non_interleaved {

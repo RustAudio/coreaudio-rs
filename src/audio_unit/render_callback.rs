@@ -504,7 +504,7 @@ impl AudioUnit {
                     data,
                     time_stamp: in_time_stamp.read(),
                     flags,
-                    bus_number: in_bus_number as u32,
+                    bus_number: in_bus_number,
                     num_frames: in_number_frames as usize,
                 }
             };
@@ -678,7 +678,7 @@ impl AudioUnit {
                     data,
                     time_stamp: in_time_stamp.read(),
                     flags,
-                    bus_number: in_bus_number as u32,
+                    bus_number: in_bus_number,
                     num_frames: in_number_frames as usize,
                 }
             };
@@ -744,7 +744,7 @@ impl AudioUnit {
                 // Take ownership over the AudioBufferList in order to safely free it.
                 let buffer_list: Box<AudioBufferList> = Box::from_raw(buffer_list);
                 // Free the allocated data from the individual audio buffers.
-                let ptr = buffer_list.mBuffers.as_ptr() as *const AudioBuffer;
+                let ptr = buffer_list.mBuffers.as_ptr();
                 let len = buffer_list.mNumberBuffers as usize;
                 let buffers: &[AudioBuffer] = slice::from_raw_parts(ptr, len);
                 for &buffer in buffers {

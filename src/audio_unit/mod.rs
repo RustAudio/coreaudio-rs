@@ -227,7 +227,7 @@ impl AudioUnit {
         elem: Element,
         maybe_data: Option<&T>,
     ) -> Result<(), Error> {
-        set_property(self.instance, id, scope, elem, maybe_data)
+        unsafe { set_property(self.instance, id, scope, elem, maybe_data) }
     }
 
     /// Gets the value of an **AudioUnit** property.
@@ -241,7 +241,7 @@ impl AudioUnit {
     /// - **scope**: The audio unit scope for the property.
     /// - **elem**: The audio unit element for the property.
     pub fn get_property<T>(&self, id: u32, scope: Scope, elem: Element) -> Result<T, Error> {
-        get_property(self.instance, id, scope, elem)
+        unsafe { get_property(self.instance, id, scope, elem) }
     }
 
     /// Starts an I/O **AudioUnit**, which in turn starts the audio unit processing graph that it is
@@ -290,10 +290,10 @@ impl AudioUnit {
     /// >
     /// > - iOS input and output: Linear PCM with 16-bit integer samples.
     /// > - iOS audio units and other audio processing: Noninterleaved linear PCM with 8.24-bit
-    /// fixed-point samples
+    /// >   fixed-point samples
     /// > - Mac input and output: Linear PCM with 32-bit floating point samples.
     /// > - Mac audio units and other audio processing: Noninterleaved linear PCM with 32-bit
-    /// floating-point
+    /// >   floating-point
     pub fn set_stream_format(
         &mut self,
         stream_format: StreamFormat,
@@ -375,7 +375,14 @@ impl Drop for AudioUnit {
 /// - **scope**: The audio unit scope for the property.
 /// - **elem**: The audio unit element for the property.
 /// - **maybe_data**: The value that you want to apply to the property.
-pub fn set_property<T>(
+///
+/// Safety
+/// ------
+/// This function is safe as long as the **au** parameter is a valid pointer to an AudioUnit instance.
+/// The caller is responsible for ensuring this.
+/// For a safer alternative, consider using an [AudioUnit] instance
+/// and calling the associated [AudioUnit::set_property] method.
+pub unsafe fn set_property<T>(
     au: InnerAudioUnit,
     id: u32,
     scope: Scope,
@@ -391,7 +398,7 @@ pub fn set_property<T>(
         .unwrap_or_else(|| (::std::ptr::null(), 0));
     let scope = scope as c_uint;
     let elem = elem as c_uint;
-    unsafe { try_os_status!(AudioUnitSetProperty(au, id, scope, elem, data_ptr, size)) }
+    try_os_status!(AudioUnitSetProperty(au, id, scope, elem, data_ptr, size));
     Ok(())
 }
 
@@ -406,7 +413,14 @@ pub fn set_property<T>(
 /// - **id**: The identifier of the property.
 /// - **scope**: The audio unit scope for the property.
 /// - **elem**: The audio unit element for the property.
-pub fn get_property<T>(
+///
+/// Safety
+/// ------
+/// This function is safe as long as the **au** parameter is a valid pointer to an AudioUnit instance.
+/// The caller is responsible for ensuring this.
+/// For a safer alternative, consider using an [AudioUnit] instance
+/// and calling the associated [AudioUnit::get_property] method.
+pub unsafe fn get_property<T>(
     au: InnerAudioUnit,
     id: u32,
     scope: Scope,
@@ -415,16 +429,14 @@ pub fn get_property<T>(
     let scope = scope as c_uint;
     let elem = elem as c_uint;
     let mut size = ::std::mem::size_of::<T>() as u32;
-    unsafe {
-        let mut data_uninit = ::std::mem::MaybeUninit::<T>::uninit();
-        let data_ptr = NonNull::from(&mut data_uninit).cast::<c_void>();
-        let size_ptr = NonNull::from(&mut size);
-        try_os_status!(AudioUnitGetProperty(
-            au, id, scope, elem, data_ptr, size_ptr
-        ));
-        let data: T = data_uninit.assume_init();
-        Ok(data)
-    }
+    let mut data_uninit = ::std::mem::MaybeUninit::<T>::uninit();
+    let data_ptr = NonNull::from(&mut data_uninit).cast::<c_void>();
+    let size_ptr = NonNull::from(&mut size);
+    try_os_status!(AudioUnitGetProperty(
+        au, id, scope, elem, data_ptr, size_ptr
+    ));
+    let data: T = data_uninit.assume_init();
+    Ok(data)
 }
 
 /// Gets the value of a specified audio session property.

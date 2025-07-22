@@ -329,6 +329,7 @@ impl ::std::fmt::Display for Error {
             Error::AudioFormat(ref err) => write!(f, "{err}"),
             Error::AudioUnit(ref err) => write!(f, "{err}"),
             Error::Unknown(os_status) => write!(f, "An error unknown to the coreaudio-rs API occurred, OSStatus: {os_status}"),
+
         }
     }
 }

@@ -4,4 +4,5 @@ A friendly rust interface for [Apple's Core Audio API](https://developer.apple.c
 
 This crate aims to expose and wrap the functionality of the original C API in a zero-cost, safe, Rust-esque manner.
 
-If you just want direct access to the unsafe bindings, use [coreaudio-sys](https://crates.io/crates/coreaudio-sys).
+If you just want direct access to the Core Audio APIs,
+use the appropriate crates of the [objc2 project](https://crates.io/crates/objc2).

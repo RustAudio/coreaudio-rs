@@ -5,8 +5,9 @@
 //!
 //! Read the CoreAudio Overview [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/CoreAudioOverview/Introduction/Introduction.html).
 //!
-//! Currently, work has only been started on the [audio_unit](./audio_unit/index.html) module, but
-//! eventually we'd like to cover at least the majority of the C API.
+//! Currently, this crate provides the [audio_unit] module that covers the
+//! [Audio Unit framework](https://developer.apple.com/documentation/audiounit)
+//! (now part of [Audio Toolbox](https://developer.apple.com/documentation/AudioToolbox)).
 
 #[macro_use]
 extern crate bitflags;

@@ -848,7 +848,7 @@ pub fn toggle_hog_mode(device_id: AudioDeviceID) -> Result<pid_t, Error> {
             NonNull::from(&property_address),
             0,
             null(),
-            data_size as u32,
+            data_size,
             NonNull::from(&temp_pid).cast(),
         );
         Error::from_os_status(status)?;

@@ -63,7 +63,7 @@ pub fn get_default_device_id(input: bool) -> Option<AudioDeviceID> {
             NonNull::from(&mut audio_device_id).cast(),
         )
     };
-    if status != kAudioHardwareNoError as i32 {
+    if status != kAudioHardwareNoError {
         return None;
     }
 
@@ -248,7 +248,7 @@ pub fn get_audio_device_supports_scope(devid: AudioDeviceID, scope: Scope) -> Re
             NonNull::from(&data_size),
             NonNull::new(buffers).unwrap().cast(),
         );
-        if status != kAudioHardwareNoError as i32 {
+        if status != kAudioHardwareNoError {
             return Err(Error::Unknown(status));
         }
 
@@ -333,7 +333,7 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
             Error::from_os_status(status)?;
             let n_ranges = data_size as usize / mem::size_of::<AudioValueRange>();
             let mut ranges: Vec<AudioValueRange> = vec![];
-            ranges.reserve_exact(n_ranges as usize);
+            ranges.reserve_exact(n_ranges);
             ranges.set_len(n_ranges);
             let status = AudioObjectGetPropertyData(
                 device_id,
@@ -559,7 +559,7 @@ pub fn get_supported_physical_stream_formats(
         Error::from_os_status(status)?;
         let n_formats = data_size as usize / mem::size_of::<AudioStreamRangedDescription>();
         let mut formats: Vec<AudioStreamRangedDescription> = vec![];
-        formats.reserve_exact(n_formats as usize);
+        formats.reserve_exact(n_formats);
         formats.set_len(n_formats);
 
         let status = AudioObjectGetPropertyData(
@@ -848,7 +848,7 @@ pub fn toggle_hog_mode(device_id: AudioDeviceID) -> Result<pid_t, Error> {
             NonNull::from(&property_address),
             0,
             null(),
-            data_size as u32,
+            data_size,
             NonNull::from(&temp_pid).cast(),
         );
         Error::from_os_status(status)?;

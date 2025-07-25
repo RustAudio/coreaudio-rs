@@ -55,7 +55,7 @@ pub mod audio {
                 Error::MemFull => "Memory full",
                 Error::Unknown => "An unknown error occurred",
             };
-            write!(f, "{}", description)
+            write!(f, "{description}")
         }
     }
 }
@@ -109,7 +109,7 @@ pub mod audio_codec {
                 Error::NotEnoughBufferSpace => "Not enough buffer space",
                 Error::Unknown => "Unknown error occurred",
             };
-            write!(f, "{}", description)
+            write!(f, "{description}")
         }
     }
 }
@@ -156,7 +156,7 @@ pub mod audio_format {
                 Error::UnknownFormat => "The specified data format is not a known format",
                 Error::Unknown => "Unknown error occurred",
             };
-            write!(f, "{}", description)
+            write!(f, "{description}")
         }
     }
 }
@@ -239,7 +239,7 @@ pub mod audio_unit {
                 Error::Unauthorized => "Unauthorized",
                 Error::Unknown => "Unknown error occurred",
             };
-            write!(f, "{}", description)
+            write!(f, "{description}")
         }
     }
 }
@@ -324,11 +324,12 @@ impl ::std::fmt::Display for Error {
             Error::NonInterleavedInputOnlySupportsMono => write!(f, "In non-interleaved mode input only supports one channel"),
             Error::UnsupportedSampleRate => write!(f, "The requested sample rate is not available"),
             Error::UnsupportedStreamFormat => write!(f, "The requested stream format is not available"),
-            Error::Audio(ref err) => write!(f, "{}", err),
-            Error::AudioCodec(ref err) => write!(f, "{}", err),
-            Error::AudioFormat(ref err) => write!(f, "{}", err),
-            Error::AudioUnit(ref err) => write!(f, "{}", err),
-            Error::Unknown(os_status) => write!(f, "An error unknown to the coreaudio-rs API occurred, OSStatus: {}", os_status),
+            Error::Audio(ref err) => write!(f, "{err}"),
+            Error::AudioCodec(ref err) => write!(f, "{err}"),
+            Error::AudioFormat(ref err) => write!(f, "{err}"),
+            Error::AudioUnit(ref err) => write!(f, "{err}"),
+            Error::Unknown(os_status) => write!(f, "An error unknown to the coreaudio-rs API occurred, OSStatus: {os_status}"),
+
         }
     }
 }

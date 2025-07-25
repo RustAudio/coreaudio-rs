@@ -20,6 +20,28 @@ jobs:
     # - name: cargo test - all features
     #   run: cargo test --all-features --verbose
 
+  macos-clippy:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+        components: clippy
+    - name: cargo clippy
+      run: cargo clippy -- -D warnings
+
+  macos-rustfmt:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+        components: rustfmt
+    - name: cargo fmt
+      run: cargo fmt --all -- --check
+
   security-audit:
     runs-on: ubuntu-latest
     steps:

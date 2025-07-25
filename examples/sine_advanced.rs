@@ -7,8 +7,11 @@ use coreaudio::audio_unit::audio_format::LinearPcmFlags;
 use coreaudio::audio_unit::macos_helpers::{
     audio_unit_from_device_id, find_matching_physical_format, get_default_device_id,
     get_hogging_pid, get_supported_physical_stream_formats, set_device_physical_stream_format,
-    set_device_sample_rate, toggle_hog_mode, AliveListener, RateListener,
+    toggle_hog_mode, AliveListener, RateListener,
 };
+// This import is not needed since the use of set_device_sample_rate
+// is commented out and left as an example.
+// use coreaudio::audio_unit::macos_helpers::set_device_sample_rate;
 use coreaudio::audio_unit::render_callback::{self, data};
 use coreaudio::audio_unit::{Element, SampleFormat, Scope, StreamFormat};
 use objc2_audio_toolbox::kAudioUnitProperty_StreamFormat;

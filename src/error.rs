@@ -6,18 +6,27 @@ pub use self::audio_format::Error as AudioFormatError;
 pub use self::audio_unit::Error as AudioUnitError;
 use crate::OSStatus;
 
+use objc2_audio_toolbox::{
+    kAudioServicesSystemSoundClientTimedOutError, kAudioServicesSystemSoundUnspecifiedError,
+};
+
 pub mod audio {
     use crate::OSStatus;
+    use objc2_core_audio_types::{
+        kAudio_BadFilePathError, kAudio_FileNotFoundError, kAudio_FilePermissionError,
+        kAudio_MemFullError, kAudio_ParamError, kAudio_TooManyFilesOpenError,
+        kAudio_UnimplementedError,
+    };
 
     #[derive(Copy, Clone, Debug)]
     pub enum Error {
-        Unimplemented = -4,
-        FileNotFound = -43,
-        FilePermission = -54,
-        TooManyFilesOpen = -42,
-        BadFilePath = 561017960,
-        Param = -50,
-        MemFull = -108,
+        Unimplemented = kAudio_UnimplementedError as isize,
+        FileNotFound = kAudio_FileNotFoundError as isize,
+        FilePermission = kAudio_FilePermissionError as isize,
+        TooManyFilesOpen = kAudio_TooManyFilesOpenError as isize,
+        BadFilePath = kAudio_BadFilePathError as isize,
+        Param = kAudio_ParamError as isize,
+        MemFull = kAudio_MemFullError as isize,
         Unknown,
     }
 
@@ -25,13 +34,13 @@ pub mod audio {
         pub fn from_os_status(os_status: OSStatus) -> Result<(), Error> {
             match os_status {
                 0 => Ok(()),
-                -4 => Err(Error::Unimplemented),
-                -43 => Err(Error::FileNotFound),
-                -54 => Err(Error::FilePermission),
-                -42 => Err(Error::TooManyFilesOpen),
-                561017960 => Err(Error::BadFilePath),
-                -50 => Err(Error::Param),
-                -108 => Err(Error::MemFull),
+                _ if os_status == kAudio_UnimplementedError => Err(Error::Unimplemented),
+                _ if os_status == kAudio_FileNotFoundError => Err(Error::FileNotFound),
+                _ if os_status == kAudio_FilePermissionError => Err(Error::FilePermission),
+                _ if os_status == kAudio_TooManyFilesOpenError => Err(Error::TooManyFilesOpen),
+                _ if os_status == kAudio_BadFilePathError => Err(Error::BadFilePath),
+                _ if os_status == kAudio_ParamError => Err(Error::Param),
+                _ if os_status == kAudio_MemFullError => Err(Error::MemFull),
                 _ => Err(Error::Unknown),
             }
         }
@@ -62,16 +71,23 @@ pub mod audio {
 
 pub mod audio_codec {
     use crate::OSStatus;
+    use objc2_audio_toolbox::{
+        kAudioCodecBadDataError, kAudioCodecBadPropertySizeError, kAudioCodecIllegalOperationError,
+        kAudioCodecNotEnoughBufferSpaceError, kAudioCodecStateError,
+        kAudioCodecUnknownPropertyError, kAudioCodecUnspecifiedError,
+        kAudioCodecUnsupportedFormatError,
+    };
 
     #[derive(Copy, Clone, Debug)]
     pub enum Error {
-        Unspecified = 2003329396,
-        UnknownProperty = 2003332927,
-        BadPropertySize = 561211770,
-        IllegalOperation = 1852797029,
-        UnsupportedFormat = 560226676,
-        State = 561214580,
-        NotEnoughBufferSpace = 560100710,
+        Unspecified = kAudioCodecUnspecifiedError as isize,
+        UnknownProperty = kAudioCodecUnknownPropertyError as isize,
+        BadPropertySize = kAudioCodecBadPropertySizeError as isize,
+        IllegalOperation = kAudioCodecIllegalOperationError as isize,
+        UnsupportedFormat = kAudioCodecUnsupportedFormatError as isize,
+        State = kAudioCodecStateError as isize,
+        NotEnoughBufferSpace = kAudioCodecNotEnoughBufferSpaceError as isize,
+        BadData = kAudioCodecBadDataError as isize,
         Unknown,
     }
 
@@ -79,13 +95,18 @@ pub mod audio_codec {
         pub fn from_os_status(os_status: OSStatus) -> Result<(), Error> {
             match os_status {
                 0 => Ok(()),
-                2003329396 => Err(Error::Unspecified),
-                2003332927 => Err(Error::UnknownProperty),
-                561211770 => Err(Error::BadPropertySize),
-                1852797029 => Err(Error::IllegalOperation),
-                560226676 => Err(Error::UnsupportedFormat),
-                561214580 => Err(Error::State),
-                560100710 => Err(Error::NotEnoughBufferSpace),
+                _ if os_status == kAudioCodecUnspecifiedError => Err(Error::Unspecified),
+                _ if os_status == kAudioCodecUnknownPropertyError => Err(Error::UnknownProperty),
+                _ if os_status == kAudioCodecBadPropertySizeError => Err(Error::BadPropertySize),
+                _ if os_status == kAudioCodecIllegalOperationError => Err(Error::IllegalOperation),
+                _ if os_status == kAudioCodecUnsupportedFormatError => {
+                    Err(Error::UnsupportedFormat)
+                }
+                _ if os_status == kAudioCodecStateError => Err(Error::State),
+                _ if os_status == kAudioCodecNotEnoughBufferSpaceError => {
+                    Err(Error::NotEnoughBufferSpace)
+                }
+                _ if os_status == kAudioCodecBadDataError => Err(Error::BadData),
                 _ => Err(Error::Unknown),
             }
         }
@@ -107,6 +128,7 @@ pub mod audio_codec {
                 Error::UnsupportedFormat => "Unsupported format",
                 Error::State => "State",
                 Error::NotEnoughBufferSpace => "Not enough buffer space",
+                Error::BadData => "Bad data",
                 Error::Unknown => "Unknown error occurred",
             };
             write!(f, "{description}")
@@ -116,24 +138,38 @@ pub mod audio_codec {
 
 pub mod audio_format {
     use crate::OSStatus;
+    use objc2_audio_toolbox::{
+        kAudioFormatBadPropertySizeError, kAudioFormatBadSpecifierSizeError,
+        kAudioFormatUnknownFormatError, kAudioFormatUnspecifiedError,
+        kAudioFormatUnsupportedDataFormatError, kAudioFormatUnsupportedPropertyError,
+    };
 
     // TODO: Finish implementing these values.
     #[derive(Copy, Clone, Debug)]
     pub enum Error {
-        Unspecified,                        // 'what'
-        UnsupportedProperty,                // 'prop'
-        BadPropertySize,                    // '!siz'
-        BadSpecifierSize,                   // '!spc'
-        UnsupportedDataFormat = 1718449215, // 'fmt?'
-        UnknownFormat,                      // '!fmt'
-        Unknown,                            //
+        Unspecified = kAudioFormatUnspecifiedError as isize,
+        UnsupportedProperty = kAudioFormatUnsupportedPropertyError as isize,
+        BadPropertySize = kAudioFormatBadPropertySizeError as isize,
+        BadSpecifierSize = kAudioFormatBadSpecifierSizeError as isize,
+        UnsupportedDataFormat = kAudioFormatUnsupportedDataFormatError as isize,
+        UnknownFormat = kAudioFormatUnknownFormatError as isize,
+        Unknown,
     }
 
     impl Error {
         pub fn from_os_status(os_status: OSStatus) -> Result<(), Error> {
             match os_status {
                 0 => Ok(()),
-                1718449215 => Err(Error::UnsupportedDataFormat),
+                _ if os_status == kAudioFormatUnspecifiedError => Err(Error::Unspecified),
+                _ if os_status == kAudioFormatUnsupportedPropertyError => {
+                    Err(Error::UnsupportedProperty)
+                }
+                _ if os_status == kAudioFormatBadPropertySizeError => Err(Error::BadPropertySize),
+                _ if os_status == kAudioFormatBadSpecifierSizeError => Err(Error::BadSpecifierSize),
+                _ if os_status == kAudioFormatUnsupportedDataFormatError => {
+                    Err(Error::UnsupportedDataFormat)
+                }
+                _ if os_status == kAudioFormatUnknownFormatError => Err(Error::UnknownFormat),
                 _ => Err(Error::Unknown),
             }
         }
@@ -163,49 +199,73 @@ pub mod audio_format {
 
 pub mod audio_unit {
     use crate::OSStatus;
+    use objc2_audio_toolbox::{
+        kAudioUnitErr_CannotDoInCurrentContext, kAudioUnitErr_FailedInitialization,
+        kAudioUnitErr_FormatNotSupported, kAudioUnitErr_Initialized, kAudioUnitErr_InvalidElement,
+        kAudioUnitErr_InvalidFile, kAudioUnitErr_InvalidOfflineRender,
+        kAudioUnitErr_InvalidParameter, kAudioUnitErr_InvalidProperty,
+        kAudioUnitErr_InvalidPropertyValue, kAudioUnitErr_InvalidScope, kAudioUnitErr_NoConnection,
+        kAudioUnitErr_PropertyNotInUse, kAudioUnitErr_PropertyNotWritable,
+        kAudioUnitErr_TooManyFramesToProcess, kAudioUnitErr_Unauthorized,
+        kAudioUnitErr_Uninitialized,
+    };
 
     #[derive(Copy, Clone, Debug)]
     pub enum Error {
-        InvalidProperty = -10879,
-        InvalidParameter = -10878,
-        InvalidElement = -10877,
-        NoConnection = -10876,
-        FailedInitialization = -10875,
-        TooManyFramesToProcess = -10874,
-        InvalidFile = -10871,
-        FormatNotSupported = -10868,
-        Uninitialized = -10867,
-        InvalidScope = -10866,
-        PropertyNotWritable = -10865,
-        CannotDoInCurrentContext = -10863,
-        InvalidPropertyValue = -10851,
-        PropertyNotInUse = -10850,
-        Initialized = -10849,
-        InvalidOfflineRender = -10848,
-        Unauthorized = -10847,
+        InvalidProperty = kAudioUnitErr_InvalidProperty as isize,
+        InvalidParameter = kAudioUnitErr_InvalidParameter as isize,
+        InvalidElement = kAudioUnitErr_InvalidElement as isize,
+        NoConnection = kAudioUnitErr_NoConnection as isize,
+        FailedInitialization = kAudioUnitErr_FailedInitialization as isize,
+        TooManyFramesToProcess = kAudioUnitErr_TooManyFramesToProcess as isize,
+        InvalidFile = kAudioUnitErr_InvalidFile as isize,
+        FormatNotSupported = kAudioUnitErr_FormatNotSupported as isize,
+        Uninitialized = kAudioUnitErr_Uninitialized as isize,
+        InvalidScope = kAudioUnitErr_InvalidScope as isize,
+        PropertyNotWritable = kAudioUnitErr_PropertyNotWritable as isize,
+        CannotDoInCurrentContext = kAudioUnitErr_CannotDoInCurrentContext as isize,
+        InvalidPropertyValue = kAudioUnitErr_InvalidPropertyValue as isize,
+        PropertyNotInUse = kAudioUnitErr_PropertyNotInUse as isize,
+        Initialized = kAudioUnitErr_Initialized as isize,
+        InvalidOfflineRender = kAudioUnitErr_InvalidOfflineRender as isize,
+        Unauthorized = kAudioUnitErr_Unauthorized as isize,
         Unknown,
     }
 
     impl Error {
         pub fn from_os_status(os_status: OSStatus) -> Result<(), Error> {
             match os_status {
-                -10879 => Err(Error::InvalidProperty),
-                -10878 => Err(Error::InvalidParameter),
-                -10877 => Err(Error::InvalidElement),
-                -10876 => Err(Error::NoConnection),
-                -10875 => Err(Error::FailedInitialization),
-                -10874 => Err(Error::TooManyFramesToProcess),
-                -10871 => Err(Error::InvalidFile),
-                -10868 => Err(Error::FormatNotSupported),
-                -10867 => Err(Error::Uninitialized),
-                -10866 => Err(Error::InvalidScope),
-                -10865 => Err(Error::PropertyNotWritable),
-                -10863 => Err(Error::CannotDoInCurrentContext),
-                -10851 => Err(Error::InvalidPropertyValue),
-                -10850 => Err(Error::PropertyNotInUse),
-                -10849 => Err(Error::Initialized),
-                -10848 => Err(Error::InvalidOfflineRender),
-                -10847 => Err(Error::Unauthorized),
+                _ if os_status == kAudioUnitErr_InvalidProperty => Err(Error::InvalidProperty),
+                _ if os_status == kAudioUnitErr_InvalidParameter => Err(Error::InvalidParameter),
+                _ if os_status == kAudioUnitErr_InvalidElement => Err(Error::InvalidElement),
+                _ if os_status == kAudioUnitErr_NoConnection => Err(Error::NoConnection),
+                _ if os_status == kAudioUnitErr_FailedInitialization => {
+                    Err(Error::FailedInitialization)
+                }
+                _ if os_status == kAudioUnitErr_TooManyFramesToProcess => {
+                    Err(Error::TooManyFramesToProcess)
+                }
+                _ if os_status == kAudioUnitErr_InvalidFile => Err(Error::InvalidFile),
+                _ if os_status == kAudioUnitErr_FormatNotSupported => {
+                    Err(Error::FormatNotSupported)
+                }
+                _ if os_status == kAudioUnitErr_Uninitialized => Err(Error::Uninitialized),
+                _ if os_status == kAudioUnitErr_InvalidScope => Err(Error::InvalidScope),
+                _ if os_status == kAudioUnitErr_PropertyNotWritable => {
+                    Err(Error::PropertyNotWritable)
+                }
+                _ if os_status == kAudioUnitErr_CannotDoInCurrentContext => {
+                    Err(Error::CannotDoInCurrentContext)
+                }
+                _ if os_status == kAudioUnitErr_InvalidPropertyValue => {
+                    Err(Error::InvalidPropertyValue)
+                }
+                _ if os_status == kAudioUnitErr_PropertyNotInUse => Err(Error::PropertyNotInUse),
+                _ if os_status == kAudioUnitErr_Initialized => Err(Error::Initialized),
+                _ if os_status == kAudioUnitErr_InvalidOfflineRender => {
+                    Err(Error::InvalidOfflineRender)
+                }
+                _ if os_status == kAudioUnitErr_Unauthorized => Err(Error::Unauthorized),
                 _ => Err(Error::Unknown),
             }
         }
@@ -267,8 +327,10 @@ impl Error {
     pub fn from_os_status(os_status: OSStatus) -> Result<(), Error> {
         match os_status {
             0 => Ok(()),
-            -1500 => Err(Error::Unspecified),
-            -1501 => Err(Error::SystemSoundClientMessageTimedOut),
+            _ if os_status == kAudioServicesSystemSoundUnspecifiedError => Err(Error::Unspecified),
+            _ if os_status == kAudioServicesSystemSoundClientTimedOutError => {
+                Err(Error::SystemSoundClientMessageTimedOut)
+            }
             _ => {
                 match AudioError::from_os_status(os_status) {
                     Ok(()) => return Ok(()),
@@ -298,14 +360,16 @@ impl Error {
     /// Convert an Error to an OSStatus.
     pub fn as_os_status(&self) -> OSStatus {
         match *self {
-            Error::Unspecified => -1500,
-            Error::NoMatchingDefaultAudioUnitFound => -1500,
-            Error::RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat => -1500,
-            Error::SystemSoundClientMessageTimedOut => -1501,
+            Error::Unspecified => kAudioServicesSystemSoundUnspecifiedError,
+            Error::NoMatchingDefaultAudioUnitFound => kAudioServicesSystemSoundUnspecifiedError,
+            Error::RenderCallbackBufferFormatDoesNotMatchAudioUnitStreamFormat => {
+                kAudioServicesSystemSoundUnspecifiedError
+            }
+            Error::SystemSoundClientMessageTimedOut => kAudioServicesSystemSoundClientTimedOutError,
             Error::Audio(err) => err as OSStatus,
             Error::AudioCodec(err) => err as OSStatus,
             Error::AudioUnit(err) => err as OSStatus,
-            _ => -1500,
+            _ => kAudioServicesSystemSoundUnspecifiedError,
         }
     }
 }

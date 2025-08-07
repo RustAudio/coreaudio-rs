@@ -2,6 +2,32 @@
 //!
 //! Original documentation [here](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Types).
 
+#![allow(deprecated)]
+
+//#[cfg(target_os = "ios")]
+//use objc2_audio_toolbox::kAudioUnitSubType_RemoteIO;
+use objc2_audio_toolbox::{
+    kAudioUnitSubType_3DMixer, kAudioUnitSubType_AUConverter, kAudioUnitSubType_AUFilter,
+    kAudioUnitSubType_AUiPodTimeOther, kAudioUnitSubType_AudioFilePlayer,
+    kAudioUnitSubType_BandPassFilter, kAudioUnitSubType_DLSSynth, kAudioUnitSubType_DefaultOutput,
+    kAudioUnitSubType_DeferredRenderer, kAudioUnitSubType_Delay, kAudioUnitSubType_Distortion,
+    kAudioUnitSubType_DynamicsProcessor, kAudioUnitSubType_GenericOutput,
+    kAudioUnitSubType_GraphicEQ, kAudioUnitSubType_HALOutput, kAudioUnitSubType_HighPassFilter,
+    kAudioUnitSubType_HighShelfFilter, kAudioUnitSubType_LowPassFilter,
+    kAudioUnitSubType_LowShelfFilter, kAudioUnitSubType_MatrixMixer,
+    kAudioUnitSubType_MatrixReverb, kAudioUnitSubType_Merger,
+    kAudioUnitSubType_MultiBandCompressor, kAudioUnitSubType_MultiChannelMixer,
+    kAudioUnitSubType_NBandEQ, kAudioUnitSubType_NetSend, kAudioUnitSubType_NewTimePitch,
+    kAudioUnitSubType_ParametricEQ, kAudioUnitSubType_PeakLimiter, kAudioUnitSubType_Pitch,
+    kAudioUnitSubType_RogerBeep, kAudioUnitSubType_SampleDelay, kAudioUnitSubType_Sampler,
+    kAudioUnitSubType_ScheduledSoundPlayer, kAudioUnitSubType_Splitter,
+    kAudioUnitSubType_StereoMixer, kAudioUnitSubType_SystemOutput, kAudioUnitSubType_TimePitch,
+    kAudioUnitSubType_Varispeed, kAudioUnitSubType_VoiceProcessingIO, kAudioUnitType_Effect,
+    kAudioUnitType_FormatConverter, kAudioUnitType_Generator, kAudioUnitType_MIDIProcessor,
+    kAudioUnitType_Mixer, kAudioUnitType_MusicDevice, kAudioUnitType_MusicEffect,
+    kAudioUnitType_OfflineEffect, kAudioUnitType_Output, kAudioUnitType_Panner,
+};
+
 /// Represents the different kinds of Audio Units that are available.
 ///
 /// Original documentation [here](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Types).
@@ -98,16 +124,16 @@ impl Type {
     /// Convert the `Type` to its associated `u32` for compatibility with original API.
     pub fn as_u32(&self) -> u32 {
         match *self {
-            Type::IO(_) => 1635086197,
-            Type::MusicDevice(_) => 1635085685,
-            Type::MusicEffect => 1635085670,
-            Type::FormatConverter(_) => 1635083875,
-            Type::Effect(_) => 1635083896,
-            Type::Mixer(_) => 1635085688,
-            Type::Panner => 1635086446,
-            Type::Generator(_) => 1635084142,
-            Type::OfflineEffect => 1635086188,
-            Type::MidiProcessor => 1635085673,
+            Type::IO(_) => kAudioUnitType_Output,
+            Type::MusicDevice(_) => kAudioUnitType_MusicDevice,
+            Type::MusicEffect => kAudioUnitType_MusicEffect,
+            Type::FormatConverter(_) => kAudioUnitType_FormatConverter,
+            Type::Effect(_) => kAudioUnitType_Effect,
+            Type::Mixer(_) => kAudioUnitType_Mixer,
+            Type::Panner => kAudioUnitType_Panner,
+            Type::Generator(_) => kAudioUnitType_Generator,
+            Type::OfflineEffect => kAudioUnitType_OfflineEffect,
+            Type::MidiProcessor => kAudioUnitType_MIDIProcessor,
         }
     }
 
@@ -167,89 +193,89 @@ pub enum EffectType {
     /// An audio unit that enforces an upper dynamic limit on an audio signal.
     ///
     /// **Available** in OS X v10.2 and later.
-    PeakLimiter = 1819112562,
+    PeakLimiter = kAudioUnitSubType_PeakLimiter as isize,
     /// An audio unit that provides dynamic compression or expansion.
     ///
     /// **Available** in OS X v10.3 and later.
-    DynamicsProcessor = 1684237680,
+    DynamicsProcessor = kAudioUnitSubType_DynamicsProcessor as isize,
     /// An audio unit that passes frequencies below a specified cutoff frequency and blocks
     /// frequencies above that cutoff frequency.
     ///
     /// **Available** in OS X v10.2 and later.
-    LowPassFilter = 1819304307,
+    LowPassFilter = kAudioUnitSubType_LowPassFilter as isize,
     /// An audio unit that passes frequencies above a specified cutoff frequency and blocks
     /// frequencies below that cutoff frequency.
     ///
     /// **Available** in OS X v10.2 and later.
-    HighPassFilter = 1752195443,
+    HighPassFilter = kAudioUnitSubType_HighPassFilter as isize,
     /// An audio unit that passes frequencies between specified upper and lower cutoff frequencies,
     /// and blocks frequencies outside that band.
     ///
     /// **Available** in OS X v10.2 and later.
-    BandPassFilter = 1651532147,
+    BandPassFilter = kAudioUnitSubType_BandPassFilter as isize,
     /// An audio unit suitable for implementing a treble control in an audio playback or recording
     /// system.
     ///
     /// **Available** in OS X v10.2 and later.
-    HighShelfFilter = 1752393830,
+    HighShelfFilter = kAudioUnitSubType_HighShelfFilter as isize,
     /// An audio unit suitable for implementing a bass control in an audio playback or recording
     /// system.
     ///
     /// **Available** in OS X v10.2 and later.
-    LowShelfFilter = 1819502694,
+    LowShelfFilter = kAudioUnitSubType_LowShelfFilter as isize,
     /// An audio unit that provides a filter whose center frequency, boost/cut level, and Q can be
     /// adjusted.
     ///
     /// **Available** in OS X v10.2 and later.
-    ParametricEQ = 1886217585,
+    ParametricEQ = kAudioUnitSubType_ParametricEQ as isize,
     /// An audio unit that provides a distortion effect.
     ///
     /// **Available** in OS X v10.5 and later.
-    Distortion = 1684632436,
+    Distortion = kAudioUnitSubType_Distortion as isize,
     /// An audio unit that introduces a time delay to a signal.
     ///
     /// **Available** in OS X v10.2 and later.
-    Delay = 1684368505,
+    Delay = kAudioUnitSubType_Delay as isize,
     /// An audio unit that provides a time delay for a specified number of samples.
     ///
     /// **Available** in OS X v10.4 and later.
-    SampleDelay = 1935961209,
+    SampleDelay = kAudioUnitSubType_SampleDelay as isize,
     /// An audio unit that provides a 10- or 31-band graphic equalizer.
     ///
     /// Available in OS X v10.2 and later.
-    GraphicEQ = 1735550321,
+    GraphicEQ = kAudioUnitSubType_GraphicEQ as isize,
     /// An audio unit that provides four-bands of dynamic compression or expansion.
     ///
     /// **Available** in OS X v10.3 and later.
-    MultiBandCompressor = 1835232624,
+    MultiBandCompressor = kAudioUnitSubType_MultiBandCompressor as isize,
     /// An audio unit that provides a reverberation effect that can be used to simulate a variety
     /// of acoustic spaces.
     ///
     /// **Available** in OS X v10.2 and later.
-    MatrixReverb = 1836213622,
+    MatrixReverb = kAudioUnitSubType_MatrixReverb as isize,
     /// An audio unit for modifying the pitch of a signal.
     ///
     /// **Available** in OS X v10.4 and later.
-    Pitch = 1953329268,
+    Pitch = kAudioUnitSubType_Pitch as isize,
     /// An audio unit that provides a combination of five filters: low-frequency, three
     /// mid-frequencies, and high-frequency.
     ///
     /// **Available** in OS X v10.4 and later.
-    AUFilter = 1718185076,
+    AUFilter = kAudioUnitSubType_AUFilter as isize,
     /// An audio unit for use in conjunction with a kAudioUnitSubType_NetReceive audio unit for
     /// sending audio across a network or from one application to another.
     ///
     /// **Available** in OS X v10.4 and later.
-    NetSend = 1853058660,
+    NetSend = kAudioUnitSubType_NetSend as isize,
     /// An audio unit that detects gaps between segments of speech and fills the gaps with a short
     /// tone, simulating the sound of a walkie-talkie communication device.
     ///
     /// **Available** in OS X v10.5 and later.
-    RogerBeep = 1919903602,
+    RogerBeep = kAudioUnitSubType_RogerBeep as isize,
     /// A multi-band equalizer with specifiable filter type for each band.
     ///
     /// **Available** in OS X v10.9 and later.
-    NBandEQ = 1851942257,
+    NBandEQ = kAudioUnitSubType_NBandEQ as isize,
 }
 
 /// Audio data format converter audio unit subtypes for **AudioUnit**s provided by Apple.
@@ -259,7 +285,7 @@ pub enum FormatConverterType {
     /// sample rate, bit depth, or interleaving.
     ///
     /// **Available** in OS X v10.2 and later.
-    AUConverter = 1668247158,
+    AUConverter = kAudioUnitSubType_AUConverter as isize,
     /// An audio unit that can be used to have independent control of both playback rate and pitch.
     ///
     /// In OS X it provides a generic view, so it can be used in both a UI and programmatic
@@ -268,13 +294,13 @@ pub enum FormatConverterType {
     /// It also comes in an offline version for processing audio files.
     ///
     /// **Available** in OS X v10.7 and later.
-    NewTimePitch = 1853191280,
+    NewTimePitch = kAudioUnitSubType_NewTimePitch as isize,
     /// An audio unit that can provide independent control of playback rate and pitch. This subtype
     /// provides a generic view, making it suitable for UI and programmatic context. OS X provides
     /// realtime and offline audio units of this subtype.
     ///
     /// **Available** in OS X v10.3 and later.
-    TimePitch = 1953329268,
+    TimePitch = kAudioUnitSubType_TimePitch as isize,
     /// An audio unit that acquires audio input from a separate thread than the thread on which its
     /// render method is called.
     ///
@@ -283,17 +309,17 @@ pub enum FormatConverterType {
     /// There is a delay, equal to the buffer size, introduced between the audio input and output.
     ///
     /// **Available** in OS X v10.4 and later.
-    DeferredRenderer = 1684366962,
+    DeferredRenderer = kAudioUnitSubType_DeferredRenderer as isize,
     /// An audio unit with one input bus and two output buses. The audio unit duplicates the input
     /// signal to each of its two output buses.
     ///
     /// **Available** in OS X v10.4 and later.
-    Splitter = 1936747636,
+    Splitter = kAudioUnitSubType_Splitter as isize,
     /// An audio unit with two input buses and one output bus. The audio unit merges the two input
     /// signals to the single output.
     ///
     /// **Available** in OS X v10.4 and later.
-    Merger = 1835364967,
+    Merger = kAudioUnitSubType_Merger as isize,
     /// An audio unit that can control playback rate. As the playback rate increases, so does
     /// pitch.
     ///
@@ -302,9 +328,9 @@ pub enum FormatConverterType {
     /// OS X provides realtime and offline audio units of this subtype.
     ///
     /// **Available** in OS X v10.3 and later.
-    Varispeed = 1986097769,
+    Varispeed = kAudioUnitSubType_Varispeed as isize,
     /// **Available** in OS X v10.9 and later.
-    AUiPodTimeOther = 1768977519,
+    AUiPodTimeOther = kAudioUnitSubType_AUiPodTimeOther as isize,
 }
 
 /// Audio mixing **AudioUnit** subtypes for **AudioUnit**s provided by Apple.
@@ -318,12 +344,12 @@ pub enum MixerType {
     /// In iPhone OS, the output bus always has two channels.
     ///
     /// **Available** in OS X v10.5 and later.
-    MultiChannelMixer = 1835232632,
+    MultiChannelMixer = kAudioUnitSubType_MultiChannelMixer as isize,
     /// An audio unit that can have any number of input buses, each of which is mono or stereo, and
     /// one stereo output bus.
     ///
     /// **Available** in OS X v10.2 and later.
-    StereoMixer = 1936554098,
+    StereoMixer = kAudioUnitSubType_StereoMixer as isize,
     /// An audio unit that can have any number of input buses and one output bus.
     ///
     /// Each input bus can be mono, in which case it can be panned using 3D coordinates and
@@ -338,7 +364,8 @@ pub enum MixerType {
     /// **Available** in OS X v10.3 and later.
     ///
     /// **Deprecated** in OS X v10.10.
-    Mixer3D = 862219640,
+    #[deprecated = "Depecated in OS X v10.10"]
+    Mixer3D = kAudioUnitSubType_3DMixer as isize,
     /// An audio unit that can have any number of input and output buses with any number of
     /// channels on each bus.
     ///
@@ -352,7 +379,7 @@ pub enum MixerType {
     /// Finally, the audio unit provides a global level control for the matrix as a whole.
     ///
     /// **Available** in OS X v10.3 and later.
-    MatrixMixer = 1836608888,
+    MatrixMixer = kAudioUnitSubType_MatrixMixer as isize,
 }
 
 /// Audio units that serve as sound sources.
@@ -365,12 +392,12 @@ pub enum GeneratorType {
     /// from any thread.
     ///
     /// **Available** in OS X v10.4 and later.
-    ScheduledSoundPlayer = 1936945260,
+    ScheduledSoundPlayer = kAudioUnitSubType_ScheduledSoundPlayer as isize,
     /// A generator unit that is used to play a file. In OS X it presents a custom UI so can be
     /// used in a UI context as well as in a programmatic context.
     ///
     /// **Available** in OS X v10.4 and later.
-    AudioFilePlayer = 1634103404,
+    AudioFilePlayer = kAudioUnitSubType_AudioFilePlayer as isize,
 }
 
 /// Audio units that can be played as musical instruments via MIDI control.
@@ -382,12 +409,12 @@ pub enum MusicDeviceType {
     /// It fully supports GM-MIDI and the basic extensions of GS-MIDI
     ///
     /// **Available** in OS X v10.2 and later.
-    DLSSynth = 1684828960,
+    DLSSynth = kAudioUnitSubType_DLSSynth as isize,
     /// A monotimbral instrument unit that functions a a sampler-synthesizer and supports full
     /// interactive editing of its state.
     ///
     /// **Available** in OS X v10.7 and later.
-    Sampler = 1935764848,
+    Sampler = kAudioUnitSubType_Sampler as isize,
 }
 
 /// Input/output **AudioUnit** subtypes for **AudioUnit**s provided by Apple.
@@ -407,23 +434,23 @@ pub enum IOType {
     /// a parent audio processing graph.
     ///
     /// **Available** in OS X v10.2 and later.
-    GenericOutput = 1734700658,
+    GenericOutput = kAudioUnitSubType_GenericOutput as isize,
     /// An audio unit that can provides input/output connection to an a specified audio device.
     ///
     /// Bus 0 provides output to the audio device and bus 1 accepts input from the audio device.
     ///
     /// **Available** in OS X v10.2 and later.
-    HalOutput = 1634230636,
+    HalOutput = kAudioUnitSubType_HALOutput as isize,
     /// A specialized **HalOutput** audio unit that connects to the user’s selected default device
     /// in Sound Preferences.
     ///
     /// **Available** in OS X v10.2 and later.
-    DefaultOutput = 1684366880,
+    DefaultOutput = kAudioUnitSubType_DefaultOutput as isize,
     /// A specialized **HalOutput** audio unit that connects to the user’s selected device for
     /// sound effects, alerts, and other user-interface sounds.
     ///
     /// **Available** in OS X v10.2 and later.
-    SystemOutput = 1937339168,
+    SystemOutput = kAudioUnitSubType_SystemOutput as isize,
     /// An audio unit that interfaces to the audio inputs and outputs of iPhone OS devices and
     /// provides voice processing features.
     ///
@@ -434,12 +461,13 @@ pub enum IOType {
     /// enumeration for the identifiers for this audio unit’s properties.
     ///
     /// **Available** in OS X v10.7 and later.
-    VoiceProcessingIO = 1987078511,
+    VoiceProcessingIO = kAudioUnitSubType_VoiceProcessingIO as isize,
     /// Connects to device hardware for input, output, or simultaneous input and output.
     /// Use it for playback, recording, or low-latency simultaneous input and output where echo
     /// cancellation is not needed.
     ///
     /// See <https://developer.apple.com/library/content/documentation/MusicAudio/Conceptual/AudioUnitHostingGuide_iOS/UsingSpecificAudioUnits/UsingSpecificAudioUnits.html>
     /// **Available** in iOS.
-    RemoteIO = 1919512419,
+    #[cfg(target_os = "ios")]
+    RemoteIO = 1919512419, //kAudioUnitSubType_RemoteIO, only available in the ios sdk,
 }

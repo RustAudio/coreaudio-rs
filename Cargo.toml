@@ -48,9 +48,12 @@ objc2-audio-toolbox = { version = "0.3", optional = true, default-features = fal
     "objc2-core-audio",
     "objc2-core-audio-types",
     "AUComponent",
+    "AudioCodec",
     "AudioComponent",
+    "AudioFormat",
     "AudioOutputUnit",
     "AudioUnitProperties",
+    "AudioServices",
     "AudioSession",
 ] }
 objc2-core-audio = { version = "0.3", optional = true, default-features = false, features = [

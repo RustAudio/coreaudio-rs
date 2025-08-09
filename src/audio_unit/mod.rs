@@ -20,6 +20,8 @@
 
 use objc2_audio_toolbox::{
     kAudioUnitManufacturer_Apple, kAudioUnitProperty_SampleRate, kAudioUnitProperty_StreamFormat,
+    kAudioUnitScope_Global, kAudioUnitScope_Group, kAudioUnitScope_Input, kAudioUnitScope_Layer,
+    kAudioUnitScope_LayerItem, kAudioUnitScope_Note, kAudioUnitScope_Output, kAudioUnitScope_Part,
     AudioComponentDescription, AudioComponentFindNext, AudioComponentInstanceDispose,
     AudioComponentInstanceNew, AudioOutputUnitStart, AudioOutputUnitStop,
     AudioUnit as InnerAudioUnit, AudioUnitGetProperty, AudioUnitInitialize, AudioUnitSetProperty,
@@ -54,14 +56,14 @@ pub mod types;
 /// and [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Conceptual/AudioUnitProgrammingGuide/TheAudioUnit/TheAudioUnit.html).
 #[derive(Copy, Clone, Debug)]
 pub enum Scope {
-    Global = 0,
-    Input = 1,
-    Output = 2,
-    Group = 3,
-    Part = 4,
-    Note = 5,
-    Layer = 6,
-    LayerItem = 7,
+    Global = kAudioUnitScope_Global as isize,
+    Input = kAudioUnitScope_Input as isize,
+    Output = kAudioUnitScope_Output as isize,
+    Group = kAudioUnitScope_Group as isize,
+    Part = kAudioUnitScope_Part as isize,
+    Note = kAudioUnitScope_Note as isize,
+    Layer = kAudioUnitScope_Layer as isize,
+    LayerItem = kAudioUnitScope_LayerItem as isize,
 }
 
 /// Represents the **Input** and **Output** **Element**s.

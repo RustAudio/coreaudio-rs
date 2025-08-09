@@ -170,7 +170,7 @@ pub mod data {
 
     impl<S> NonInterleaved<S> {
         /// An iterator yielding a reference to each channel in the array.
-        pub fn channels(&self) -> Channels<S> {
+        pub fn channels(&self) -> Channels<'_, S> {
             Channels {
                 buffers: self.buffers.iter(),
                 frames: self.frames,
@@ -179,7 +179,7 @@ pub mod data {
         }
 
         /// An iterator yielding a mutable reference to each channel in the array.
-        pub fn channels_mut(&mut self) -> ChannelsMut<S> {
+        pub fn channels_mut(&mut self) -> ChannelsMut<'_, S> {
             ChannelsMut {
                 buffers: self.buffers.iter_mut(),
                 frames: self.frames,

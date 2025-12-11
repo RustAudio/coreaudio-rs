@@ -303,6 +303,7 @@ bitflags! {
     /// the **AudioFormat** type.
     ///
     /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
+    #[derive(Copy, Clone, Debug)]
     pub struct StandardFlags: u32 {
         /// Set for floating point, clear for integer.
         ///
@@ -357,6 +358,7 @@ bitflags! {
     /// the **AudioFormat** type.
     ///
     /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
+    #[derive(Copy, Clone, Debug)]
     pub struct LinearPcmFlags: u32 {
         /// Synonym for the **IS_FLOAT** **StandardFlags**.
         ///
@@ -420,6 +422,7 @@ bitflags! {
     /// the **AudioFormat** type.
     ///
     /// Original documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/AudioStreamBasicDescription_Flags).
+    #[derive(Copy, Clone, Debug)]
     pub struct AppleLosslessFlags: u32 {
         /// Sourced from 16 bit native endian signed integer data.
         const BIT_16_SOURCE_DATA = kAppleLosslessFormatFlag_16BitSourceData;
@@ -496,6 +499,7 @@ bitflags! {
     /// **Available** in OS X v10.0 and later.
     ///
     /// Original Documentation [here](https://developer.apple.com/library/mac/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/#//apple_ref/doc/constant_group/Audio_Time_Stamp_Flags).
+    #[derive(Copy, Clone, Debug)]
     pub struct AudioTimeStampFlags: u32 {
         /// The sample frame time is valid.
         const SAMPLE_TIME_VALID = Objc2AudioTimeStampFlags::SampleTimeValid.0;

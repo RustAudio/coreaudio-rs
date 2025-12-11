@@ -34,7 +34,7 @@ audio_unit = ["audio_toolbox"]
 open_al = []
 
 [dependencies]
-bitflags = "1.0"
+bitflags = "2.10"
 libc = "0.2"
 objc2-core-foundation = { version = "0.3", optional = true, default-features = false, features = [
     "std",

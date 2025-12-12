@@ -1,0 +1,22 @@
+[package]
+name = "coreaudio-tvos-example"
+version = "0.1.0"
+authors = ["Ben Roeder <ben@darkworks.net>"]
+edition = "2018"
+
+[lib]
+name = "coreaudio_tvos_example"
+crate-type = ["staticlib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+coreaudio-rs = { path = "../.." }
+objc2-audio-toolbox = { version = "0.3", default-features = false, features = [
+    "std",
+    "AudioUnitProperties",
+] }
+objc2-core-audio-types = { version = "0.3", default-features = false, features = [
+    "std",
+    "CoreAudioBaseTypes",
+] }

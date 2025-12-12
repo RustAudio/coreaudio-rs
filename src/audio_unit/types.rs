@@ -467,7 +467,7 @@ pub enum IOType {
     /// cancellation is not needed.
     ///
     /// See <https://developer.apple.com/library/content/documentation/MusicAudio/Conceptual/AudioUnitHostingGuide_iOS/UsingSpecificAudioUnits/UsingSpecificAudioUnits.html>
-    /// **Available** in iOS.
-    #[cfg(target_os = "ios")]
-    RemoteIO = 1919512419, //kAudioUnitSubType_RemoteIO, only available in the ios sdk,
+    /// **Available** in iOS 2.0 and later, and tvOS 9.0 and later.
+    #[cfg(any(target_os = "ios", target_os = "tvos"))]
+    RemoteIO = 1919512419, // kAudioUnitSubType_RemoteIO, only available in the iOS/tvOS SDK
 }

@@ -571,7 +571,7 @@ impl AudioUnit {
             let buffer_frame_size: u32 = self.get_property(id, Scope::Global, Element::Output)?;
             buffer_frame_size
         };
-        #[cfg(target_os = "ios")]
+        #[cfg(any(target_os = "ios", target_os = "tvos"))]
         let mut buffer_frame_size: u32 = {
             let id = objc2_audio_toolbox::kAudioSessionProperty_CurrentHardwareIOBufferDuration;
             let seconds: f32 = super::audio_session_get_property(id)?;

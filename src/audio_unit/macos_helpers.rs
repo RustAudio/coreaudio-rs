@@ -30,7 +30,7 @@ use objc2_core_audio::{
     AudioObjectSetPropertyData, AudioStreamRangedDescription,
 };
 use objc2_core_audio_types::{AudioBufferList, AudioStreamBasicDescription, AudioValueRange};
-use objc2_core_foundation::CFString;
+use objc2_core_foundation::{CFRetained, CFString};
 
 use crate::audio_unit::audio_format::{AudioFormat, LinearPcmFlags};
 use crate::audio_unit::sample_format::SampleFormat;
@@ -290,8 +290,9 @@ pub fn get_device_name(device_id: AudioDeviceID) -> Result<String, Error> {
             NonNull::from(&mut device_name).cast(),
         );
         try_status_or_return!(status);
-
-        Ok((&*device_name).to_string())
+        let device_name = NonNull::new(device_name as *mut CFString).ok_or(Error::Unknown(0))?;
+        let device_name = CFRetained::from_raw(device_name);
+        Ok(device_name.to_string())
     }
 }
 

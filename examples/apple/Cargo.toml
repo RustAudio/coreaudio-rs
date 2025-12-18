@@ -1,11 +1,11 @@
 [package]
-name = "coreaudio-ios-example"
+name = "coreaudio-apple-example"
 version = "0.1.0"
 authors = ["Michael Hills <mhills@gmail.com>"]
 edition = "2018"
 
 [lib]
-name = "coreaudio_ios_example"
+name = "coreaudio_apple_example"
 crate-type = ["staticlib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

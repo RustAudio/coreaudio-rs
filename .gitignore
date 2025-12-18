@@ -3,3 +3,7 @@ target/
 .cargo/
 .DS_Store
 llvm/
+
+# Xcode build artifacts
+examples/*/build/
+examples/*/Cargo.lock

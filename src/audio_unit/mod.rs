@@ -443,13 +443,13 @@ pub unsafe fn get_property<T>(
 
 /// Gets the value of a specified audio session property.
 ///
-/// **Available** in iOS 2.0 and later.
+/// **Available** in iOS 2.0 and later, and tvOS 9.0 and later.
 ///
 /// Parameters
 /// ----------
 ///
 /// - **id**: The identifier of the property.
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "tvos"))]
 pub fn audio_session_get_property<T>(id: u32) -> Result<T, Error> {
     let mut size = ::std::mem::size_of::<T>() as u32;
     #[allow(deprecated)]

@@ -52,9 +52,7 @@ jobs:
 
   xcode-builds:
     runs-on: macOS-latest
-    env:
-      ONLY_ACTIVE_ARCH: NO
-      ARCHS: arm64
+    working-directory: examples/apple
     steps:
     - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@master
@@ -62,12 +60,9 @@ jobs:
         toolchain: nightly
         components: rust-src
         targets: "aarch64-apple-ios,aarch64-apple-ios-sim"
-    - run: xcodebuild -scheme coreaudio-tvos-example     -configuration Debug -derivedDataPath build -sdk appletvsimulator
-      working-directory: examples/apple
-    - run: xcodebuild -scheme coreaudio-ios-example      -configuration Debug -derivedDataPath build -sdk iphonesimulator
-      working-directory: examples/apple
-    - run: xcodebuild -scheme coreaudio-visionos-example -configuration Debug -derivedDataPath build -sdk xrsimulator
-      working-directory: examples/apple
+    - run: xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=arm64 -scheme coreaudio-tvos-example     -configuration Debug -derivedDataPath build -sdk appletvsimulator
+    - run: xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=arm64 -scheme coreaudio-ios-example      -configuration Debug -derivedDataPath build -sdk iphonesimulator
+    - run: xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=arm64 -scheme coreaudio-visionos-example -configuration Debug -derivedDataPath build -sdk xrsimulator
 
   # Build the docs with all features to make sure docs.rs will work.
   macos-docs:

@@ -69,6 +69,7 @@ objc2-core-audio-types = { version = "0.3", optional = true, default-features = 
     "CoreAudioBaseTypes",
 ] }
 [dev-dependencies]
+[target.'cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))'.dev-dependencies]
 objc2-avf-audio = "0.3.2"
 
 [package.metadata.docs.rs]

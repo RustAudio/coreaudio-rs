@@ -66,6 +66,19 @@ jobs:
     - run: xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=arm64 -scheme coreaudio-visionos-example -configuration Debug -derivedDataPath build -sdk xrsimulator
       working-directory: examples/apple
 
+  check-examples:
+    runs-on: macOS-latest
+    strategy:
+      matrix:
+        rust-target: [aarch64-apple-ios-sim, aarch64-apple-tvos-sim, aarch64-apple-visionos-sim]
+    steps:
+    - uses: actions/checkout@v6
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: nightly
+        components: rust-src
+    - run: cargo +nightly build --all --target ${{ matrix.rust-target }}
+
   # Build the docs with all features to make sure docs.rs will work.
   macos-docs:
     runs-on: macOS-latest

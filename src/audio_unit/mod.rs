@@ -449,7 +449,7 @@ pub unsafe fn get_property<T>(
 /// ----------
 ///
 /// - **id**: The identifier of the property.
-#[cfg(any(target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 pub fn audio_session_get_property<T>(id: u32) -> Result<T, Error> {
     let mut size = ::std::mem::size_of::<T>() as u32;
     #[allow(deprecated)]

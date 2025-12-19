@@ -50,37 +50,22 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  ios-build:
+  xcode-builds:
     runs-on: macOS-latest
-    steps:
-    - uses: actions/checkout@v6
-    - uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: stable
-    - name: Add iOS targets
-      run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim
-    - name: Build iphonesimulator feedback example
-      run: cd examples/apple && xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=arm64 -scheme coreaudio-ios-example -configuration Debug -derivedDataPath build -sdk iphonesimulator
-
-  tvos-build:
-    runs-on: macOS-latest
+    env:
+      ONLY_ACTIVE_ARCH: NO
+      ARCHS: arm64
     steps:
     - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: nightly
         components: rust-src
-    - name: Build for tvOS simulator
-      run: cd examples/apple && cargo +nightly build -Zbuild-std --target aarch64-apple-tvos-sim --release
-    - name: Build for tvOS device
-      run: cd examples/apple && cargo +nightly build -Zbuild-std --target aarch64-apple-tvos --release
-    - uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: stable
-    - name: Add iOS targets
-      run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim
-    - name: Build appletvsimulator example
-      run: cd examples/apple && xcodebuild ONLY_ACTIVE_ARCH=NO ARCHS=arm64 -scheme coreaudio-tvos-example -configuration Debug -derivedDataPath build -sdk appletvsimulator
+        targets: "aarch64-apple-ios,aarch64-apple-ios-sim"
+    - run: cd examples/apple
+    - run: xcodebuild -scheme coreaudio-tvos-example     -configuration Debug -derivedDataPath build -sdk appletvsimulator
+    - run: xcodebuild -scheme coreaudio-ios-example      -configuration Debug -derivedDataPath build -sdk iphonesimulator
+    - run: xcodebuild -scheme coreaudio-visionos-example -configuration Debug -derivedDataPath build -sdk xrsimulator
 
   # Build the docs with all features to make sure docs.rs will work.
   macos-docs:

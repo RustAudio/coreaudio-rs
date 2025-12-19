@@ -34,12 +34,35 @@ impl Iterator for SineWaveGenerator {
 }
 
 fn main() -> Result<(), coreaudio::Error> {
+    #[cfg(any(target_os = "ios", target_os = "visionos", target_os = "tvos"))]
+    unsafe {
+        let session = objc2_avf_audio::AVAudioSession::sharedInstance();
+
+        #[cfg(target_os = "tvos")]
+        let _ = session.setCategory_error(
+            objc2_avf_audio::AVAudioSessionCategoryPlayback.expect("Failed to get option")
+        );
+        #[cfg(any(target_os = "ios", target_os = "tvos"))]
+        let _ = session.setCategory_withOptions_error(
+            objc2_avf_audio::AVAudioSessionCategoryPlayAndRecord.expect("Failed to get options"),
+            objc2_avf_audio::AVAudioSessionCategoryOptions::DefaultToSpeaker,
+        );
+
+    }
     let frequency_hz = 440.;
     let volume = 0.15;
     let mut samples = SineWaveGenerator::new(frequency_hz, volume);
 
     // Construct an Output audio unit that delivers audio to the default output device.
+    #[cfg(target_os = "macos")]
     let mut audio_unit = AudioUnit::new(IOType::DefaultOutput)?;
+
+    #[cfg(any(target_os = "ios", target_os = "visionos", target_os = "tvos"))]
+    let mut audio_unit = AudioUnit::new(coreaudio::audio_unit::IOType::RemoteIO)?;
+
+    // iOS/tvOS/visionOS don't let you reconfigure an "initialized" audio unit, so uninitialize it
+    #[cfg(any(target_os = "ios", target_os = "visionos", target_os = "tvos"))]
+    audio_unit.uninitialize()?;
 
     // Read the input format. This is counterintuitive, but it's the format used when sending
     // audio data to the AudioUnit representing the output device. This is separate from the
@@ -65,9 +88,13 @@ fn main() -> Result<(), coreaudio::Error> {
         }
         Ok(())
     })?;
-    audio_unit.start()?;
+    #[cfg(any(target_os = "ios", target_os = "visionos", target_os = "tvos"))]
+    audio_unit.initialize()?;
 
-    std::thread::sleep(std::time::Duration::from_millis(3000));
+    audio_unit.start()?;
+    println!("Audio started - playing 440Hz sine wave");
+
+    std::thread::sleep(std::time::Duration::from_millis(10_000));
 
     Ok(())
 }

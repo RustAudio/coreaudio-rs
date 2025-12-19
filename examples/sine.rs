@@ -40,14 +40,13 @@ fn main() -> Result<(), coreaudio::Error> {
 
         #[cfg(target_os = "tvos")]
         let _ = session.setCategory_error(
-            objc2_avf_audio::AVAudioSessionCategoryPlayback.expect("Failed to get option")
+            objc2_avf_audio::AVAudioSessionCategoryPlayback.expect("Failed to get option"),
         );
         #[cfg(any(target_os = "ios", target_os = "tvos"))]
         let _ = session.setCategory_withOptions_error(
             objc2_avf_audio::AVAudioSessionCategoryPlayAndRecord.expect("Failed to get options"),
             objc2_avf_audio::AVAudioSessionCategoryOptions::DefaultToSpeaker,
         );
-
     }
     let frequency_hz = 440.;
     let volume = 0.15;

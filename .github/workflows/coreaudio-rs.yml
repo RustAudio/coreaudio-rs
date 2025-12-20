@@ -77,7 +77,7 @@ jobs:
       with:
         toolchain: nightly
         components: rust-src
-    - run: cargo +nightly build --all --target ${{ matrix.rust-target }}
+    - run: cargo +nightly build -Zbuild-std --all --target ${{ matrix.rust-target }}
 
   # Build the docs with all features to make sure docs.rs will work.
   macos-docs:

@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1500"
+   LastUpgradeVersion = "2620"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
-      buildImplicitDependencies = "YES">
+      buildImplicitDependencies = "YES"
+      buildArchitectures = "Automatic">
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
@@ -14,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "3F2CE2872427D32800E2C1A6"
-               BuildableName = "coreaudio-ios-example.app"
-               BlueprintName = "coreaudio-ios-example"
-               ReferencedContainer = "container:coreaudio-ios-example.xcodeproj">
+               BlueprintIdentifier = "9687729F2EF5C86300CBB8F2"
+               BuildableName = "coreaudio-visionos-example.app"
+               BlueprintName = "coreaudio-visionos-example"
+               ReferencedContainer = "container:coreaudio-example.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -43,10 +44,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "3F2CE2872427D32800E2C1A6"
-            BuildableName = "coreaudio-ios-example.app"
-            BlueprintName = "coreaudio-ios-example"
-            ReferencedContainer = "container:coreaudio-ios-example.xcodeproj">
+            BlueprintIdentifier = "9687729F2EF5C86300CBB8F2"
+            BuildableName = "coreaudio-visionos-example.app"
+            BlueprintName = "coreaudio-visionos-example"
+            ReferencedContainer = "container:coreaudio-example.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -60,10 +61,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "3F2CE2872427D32800E2C1A6"
-            BuildableName = "coreaudio-ios-example.app"
-            BlueprintName = "coreaudio-ios-example"
-            ReferencedContainer = "container:coreaudio-ios-example.xcodeproj">
+            BlueprintIdentifier = "9687729F2EF5C86300CBB8F2"
+            BuildableName = "coreaudio-visionos-example.app"
+            BlueprintName = "coreaudio-visionos-example"
+            ReferencedContainer = "container:coreaudio-example.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "TVOS00000000000000000001"
-               BuildableName = "coreaudio-tvos-example.app"
-               BlueprintName = "coreaudio-tvos-example"
-               ReferencedContainer = "container:coreaudio-ios-example.xcodeproj">
+               BlueprintIdentifier = "57AB5AC9252762C10040DE8C"
+               BuildableName = "coreaudio-ios-example.app"
+               BlueprintName = "coreaudio-ios-example"
+               ReferencedContainer = "container:coreaudio-example.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -43,10 +43,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "TVOS00000000000000000001"
-            BuildableName = "coreaudio-tvos-example.app"
-            BlueprintName = "coreaudio-tvos-example"
-            ReferencedContainer = "container:coreaudio-ios-example.xcodeproj">
+            BlueprintIdentifier = "57AB5AC9252762C10040DE8C"
+            BuildableName = "coreaudio-ios-example.app"
+            BlueprintName = "coreaudio-ios-example"
+            ReferencedContainer = "container:coreaudio-example.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -60,10 +60,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "TVOS00000000000000000001"
-            BuildableName = "coreaudio-tvos-example.app"
-            BlueprintName = "coreaudio-tvos-example"
-            ReferencedContainer = "container:coreaudio-ios-example.xcodeproj">
+            BlueprintIdentifier = "57AB5AC9252762C10040DE8C"
+            BuildableName = "coreaudio-ios-example.app"
+            BlueprintName = "coreaudio-ios-example"
+            ReferencedContainer = "container:coreaudio-example.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

@@ -18,11 +18,12 @@ use objc2_core_audio::{
     kAudioDevicePropertyAvailableNominalSampleRates, kAudioDevicePropertyDeviceIsAlive,
     kAudioDevicePropertyDeviceNameCFString, kAudioDevicePropertyHogMode,
     kAudioDevicePropertyNominalSampleRate, kAudioDevicePropertyScopeOutput,
-    kAudioDevicePropertyStreamConfiguration, kAudioHardwareNoError,
-    kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice,
-    kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMaster,
-    kAudioObjectPropertyElementWildcard, kAudioObjectPropertyScopeGlobal,
-    kAudioObjectPropertyScopeInput, kAudioObjectPropertyScopeOutput, kAudioObjectSystemObject,
+    kAudioDevicePropertyStreamConfiguration, kAudioDevicePropertyTransportType,
+    kAudioHardwareNoError, kAudioHardwarePropertyDefaultInputDevice,
+    kAudioHardwarePropertyDefaultOutputDevice, kAudioHardwarePropertyDevices,
+    kAudioObjectPropertyElementMaster, kAudioObjectPropertyElementWildcard,
+    kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyScopeInput,
+    kAudioObjectPropertyScopeOutput, kAudioObjectSystemObject,
     kAudioStreamPropertyAvailablePhysicalFormats, kAudioStreamPropertyPhysicalFormat,
     AudioDeviceID, AudioObjectAddPropertyListener, AudioObjectGetPropertyData,
     AudioObjectGetPropertyDataSize, AudioObjectID, AudioObjectPropertyAddress,
@@ -186,6 +187,28 @@ pub fn get_audio_device_ids() -> Result<Vec<AudioDeviceID>, Error> {
 #[test]
 fn test_get_audio_device_ids() {
     let _ = get_audio_device_ids().expect("Failed to get audio device ids");
+}
+
+#[test]
+fn test_get_available_sample_rates() {
+    if let Some(device_id) = get_default_device_id(false) {
+        let rates = get_available_sample_rates(device_id).expect("Failed to get sample rates");
+        assert!(!rates.is_empty(), "Default output device should support at least one sample rate");
+        for range in &rates {
+            assert!(range.mMinimum > 0.0, "Sample rate minimum should be positive");
+            assert!(range.mMaximum >= range.mMinimum, "Maximum should be >= minimum");
+        }
+    }
+}
+
+#[test]
+fn test_get_device_transport_type() {
+    if let Some(device_id) = get_default_device_id(false) {
+        let transport = get_device_transport_type(device_id).expect("Failed to get transport type");
+        // Transport type should be a non-zero FourCC value (or 0 for unknown)
+        // The default output device typically has a known transport type
+        let _ = transport;
+    }
 }
 
 #[test]
@@ -575,6 +598,76 @@ pub fn get_supported_physical_stream_formats(
         formats
     };
     Ok(allformats)
+}
+
+/// Get the available nominal sample rate ranges for a device.
+///
+/// Returns a vector of [`AudioValueRange`] where each entry describes a supported range.
+/// For devices that support discrete rates, `mMinimum` and `mMaximum` will be equal.
+/// For devices that support continuous ranges, they will differ.
+pub fn get_available_sample_rates(
+    device_id: AudioDeviceID,
+) -> Result<Vec<AudioValueRange>, Error> {
+    let property_address = AudioObjectPropertyAddress {
+        mSelector: kAudioDevicePropertyAvailableNominalSampleRates,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMaster,
+    };
+
+    unsafe {
+        let mut data_size = 0u32;
+        let status = AudioObjectGetPropertyDataSize(
+            device_id,
+            NonNull::from(&property_address),
+            0,
+            null(),
+            NonNull::from(&mut data_size),
+        );
+        Error::from_os_status(status)?;
+
+        let n_ranges = data_size as usize / mem::size_of::<AudioValueRange>();
+        let mut ranges: Vec<AudioValueRange> = vec![];
+        ranges.reserve_exact(n_ranges);
+        ranges.set_len(n_ranges);
+
+        let status = AudioObjectGetPropertyData(
+            device_id,
+            NonNull::from(&property_address),
+            0,
+            null(),
+            NonNull::from(&data_size),
+            NonNull::new(ranges.as_mut_ptr()).unwrap().cast(),
+        );
+        Error::from_os_status(status)?;
+        Ok(ranges)
+    }
+}
+
+/// Get the transport type of a device.
+///
+/// The returned value is one of the `kAudioDeviceTransportType*` constants
+/// (e.g. `kAudioDeviceTransportTypeUSB`, `kAudioDeviceTransportTypeBuiltIn`).
+pub fn get_device_transport_type(device_id: AudioDeviceID) -> Result<u32, Error> {
+    let property_address = AudioObjectPropertyAddress {
+        mSelector: kAudioDevicePropertyTransportType,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMaster,
+    };
+
+    unsafe {
+        let mut transport_type: u32 = 0;
+        let data_size = mem::size_of::<u32>() as u32;
+        let status = AudioObjectGetPropertyData(
+            device_id,
+            NonNull::from(&property_address),
+            0,
+            null(),
+            NonNull::from(&data_size),
+            NonNull::from(&mut transport_type).cast(),
+        );
+        Error::from_os_status(status)?;
+        Ok(transport_type)
+    }
 }
 
 /// Changing the sample rate is an asynchronous process.

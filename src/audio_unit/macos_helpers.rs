@@ -193,10 +193,19 @@ fn test_get_audio_device_ids() {
 fn test_get_available_sample_rates() {
     if let Some(device_id) = get_default_device_id(false) {
         let rates = get_available_sample_rates(device_id).expect("Failed to get sample rates");
-        assert!(!rates.is_empty(), "Default output device should support at least one sample rate");
+        assert!(
+            !rates.is_empty(),
+            "Default output device should support at least one sample rate"
+        );
         for range in &rates {
-            assert!(range.mMinimum > 0.0, "Sample rate minimum should be positive");
-            assert!(range.mMaximum >= range.mMinimum, "Maximum should be >= minimum");
+            assert!(
+                range.mMinimum > 0.0,
+                "Sample rate minimum should be positive"
+            );
+            assert!(
+                range.mMaximum >= range.mMinimum,
+                "Maximum should be >= minimum"
+            );
         }
     }
 }
@@ -605,9 +614,7 @@ pub fn get_supported_physical_stream_formats(
 /// Returns a vector of [`AudioValueRange`] where each entry describes a supported range.
 /// For devices that support discrete rates, `mMinimum` and `mMaximum` will be equal.
 /// For devices that support continuous ranges, they will differ.
-pub fn get_available_sample_rates(
-    device_id: AudioDeviceID,
-) -> Result<Vec<AudioValueRange>, Error> {
+pub fn get_available_sample_rates(device_id: AudioDeviceID) -> Result<Vec<AudioValueRange>, Error> {
     let property_address = AudioObjectPropertyAddress {
         mSelector: kAudioDevicePropertyAvailableNominalSampleRates,
         mScope: kAudioObjectPropertyScopeGlobal,

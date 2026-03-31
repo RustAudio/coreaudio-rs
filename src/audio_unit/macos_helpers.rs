@@ -641,18 +641,18 @@ pub fn get_available_sample_rates(device_id: AudioDeviceID) -> Result<Vec<AudioV
     // SAFETY: AudioObjectGetPropertyData writes exactly n_ranges elements
     // (validated by data_size from the previous call) into the pre-allocated
     // buffer. AudioValueRange is a plain C struct with no drop semantics.
-    unsafe {
+    let status = unsafe {
         ranges.set_len(n_ranges);
-        let status = AudioObjectGetPropertyData(
+        AudioObjectGetPropertyData(
             device_id,
             NonNull::from(&property_address),
             0,
             null(),
             NonNull::from(&data_size),
             NonNull::new(ranges.as_mut_ptr()).unwrap().cast(),
-        );
-        Error::from_os_status(status)?;
-    }
+        )
+    };
+    Error::from_os_status(status)?;
     Ok(ranges)
 }
 

@@ -621,22 +621,28 @@ pub fn get_available_sample_rates(device_id: AudioDeviceID) -> Result<Vec<AudioV
         mElement: kAudioObjectPropertyElementMaster,
     };
 
-    unsafe {
-        let mut data_size = 0u32;
-        let status = AudioObjectGetPropertyDataSize(
+    let mut data_size = 0u32;
+    // SAFETY: AudioObjectGetPropertyDataSize is a CoreAudio C API that reads
+    // the size of the property data into data_size. All pointers passed are
+    // valid stack references via NonNull::from.
+    let status = unsafe {
+        AudioObjectGetPropertyDataSize(
             device_id,
             NonNull::from(&property_address),
             0,
             null(),
             NonNull::from(&mut data_size),
-        );
-        Error::from_os_status(status)?;
+        )
+    };
+    Error::from_os_status(status)?;
 
-        let n_ranges = data_size as usize / mem::size_of::<AudioValueRange>();
-        let mut ranges: Vec<AudioValueRange> = vec![];
-        ranges.reserve_exact(n_ranges);
+    let n_ranges = data_size as usize / mem::size_of::<AudioValueRange>();
+    let mut ranges: Vec<AudioValueRange> = Vec::with_capacity(n_ranges);
+    // SAFETY: AudioObjectGetPropertyData writes exactly n_ranges elements
+    // (validated by data_size from the previous call) into the pre-allocated
+    // buffer. AudioValueRange is a plain C struct with no drop semantics.
+    unsafe {
         ranges.set_len(n_ranges);
-
         let status = AudioObjectGetPropertyData(
             device_id,
             NonNull::from(&property_address),
@@ -646,8 +652,8 @@ pub fn get_available_sample_rates(device_id: AudioDeviceID) -> Result<Vec<AudioV
             NonNull::new(ranges.as_mut_ptr()).unwrap().cast(),
         );
         Error::from_os_status(status)?;
-        Ok(ranges)
     }
+    Ok(ranges)
 }
 
 /// Get the transport type of a device.
@@ -661,20 +667,24 @@ pub fn get_device_transport_type(device_id: AudioDeviceID) -> Result<u32, Error>
         mElement: kAudioObjectPropertyElementMaster,
     };
 
-    unsafe {
-        let mut transport_type: u32 = 0;
-        let data_size = mem::size_of::<u32>() as u32;
-        let status = AudioObjectGetPropertyData(
+    let mut transport_type: u32 = 0;
+    let data_size = mem::size_of::<u32>() as u32;
+    // SAFETY: AudioObjectGetPropertyData is a CoreAudio C API that reads
+    // the transport type (a u32) into transport_type. All pointers passed
+    // are valid stack references via NonNull::from. data_size matches the
+    // size of the output buffer.
+    let status = unsafe {
+        AudioObjectGetPropertyData(
             device_id,
             NonNull::from(&property_address),
             0,
             null(),
             NonNull::from(&data_size),
             NonNull::from(&mut transport_type).cast(),
-        );
-        Error::from_os_status(status)?;
-        Ok(transport_type)
-    }
+        )
+    };
+    Error::from_os_status(status)?;
+    Ok(transport_type)
 }
 
 /// Changing the sample rate is an asynchronous process.

@@ -18,12 +18,12 @@ use objc2_core_audio::{
     kAudioDevicePropertyAvailableNominalSampleRates, kAudioDevicePropertyDeviceIsAlive,
     kAudioDevicePropertyDeviceNameCFString, kAudioDevicePropertyHogMode,
     kAudioDevicePropertyNominalSampleRate, kAudioDevicePropertyScopeOutput,
-    kAudioDevicePropertyStreamConfiguration, kAudioDevicePropertyTransportType,
-    kAudioHardwareNoError, kAudioHardwarePropertyDefaultInputDevice,
-    kAudioHardwarePropertyDefaultOutputDevice, kAudioHardwarePropertyDevices,
-    kAudioObjectPropertyElementMaster, kAudioObjectPropertyElementWildcard,
-    kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyScopeInput,
-    kAudioObjectPropertyScopeOutput, kAudioObjectSystemObject,
+    kAudioDevicePropertyStreamConfiguration, kAudioDevicePropertyStreams,
+    kAudioDevicePropertyTransportType, kAudioHardwareNoError,
+    kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice,
+    kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMaster,
+    kAudioObjectPropertyElementWildcard, kAudioObjectPropertyScopeGlobal,
+    kAudioObjectPropertyScopeInput, kAudioObjectPropertyScopeOutput, kAudioObjectSystemObject,
     kAudioStreamPropertyAvailablePhysicalFormats, kAudioStreamPropertyPhysicalFormat,
     AudioDeviceID, AudioObjectAddPropertyListener, AudioObjectGetPropertyData,
     AudioObjectGetPropertyDataSize, AudioObjectID, AudioObjectPropertyAddress,
@@ -432,9 +432,10 @@ pub fn set_device_sample_rate(device_id: AudioDeviceID, new_rate: f64) -> Result
 /// The provided format flags in the `StreamFormat` are ignored.
 pub fn find_matching_physical_format(
     device_id: AudioDeviceID,
+    scope: Scope,
     stream_format: StreamFormat,
 ) -> Option<AudioStreamBasicDescription> {
-    if let Ok(all_formats) = get_supported_physical_stream_formats(device_id) {
+    if let Ok(all_formats) = get_supported_physical_stream_formats(device_id, scope) {
         let requested_samplerate = stream_format.sample_rate as usize;
         let requested_bits = stream_format.sample_format.size_in_bits();
         let requested_float = stream_format.sample_format == SampleFormat::F32;
@@ -484,73 +485,143 @@ pub fn find_matching_physical_format(
 /// Change the physical stream format (sample rate and format) of a device.
 pub fn set_device_physical_stream_format(
     device_id: AudioDeviceID,
+    scope: Scope,
     new_asbd: AudioStreamBasicDescription,
 ) -> Result<(), Error> {
+    let dev_scope = match scope {
+        Scope::Input => kAudioObjectPropertyScopeInput,
+        Scope::Output => kAudioObjectPropertyScopeOutput,
+        _ => kAudioObjectPropertyScopeGlobal,
+    };
+    let property_address = AudioObjectPropertyAddress {
+        mSelector: kAudioDevicePropertyStreams,
+        mScope: dev_scope,
+        mElement: kAudioObjectPropertyElementMaster,
+    };
+
     unsafe {
-        // Get the current format.
-        let property_address = AudioObjectPropertyAddress {
-            mSelector: kAudioStreamPropertyPhysicalFormat,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMaster,
-        };
-        let mut maybe_asbd: mem::MaybeUninit<AudioStreamBasicDescription> =
-            mem::MaybeUninit::zeroed();
-        let data_size = mem::size_of::<AudioStreamBasicDescription>() as u32;
+        let mut data_size = 0u32;
+        let status = AudioObjectGetPropertyDataSize(
+            device_id,
+            NonNull::from(&property_address),
+            0,
+            null(),
+            NonNull::from(&mut data_size),
+        );
+        Error::from_os_status(status)?;
+
+        let stream_count = data_size / mem::size_of::<AudioObjectID>() as u32;
+        let mut streams = vec![0u32; stream_count as usize];
         let status = AudioObjectGetPropertyData(
             device_id,
             NonNull::from(&property_address),
             0,
             null(),
             NonNull::from(&data_size),
-            NonNull::from(&mut maybe_asbd).cast(),
+            NonNull::new(streams.as_mut_ptr()).unwrap().cast(),
         );
         Error::from_os_status(status)?;
-        let asbd = maybe_asbd.assume_init();
 
-        if !asbds_are_equal(&asbd, &new_asbd) {
+        for stream_id in streams {
+            // Get the current format of this stream.
             let property_address = AudioObjectPropertyAddress {
                 mSelector: kAudioStreamPropertyPhysicalFormat,
                 mScope: kAudioObjectPropertyScopeGlobal,
                 mElement: kAudioObjectPropertyElementMaster,
             };
-
-            let reported_asbd: mem::MaybeUninit<AudioStreamBasicDescription> =
+            let mut current_asbd: mem::MaybeUninit<AudioStreamBasicDescription> =
                 mem::MaybeUninit::zeroed();
-            let mut reported_asbd = reported_asbd.assume_init();
-
-            let status = AudioObjectSetPropertyData(
-                device_id,
+            let data_size = mem::size_of::<AudioStreamBasicDescription>() as u32;
+            let status = AudioObjectGetPropertyData(
+                stream_id,
                 NonNull::from(&property_address),
                 0,
                 null(),
-                data_size,
-                NonNull::from(&new_asbd).cast(),
+                NonNull::from(&data_size),
+                NonNull::from(&mut current_asbd).cast(),
             );
-            Error::from_os_status(status)?;
+            if status != kAudioHardwareNoError {
+                continue;
+            }
+            let current_asbd = current_asbd.assume_init();
 
-            // Wait for the reported format to change.
-            // This can take up to half a second, but we timeout after 2 sec just in case.
-            let timer = ::std::time::Instant::now();
-            loop {
-                let status = AudioObjectGetPropertyData(
-                    device_id,
-                    NonNull::from(&property_address),
-                    0,
-                    null(),
-                    NonNull::from(&data_size),
-                    NonNull::from(&mut reported_asbd).cast(),
-                );
-                Error::from_os_status(status)?;
-                if asbds_are_equal(&reported_asbd, &new_asbd) {
-                    break;
+            // Check if this stream supports the new format by looking at available formats.
+            let mut formats_address = property_address;
+            formats_address.mSelector = kAudioStreamPropertyAvailablePhysicalFormats;
+            let mut data_size = 0u32;
+            let status = AudioObjectGetPropertyDataSize(
+                stream_id,
+                NonNull::from(&formats_address),
+                0,
+                null(),
+                NonNull::from(&mut data_size),
+            );
+            if status != kAudioHardwareNoError {
+                continue;
+            }
+            let n_formats = data_size / mem::size_of::<AudioStreamRangedDescription>() as u32;
+            let mut formats = vec![
+                mem::MaybeUninit::<AudioStreamRangedDescription>::uninit();
+                n_formats as usize
+            ];
+            let status = AudioObjectGetPropertyData(
+                stream_id,
+                NonNull::from(&formats_address),
+                0,
+                null(),
+                NonNull::from(&data_size),
+                NonNull::new(formats.as_mut_ptr()).unwrap().cast(),
+            );
+            if status != kAudioHardwareNoError {
+                continue;
+            }
+
+            let supported = formats.into_iter().any(|f| {
+                let f = f.assume_init();
+                let min_rate = f.mSampleRateRange.mMinimum as usize;
+                let max_rate = f.mSampleRateRange.mMaximum as usize;
+                let rate = new_asbd.mSampleRate as usize;
+                rate >= min_rate && rate <= max_rate
+            });
+
+            if supported {
+                if !asbds_are_equal(&current_asbd, &new_asbd) {
+                    let status = AudioObjectSetPropertyData(
+                        stream_id,
+                        NonNull::from(&property_address),
+                        0,
+                        null(),
+                        data_size,
+                        NonNull::from(&new_asbd).cast(),
+                    );
+                    Error::from_os_status(status)?;
+
+                    // Wait for the reported format to change.
+                    let timer = ::std::time::Instant::now();
+                    let mut reported_asbd = current_asbd;
+                    loop {
+                        let status = AudioObjectGetPropertyData(
+                            stream_id,
+                            NonNull::from(&property_address),
+                            0,
+                            null(),
+                            NonNull::from(&data_size),
+                            NonNull::from(&mut reported_asbd).cast(),
+                        );
+                        Error::from_os_status(status)?;
+                        if asbds_are_equal(&reported_asbd, &new_asbd) {
+                            break;
+                        }
+                        thread::sleep(Duration::from_millis(5));
+                        if timer.elapsed() > Duration::from_secs(2) {
+                            return Err(Error::UnsupportedStreamFormat);
+                        }
+                    }
                 }
-                thread::sleep(Duration::from_millis(5));
-                if timer.elapsed() > Duration::from_secs(2) {
-                    return Err(Error::UnsupportedStreamFormat);
-                }
+                return Ok(());
             }
         }
-        Ok(())
+        Err(Error::UnsupportedStreamFormat)
     }
 }
 
@@ -569,18 +640,23 @@ fn asbds_are_equal(
         && left.mBitsPerChannel == right.mBitsPerChannel
 }
 
-/// Get a vector with all supported physical formats as AudioBasicRangedDescriptions.
+/// Get a vector with all supported physical formats as AudioBasicRangedDescriptions for a given scope.
 pub fn get_supported_physical_stream_formats(
     device_id: AudioDeviceID,
+    scope: Scope,
 ) -> Result<Vec<AudioStreamRangedDescription>, Error> {
-    // Get available formats.
-    let mut property_address = AudioObjectPropertyAddress {
-        mSelector: kAudioStreamPropertyPhysicalFormat,
-        mScope: kAudioObjectPropertyScopeGlobal,
+    let dev_scope = match scope {
+        Scope::Input => kAudioObjectPropertyScopeInput,
+        Scope::Output => kAudioObjectPropertyScopeOutput,
+        _ => kAudioObjectPropertyScopeGlobal,
+    };
+    let property_address = AudioObjectPropertyAddress {
+        mSelector: kAudioDevicePropertyStreams,
+        mScope: dev_scope,
         mElement: kAudioObjectPropertyElementMaster,
     };
-    let allformats = unsafe {
-        property_address.mSelector = kAudioStreamPropertyAvailablePhysicalFormats;
+
+    unsafe {
         let mut data_size = 0u32;
         let status = AudioObjectGetPropertyDataSize(
             device_id,
@@ -590,23 +666,55 @@ pub fn get_supported_physical_stream_formats(
             NonNull::from(&mut data_size),
         );
         Error::from_os_status(status)?;
-        let n_formats = data_size as usize / mem::size_of::<AudioStreamRangedDescription>();
-        let mut formats: Vec<AudioStreamRangedDescription> = vec![];
-        formats.reserve_exact(n_formats);
-        formats.set_len(n_formats);
 
+        let stream_count = data_size / mem::size_of::<AudioObjectID>() as u32;
+        let mut streams = vec![0u32; stream_count as usize];
         let status = AudioObjectGetPropertyData(
             device_id,
             NonNull::from(&property_address),
             0,
             null(),
             NonNull::from(&data_size),
-            NonNull::new(formats.as_mut_ptr()).unwrap().cast(),
+            NonNull::new(streams.as_mut_ptr()).unwrap().cast(),
         );
         Error::from_os_status(status)?;
-        formats
-    };
-    Ok(allformats)
+
+        let mut allformats = Vec::new();
+        for stream_id in streams {
+            let property_address = AudioObjectPropertyAddress {
+                mSelector: kAudioStreamPropertyAvailablePhysicalFormats,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMaster,
+            };
+            let mut data_size = 0u32;
+            if AudioObjectGetPropertyDataSize(
+                stream_id,
+                NonNull::from(&property_address),
+                0,
+                null(),
+                NonNull::from(&mut data_size),
+            ) == kAudioHardwareNoError
+            {
+                let n_formats = data_size / mem::size_of::<AudioStreamRangedDescription>() as u32;
+                let mut formats = vec![
+                    mem::MaybeUninit::<AudioStreamRangedDescription>::uninit();
+                    n_formats as usize
+                ];
+                if AudioObjectGetPropertyData(
+                    stream_id,
+                    NonNull::from(&property_address),
+                    0,
+                    null(),
+                    NonNull::from(&data_size),
+                    NonNull::new(formats.as_mut_ptr()).unwrap().cast(),
+                ) == kAudioHardwareNoError
+                {
+                    allformats.extend(formats.into_iter().map(|f| f.assume_init()));
+                }
+            }
+        }
+        Ok(allformats)
+    }
 }
 
 /// Get the available nominal sample rate ranges for a device.

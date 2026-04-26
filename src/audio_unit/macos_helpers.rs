@@ -107,7 +107,12 @@ pub fn audio_unit_from_device_id_uninitialized(
     device_id: AudioDeviceID,
     input: bool,
 ) -> Result<AudioUnit, Error> {
-    let mut audio_unit = AudioUnit::new_uninitialized(IOType::HalOutput)?;
+    let output_type = if !input && get_default_device_id(false).is_some_and(|d| d == device_id) {
+        IOType::DefaultOutput
+    } else {
+        IOType::HalOutput
+    };
+    let mut audio_unit = AudioUnit::new_uninitialized(output_type)?;
 
     if input {
         // Enable input processing.

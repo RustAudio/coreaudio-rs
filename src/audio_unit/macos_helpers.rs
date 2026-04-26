@@ -91,12 +91,23 @@ pub fn get_device_id_from_name(name: &str, input: bool) -> Option<AudioDeviceID>
 }
 
 /// Create an AudioUnit instance from a device id.
-/// Set `input` to `true` to create a playback device, or `false` for a capture device.
+/// Set `input` to `true` to create a capture device, or `false` for a playback device.
 pub fn audio_unit_from_device_id(
     device_id: AudioDeviceID,
     input: bool,
 ) -> Result<AudioUnit, Error> {
-    let mut audio_unit = AudioUnit::new(IOType::HalOutput)?;
+    let mut audio_unit = audio_unit_from_device_id_uninitialized(device_id, input)?;
+    audio_unit.initialize()?;
+    Ok(audio_unit)
+}
+
+/// Create an AudioUnit instance from a device id without initializing it.
+/// Set `input` to `true` to create a capture device, or `false` for a playback device.
+pub fn audio_unit_from_device_id_uninitialized(
+    device_id: AudioDeviceID,
+    input: bool,
+) -> Result<AudioUnit, Error> {
+    let mut audio_unit = AudioUnit::new_uninitialized(IOType::HalOutput)?;
 
     if input {
         // Enable input processing.

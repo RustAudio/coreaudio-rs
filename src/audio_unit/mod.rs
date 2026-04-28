@@ -124,9 +124,36 @@ impl AudioUnit {
         AudioUnit::new_with_flags(ty, 0, 0)
     }
 
+    /// Construct a new AudioUnit with any type that may be automatically converted into
+    /// [**Type**](./enum.Type). This constructor leaves the audio unit uninitialized
+    /// for the caller to decide when to do it manually!
+    ///
+    /// Here is a list of compatible types:
+    ///
+    /// - [**Type**](./types/enum.Type)
+    /// - [**IOType**](./types/enum.IOType)
+    /// - [**MusicDeviceType**](./types/enum.MusicDeviceType)
+    /// - [**GeneratorType**](./types/enum.GeneratorType)
+    /// - [**FormatConverterType**](./types/enum.FormatConverterType)
+    /// - [**EffectType**](./types/enum.EffectType)
+    /// - [**MixerType**](./types/enum.MixerType)
+    ///
+    /// To construct the **AudioUnit** with some component flags, see
+    /// [**AudioUnit::new_with_flags**](./struct.AudioUnit#method.new_with_flags).
+    ///
+    /// Note: the `AudioUnit` is constructed with the `kAudioUnitManufacturer_Apple` Manufacturer
+    /// Identifier, as this is the only Audio Unit Manufacturer Identifier documented by Apple in
+    /// the AudioUnit reference (see [here](https://developer.apple.com/library/prerelease/mac/documentation/AudioUnit/Reference/AUComponentServicesReference/index.html#//apple_ref/doc/constant_group/Audio_Unit_Manufacturer_Identifier)).
+    pub fn new_uninitialized<T>(ty: T) -> Result<AudioUnit, Error>
+    where
+        T: Into<Type>,
+    {
+        AudioUnit::new_with_flags_uninitialized(ty, 0, 0)
+    }
+
     /// The same as [**AudioUnit::new**](./struct.AudioUnit#method.new) but with the given
     /// component flags and mask.
-    pub fn new_with_flags<T>(ty: T, flags: u32, mask: u32) -> Result<AudioUnit, Error>
+    pub fn new_with_flags_uninitialized<T>(ty: T, flags: u32, mask: u32) -> Result<AudioUnit, Error>
     where
         T: Into<Type>,
     {
@@ -168,14 +195,23 @@ impl AudioUnit {
             ));
             let instance: InnerAudioUnit = instance_uninit.assume_init();
 
-            // Initialise the audio unit!
-            try_os_status!(AudioUnitInitialize(instance));
             Ok(AudioUnit {
                 instance,
                 maybe_render_callback: None,
                 maybe_input_callback: None,
             })
         }
+    }
+
+    /// The same as [**AudioUnit::new**](./struct.AudioUnit#method.new) but with the given
+    /// component flags and mask.
+    pub fn new_with_flags<T>(ty: T, flags: u32, mask: u32) -> Result<AudioUnit, Error>
+    where
+        T: Into<Type>,
+    {
+        let mut audio_unit = AudioUnit::new_with_flags_uninitialized(ty, flags, mask)?;
+        audio_unit.initialize()?;
+        Ok(audio_unit)
     }
 
     /// On successful initialization, the audio formats for input and output are valid

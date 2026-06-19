@@ -109,7 +109,7 @@ fn main() -> Result<(), coreaudio::Error> {
 
     // Lets print all supported formats, disabled for now since it often crashes.
     println!("All supported formats");
-    let formats = get_supported_physical_stream_formats(audio_unit_id)?;
+    let formats = get_supported_physical_stream_formats(audio_unit_id, Scope::Output)?;
     for fmt in formats {
         println!("{:?}", &fmt);
     }
@@ -128,14 +128,14 @@ fn main() -> Result<(), coreaudio::Error> {
         channels: 2,
     };
 
-    let hw_asbd = find_matching_physical_format(audio_unit_id, hw_stream_format)
+    let hw_asbd = find_matching_physical_format(audio_unit_id, Scope::Output, hw_stream_format)
         .ok_or(coreaudio::Error::UnsupportedStreamFormat)?;
 
     println!("asbd: {:?}", hw_asbd);
 
     // Note that using a StreamFormat here is convenient, but it only supports a few sample formats.
     // Setting the format to for example 24 bit integers requires using an ASBD.
-    set_device_physical_stream_format(audio_unit_id, hw_asbd)?;
+    set_device_physical_stream_format(audio_unit_id, Scope::Output, hw_asbd)?;
 
     println!("write audio unit StreamFormat property");
     let id = kAudioUnitProperty_StreamFormat;

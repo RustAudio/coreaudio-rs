@@ -1,7 +1,6 @@
 use objc2_audio_toolbox::{
     kAudioOutputUnitProperty_SetInputCallback, kAudioUnitProperty_SetRenderCallback,
-    kAudioUnitProperty_StreamFormat, AURenderCallbackStruct, AudioUnitRender,
-    AudioUnitRenderActionFlags,
+    AURenderCallbackStruct, AudioUnitRender, AudioUnitRenderActionFlags,
 };
 use objc2_core_audio_types::{AudioBuffer, AudioBufferList, AudioTimeStamp};
 
@@ -585,7 +584,8 @@ impl AudioUnit {
             return Err(Error::NonInterleavedInputOnlySupportsMono);
         }
 
-        let data_byte_size = buffer_frame_size * sample_bytes as u32 * n_channels;
+        let frame_bytes = sample_bytes * n_channels as usize;
+        let data_byte_size = buffer_frame_size * frame_bytes as u32;
         let mut data = vec![0u8; data_byte_size as usize];
         let mut buffer_capacity = data_byte_size as usize;
         let audio_buffer = AudioBuffer {
@@ -621,21 +621,10 @@ impl AudioUnit {
             // If the buffer size has changed, ensure the AudioBuffer is the correct size.
             if buffer_frame_size != in_number_frames {
                 unsafe {
-                    // Retrieve the up-to-date stream format.
-                    let id = kAudioUnitProperty_StreamFormat;
-                    let asbd =
-                        match super::get_property(audio_unit, id, Scope::Output, Element::Input) {
-                            Err(err) => return err.as_os_status(),
-                            Ok(asbd) => asbd,
-                        };
-                    let stream_format = match super::StreamFormat::from_asbd(asbd) {
-                        Err(err) => return err.as_os_status(),
-                        Ok(fmt) => fmt,
-                    };
-                    let sample_bytes = stream_format.sample_format.size_in_bytes();
-                    let n_channels = stream_format.channels;
-                    let data_byte_size =
-                        in_number_frames as usize * sample_bytes * n_channels as usize;
+                    // The format read at setup, never a property read here: this runs on
+                    // the IO thread, which `AudioOutputUnitStart` waits on while
+                    // holding the unit's API lock, so a read deadlocks them.
+                    let data_byte_size = in_number_frames as usize * frame_bytes;
                     let ptr = (*audio_buffer_list_ptr).mBuffers.as_ptr() as *mut AudioBuffer;
                     let len = (*audio_buffer_list_ptr).mNumberBuffers as usize;
 
@@ -779,4 +768,154 @@ extern "C-unwind" fn input_proc(
         in_number_frames,
         io_data,
     )
+}
+
+/// iOS only: AURemoteIO holds its API lock while calling property listeners, which
+/// is what lets this test hold it. macOS's AUHAL does not, so there it proves nothing.
+/// Run with `CARGO_TARGET_AARCH64_APPLE_IOS_SIM_RUNNER="xcrun simctl spawn booted"
+/// cargo test --target aarch64-apple-ios-sim --lib`.
+#[cfg(all(test, target_os = "ios"))]
+mod tests {
+    use super::super::{IOType, SampleFormat, StreamFormat};
+    use super::*;
+    use objc2_audio_toolbox::{
+        kAudioUnitProperty_MaximumFramesPerSlice, AudioUnitAddPropertyListener, AudioUnitElement,
+        AudioUnitPropertyID, AudioUnitScope,
+    };
+    use std::sync::mpsc::{self, Receiver, Sender};
+    use std::time::Duration;
+
+    /// Parks the thread that holds the unit's API lock until the test lets it go.
+    struct Hold {
+        inside: Sender<()>,
+        release: Receiver<()>,
+    }
+
+    unsafe extern "C-unwind" fn hold_listener(
+        user: NonNull<c_void>,
+        _: objc2_audio_toolbox::AudioUnit,
+        _: AudioUnitPropertyID,
+        _: AudioUnitScope,
+        _: AudioUnitElement,
+    ) {
+        // SAFETY: `user` is the `Hold` the test registered, alive until the unit is dropped.
+        let hold = unsafe { user.cast::<Hold>().as_ref() };
+        let _ = hold.inside.send(());
+        let _ = hold.release.recv_timeout(Duration::from_secs(5));
+    }
+
+    /// Hands a raw pointer to a test thread, joined before its owner drops.
+    struct SendPtr<T>(T);
+    // SAFETY: each is used by one spawned thread, joined before the unit drops.
+    unsafe impl<T> Send for SendPtr<T> {}
+
+    /// The IO thread runs the input proc while `AudioOutputUnitStart` holds
+    /// the unit's API lock and waits for that IO cycle, so the input proc must never
+    /// take that lock: a buffer-size change used to read the stream format there,
+    /// which deadlocked a starting RemoteIO unit on a route change.
+    #[test]
+    fn a_buffer_size_change_in_the_input_proc_never_waits_on_the_unit_api_lock() {
+        let mut unit = AudioUnit::new_uninitialized(IOType::RemoteIO).unwrap();
+        let format = StreamFormat {
+            sample_rate: 48_000.0,
+            sample_format: SampleFormat::F32,
+            flags: LinearPcmFlags::IS_FLOAT | LinearPcmFlags::IS_PACKED,
+            channels: 2,
+        };
+        unit.set_stream_format(format, Scope::Output, Element::Input)
+            .unwrap();
+        unit.set_input_callback(|_: Args<data::Interleaved<f32>>| Ok(()))
+            .unwrap();
+        let callback = SendPtr(unit.maybe_input_callback.as_ref().unwrap().callback);
+
+        let (inside_tx, inside) = mpsc::channel();
+        let (release, release_rx) = mpsc::channel();
+        let hold = Box::new(Hold {
+            inside: inside_tx,
+            release: release_rx,
+        });
+        let hold_ptr = &*hold as *const Hold as *mut c_void;
+        let id = kAudioUnitProperty_MaximumFramesPerSlice;
+        // SAFETY: `hold` outlives the unit's last property change in this test.
+        let status = unsafe {
+            AudioUnitAddPropertyListener(unit.instance, id, Some(hold_listener), hold_ptr)
+        };
+        assert_eq!(status, 0);
+
+        let instance = SendPtr(unit.instance);
+        let holder = std::thread::spawn(move || {
+            let instance = instance;
+            // Not any default, so the change fires the listener.
+            let frames: u32 = 1234;
+            // SAFETY: a live unit and a u32 property of the size given.
+            unsafe {
+                objc2_audio_toolbox::AudioUnitSetProperty(
+                    instance.0,
+                    id,
+                    Scope::Global as u32,
+                    0,
+                    &frames as *const u32 as *const c_void,
+                    mem::size_of::<u32>() as u32,
+                )
+            }
+        });
+        inside
+            .recv_timeout(Duration::from_secs(2))
+            .expect("listener ran under SetProperty");
+
+        // Positive control: the premise is that the listener holds the API lock,
+        // so any API call must block now. If iOS changes that, this test is void.
+        let (probe_tx, probe_done) = mpsc::channel();
+        let probe_instance = SendPtr(unit.instance);
+        let probe = std::thread::spawn(move || {
+            let instance = probe_instance;
+            let mut value: u32 = 0;
+            let mut size = mem::size_of::<u32>() as u32;
+            // SAFETY: a live unit and a u32 property of the size given.
+            unsafe {
+                objc2_audio_toolbox::AudioUnitGetProperty(
+                    instance.0,
+                    id,
+                    Scope::Global as u32,
+                    0,
+                    NonNull::from(&mut value).cast(),
+                    NonNull::from(&mut size),
+                );
+            }
+            let _ = probe_tx.send(());
+        });
+        let lock_held = probe_done.recv_timeout(Duration::from_millis(300)).is_err();
+
+        let (done_tx, done) = mpsc::channel();
+        let io = std::thread::spawn(move || {
+            let callback = callback;
+            let mut flags = AudioUnitRenderActionFlags(0);
+            // SAFETY: zeroed is a valid timestamp (no fields valid).
+            let mut stamp: AudioTimeStamp = unsafe { mem::zeroed() };
+            // An odd count no device buffer size matches, so the resize path runs.
+            let frames = 333;
+            // SAFETY: the wrapper is the unit's live input callback.
+            let wrapper = unsafe { &mut *callback.0 };
+            let _ = (wrapper.callback)(
+                NonNull::from(&mut flags),
+                NonNull::from(&mut stamp),
+                1,
+                frames,
+                std::ptr::null_mut(),
+            );
+            let _ = done_tx.send(());
+        });
+        let returned = done.recv_timeout(Duration::from_millis(500)).is_ok();
+        let _ = release.send(());
+        holder.join().unwrap();
+        io.join().unwrap();
+        probe.join().unwrap();
+        drop(unit);
+        drop(hold);
+        assert!(
+            lock_held,
+            "premise gone: the listener no longer holds the API lock"
+        );
+        assert!(returned, "the input proc blocked on the unit's API lock");
+    }
 }
